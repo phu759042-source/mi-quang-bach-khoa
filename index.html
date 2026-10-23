@@ -288,6 +288,39 @@ function endDay(){
   showShop();
 }
 
+/* ================= Mạng: gửi lại khi lỗi (Safari iOS hay hỏng kết nối cũ) ================= */
+const isNetErr=err=>!err.code&&/load failed|failed to fetch|networkerror|network request|fetch/i.test(err.message||'');
+async function rpcRetry(fn,args,tries=4){
+  let res;
+  for(let i=0;i<tries;i++){
+    try{res=await sb.rpc(fn,args)}catch(e){res={data:null,error:{message:String(e)}}}
+    if(!res.error||!isNetErr(res.error)) return res;
+    await new Promise(r=>setTimeout(r,[400,1200,2500][i]||2500));
+  }
+  return res;
+}
+function savePending(p){try{localStorage.setItem('mqbk-pending',JSON.stringify(p))}catch(e){}}
+function loadPending(){try{return JSON.parse(localStorage.getItem('mqbk-pending'))}catch(e){return null}}
+function clearPending(){try{localStorage.removeItem('mqbk-pending')}catch(e){}}
+let memPending=null;
+async function submitPending(p){
+  memPending=p;
+  const res=await rpcRetry('nop_ket_qua',{p_run_id:p.run,p_so_ngay:p.so_ngay,p_doanh_thu:p.doanh_thu,p_tim_mat:p.tim_mat});
+  if(!res.error){clearPending();memPending=null;return res}
+  if(isNetErr(res.error)) return res;              // giữ lại để nộp sau
+  clearPending();memPending=null;                  // lỗi từ server: không thử lại nữa
+  if(/đã nộp/.test(res.error.message)){await loadProfile();return {data:{delta:null,diem:profile?.diem??0,hang:myRank}}}
+  return res;
+}
+// Nộp kết quả còn treo trước khi mở lượt mới, để lượt cũ không bị tính là bỏ dở
+async function flushPending(){
+  const p=loadPending()||memPending;
+  if(!p||!user||p.uid!==user.id) return true;
+  const {error}=await submitPending(p);
+  if(!error){await loadProfile();return true}
+  return !isNetErr(error);
+}
+
 /* ================= Kết thúc lượt & nộp điểm ================= */
 async function finishRun(why, cashOut=false){
   running=false;
@@ -307,20 +340,36 @@ async function finishRun(why, cashOut=false){
       <div class="col grow"><button class="btn" id="again">Chơi lại</button><button class="btn ghost" id="home">Về màn hình chính</button></div>`;
     $('again').onclick=()=>startRun(); $('home').onclick=home; return;
   }
-  ov.innerHTML=`${head}<p>${esc(why)}</p>${summary}<div class="msg" id="msg">Đang nộp điểm…</div>`;
-  submitting=true;
-  const {data,error}=await sb.rpc('nop_ket_qua',{p_run_id:runId,p_so_ngay:S.day,p_doanh_thu:S.total,p_tim_mat:lost});
-  submitting=false; runId=null;
-  if(error){
-    ov.innerHTML=`${head}${summary}<div class="msg">Không nộp được điểm: ${esc(error.message)}</div>
-      <div class="col grow"><button class="btn" id="home">Về màn hình chính</button></div>`;
-    $('home').onclick=home; return;
-  }
+  // Lưu kết quả trên máy trước khi gửi, để không mất nếu mạng lỗi
+  const pend={uid:user.id,run:runId,so_ngay:S.day,doanh_thu:S.total,tim_mat:lost};
+  savePending(pend); runId=null;
+  const trySubmit=async()=>{
+    ov.innerHTML=`${head}<p>${esc(why)}</p>${summary}<div class="msg ok" id="msg">Đang nộp điểm…</div>`;
+    submitting=true;
+    const {data,error}=await submitPending(pend);
+    submitting=false;
+    if(error&&!isNetErr(error)){
+      ov.innerHTML=`${head}${summary}<div class="msg">Không nộp được điểm: ${esc(error.message)}</div>
+        <div class="col grow"><button class="btn" id="home">Về màn hình chính</button></div>`;
+      $('home').onclick=home; return;
+    }
+    if(error){
+      ov.innerHTML=`${head}${summary}<div class="msg">Chưa nộp được điểm do mạng chập chờn.</div>
+        <p class="muted">Kết quả đã được lưu trên máy này. Bấm thử lại, hoặc lần sau mở game trên máy này sẽ tự nộp. Lượt này không bị tính là bỏ dở.</p>
+        <div class="col grow"><button class="btn" id="retry">Thử nộp lại</button><button class="btn ghost" id="home">Về màn hình chính</button></div>`;
+      $('retry').onclick=trySubmit; $('home').onclick=home; return;
+    }
+    showResult(head,why,summary,data);
+  };
+  trySubmit();
+}
+function showResult(head,why,summary,data){
+  const ov=$('ov');
   if(profile) profile.diem=data.diem; myRank=data.hang;
   const d=data.delta;
   ov.innerHTML=`${head}<p>${esc(why)}</p>
     <div><div class="eyebrow">Điểm Bách Khoa</div>
-      <div class="big" style="color:${d>=0?'var(--leaf)':'var(--chili)'}">${d>=0?'+':'−'}${Math.abs(d)}</div>
+      <div class="big" style="color:${d==null||d>=0?'var(--leaf)':'var(--chili)'}">${d==null?'Đã ghi nhận':(d>=0?'+':'−')+Math.abs(d)}</div>
       <p class="muted">Bây giờ bạn có <b>${data.diem}</b> ĐBK, hạng <b>#${data.hang}</b> toàn trường.</p></div>
     ${summary}
     <div class="col grow"><button class="btn" id="again">Chơi lượt mới</button>
@@ -417,6 +466,7 @@ function viErr(m){
 }
 async function afterLogin(){
   await loadProfile();
+  if(profile) await flushPending();
   ranked=!!profile;
   profile?home():profileScreen();
 }
@@ -481,7 +531,7 @@ function home(){
     <button class="btn ghost" id="lb">Bảng xếp hạng</button>
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
-    <div class="muted">Phiên bản 1.2</div>
+    <div class="muted">Phiên bản 1.3</div>
   </div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -496,7 +546,8 @@ function home(){
 async function startRun(){
   if(ranked){
     const msg=$('msg'); if(msg){msg.className='msg ok';msg.textContent='Đang mở quán…'}
-    const {data,error}=await sb.rpc('bat_dau_luot',{p_do_kho:diff});
+    if(!(await flushPending())){ if(msg){msg.className='msg';msg.textContent='Còn một kết quả chưa nộp được do mạng. Kiểm tra mạng rồi bấm Mở quán lại.'} return }
+    const {data,error}=await rpcRetry('bat_dau_luot',{p_do_kho:diff},3);
     if(error){ if(msg){msg.className='msg';msg.textContent=error.message} else toast(error.message); return }
     runId=data;
   }
