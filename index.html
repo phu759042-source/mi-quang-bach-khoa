@@ -40,7 +40,19 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
 .stat b{display:block;font-family:var(--display);font-size:18px;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stat span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .stat.time b{color:var(--chili)}
-.hearts{color:var(--chili);letter-spacing:1px}
+.hearts{color:var(--chili);display:flex!important;gap:2px;align-items:center;height:20px}
+.hearts svg{width:11px;height:11px;flex:none}
+.kitchen{display:contents}
+.desk{display:none!important}
+kbd{display:none;font:700 10px/1 var(--body);color:var(--muted);background:var(--paper);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:3px 5px;min-width:18px;text-align:center}
+@media (hover:hover) and (pointer:fine){
+  kbd{display:inline-block}
+  .ing{position:relative}.ing kbd{position:absolute;top:5px;right:5px}
+  .cust kbd.k-table{position:absolute;top:6px;right:6px}
+  .btn kbd{margin-left:8px;vertical-align:2px;background:transparent;color:inherit;border-color:currentColor;opacity:.7}
+  .ing:hover{border-color:var(--turmeric)}
+  .cust[data-i]:hover{border-color:var(--navy)}
+}
 .event{font-size:12px;font-weight:700;color:var(--navy);text-align:center;margin-top:-4px}
 .event .tag{display:inline-block;padding:1px 7px;border-radius:999px;color:#fff;margin-right:4px;font-size:11px}
 
@@ -167,6 +179,61 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .shake{animation:sh .35s}
 @keyframes sh{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 @media (prefers-reduced-motion:reduce){.float,.shake{animation:none}.float{display:none}}
+/* ======== Laptop / màn hình rộng ======== */
+@media (min-width:900px) and (min-height:560px){
+  .desk{display:revert!important}
+  .mob{display:none!important}
+  #app{max-width:1180px;display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto auto auto minmax(0,1fr);
+    column-gap:28px;row-gap:12px;padding-block:20px}
+  .bar{grid-column:1;grid-row:1}
+  .event{grid-column:1;grid-row:2;margin-top:0;text-align:left;font-size:13px}
+  .tables{grid-column:1;grid-row:3;gap:12px}
+  .station{grid-column:1;grid-row:4}
+  .kitchen{grid-column:2;grid-row:1/5;display:flex;flex-direction:column;gap:12px;background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:18px;min-height:0}
+  .k-head{display:flex!important;flex-direction:column;gap:2px}
+  .k-head b{font-family:var(--display);font-size:24px;line-height:1;color:var(--navy)}
+  .k-head span{font-size:12px;color:var(--muted)}
+  .kitchen .pad{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;flex:1;align-content:start}
+  .ing{flex-direction:row;justify-content:flex-start;gap:10px;padding:10px 12px;background:var(--paper)}
+  .ing svg{width:34px;height:34px}
+  .ing span{font-size:14px}
+  .acts{grid-template-columns:1fr 1.7fr}
+  .stat{padding:8px 12px}
+  .stat b{font-size:24px}
+  .stat span{font-size:11px}
+  .hearts{height:28px}.hearts svg{width:17px;height:17px}
+  .cust{min-height:178px;padding:12px 10px 12px;gap:7px}
+  .ava{width:46px;height:46px;font-size:14px}
+  .who{font-size:13px}
+  .order svg{width:26px;height:26px}
+  .quote{font-size:12px}
+  #bowl{max-width:440px}
+  .hint{font-size:15px}
+  /* màn phủ */
+  .ov{align-items:center;padding-block:36px}
+  .ov > *{width:100%;max-width:640px}
+  .ov > .grow{margin-top:8px}
+  .ov h1{font-size:76px;line-height:.9}
+  .ov h2{font-size:38px}
+  .split{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:56px;align-items:center;margin-block:auto;max-width:1060px!important}
+  .split-a,.split-b{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .split-b{background:var(--card);border:1.5px solid var(--line);border-radius:22px;padding:28px}
+  .split-b .grow{margin-top:8px}
+  .hero-icon{width:88px;height:88px;border-radius:22px;box-shadow:0 8px 24px rgba(27,58,107,.18)}
+  .keys kbd{display:inline-block}
+  .podium{gap:14px}
+  .ov > p{max-width:640px}
+  #shop{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+}
+@media (max-width:390px){
+  .bar{gap:4px}
+  .stat{padding:5px 6px}
+  .stat b{font-size:15px}
+  .stat span{font-size:9px;letter-spacing:.03em}
+  .hearts{gap:1px}.hearts svg{width:10px;height:10px}
+}
+.split,.split-a,.split-b{display:contents}
+@media (min-width:900px) and (min-height:560px){.split{display:grid}.split-a,.split-b{display:flex}}
 @media (max-height:640px){.cust{min-height:112px}.quote{display:none}.ov h1{font-size:34px}}
 </style>
 </head>
@@ -184,10 +251,13 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
     <svg id="bowl" viewBox="0 0 240 150" aria-label="Tô mì"></svg>
     <div class="hint" id="hint"></div>
   </div>
-  <div class="pad" id="pad"></div>
-  <div class="acts">
-    <button class="btn ghost" id="trash">Đổ bỏ</button>
-    <button class="btn pour" id="pour">Chan nước lèo</button>
+  <div class="kitchen">
+    <div class="k-head desk"><b>Bếp</b><span>Phím 1–8 chọn món · Q W E R bưng cho bàn</span></div>
+    <div class="pad" id="pad"></div>
+    <div class="acts">
+      <button class="btn ghost" id="trash">Đổ bỏ<kbd>X</kbd></button>
+      <button class="btn pour" id="pour">Chan nước lèo<kbd>Space</kbd></button>
+    </div>
   </div>
   <div class="ov" id="ov"></div>
   <div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></div>
@@ -433,7 +503,9 @@ function showResult(head,why,summary,data){
 function renderAll(){renderStats();renderTables();renderBowl();renderPad()}
 function renderStats(){
   $('sDay').textContent=S.day; $('sEarn').textContent=`${D.earned}/${target(S.day)}k`;
-  $('sRep').textContent='♥'.repeat(Math.max(0,S.rep))+'♡'.repeat(Math.max(0,5-S.rep));
+  const hp=(on)=>`<svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21C5 15.5 1 12 1 7a5.5 5.5 0 0 1 11-1 5.5 5.5 0 0 1 11 1c0 5-4 8.5-11 14z" fill="${on?'currentColor':'none'}" stroke="currentColor" stroke-width="2"/></svg>`;
+  $('sRep').innerHTML=Array.from({length:5},(_,i)=>hp(i<S.rep)).join('');
+  $('sRep').setAttribute('aria-label',`Còn ${Math.max(0,S.rep)} trên 5 tim`);
   $('sEvent').innerHTML=`<span class="tag" style="background:${DIFF[diff].color}">${DIFF[diff].n}</span>${esc(D.ev.n)} · ${esc(D.ev.d)}`;
 }
 function renderTables(){
@@ -444,7 +516,7 @@ function renderTables(){
     return `<div class="cust${c.teacher?' teacher':''}" data-i="${i}" role="button" tabindex="0" aria-label="Phục vụ ${name}">
       <div class="ava" style="background:${c.kh[2]}">${c.teacher?'Thầy':c.kh[0]}</div>
       <div class="who">${name}</div><div class="order">${c.order.map(icon).join('')}</div>
-      <div class="quote">${c.line}</div><div class="pat"><i></i></div></div>`}).join('');
+      <div class="quote">${c.line}</div><div class="pat"><i></i></div><kbd class="k-table">${'QWER'[i]}</kbd></div>`}).join('');
   updateBars();
 }
 function updateBars(){
@@ -473,7 +545,7 @@ function renderBowl(){
   $('pour').disabled=!b.items.has('mi')||b.broth;
 }
 function renderPad(){
-  $('pad').innerHTML=Object.keys(ING).map(k=>`<button class="ing${D.bowl.items.has(k)?' on':''}" data-k="${k}">${icon(k)}<span>${ING[k].n}</span></button>`).join('');
+  $('pad').innerHTML=Object.keys(ING).map((k,i)=>`<button class="ing${D.bowl.items.has(k)?' on':''}" data-k="${k}">${icon(k)}<span>${ING[k].n}</span><kbd>${i+1}</kbd></button>`).join('');
 }
 
 /* ================= Màn hình tài khoản ================= */
@@ -494,9 +566,12 @@ function openOv(html){const ov=$('ov');showOv(true);ov.innerHTML=html;ov.scrollT
 const khoaTen=id=>(khoaList.find(k=>k.id===id)||{}).ten||'';
 
 function authScreen(mode='login'){
-  openOv(`<div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3-5 Đặng Dung, Hòa Khánh Bắc</div>
+  openOv(`<div class="split"><div class="split-a">
+  <img class="hero-icon desk" src="icons/favicon.svg" alt="" width="88" height="88">
+  <div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3-5 Đặng Dung, Hòa Khánh Bắc</div>
   <h1>Mì Quảng <em>Bách Khoa</em></h1>
   <p>Mở quán mì Quảng ở Hòa Khánh Bắc, nơi sinh viên Bách Khoa Đà Nẵng hay ghé ăn, và bán cho sinh viên các khoa. Mỗi lượt chơi cộng hoặc trừ <b>Điểm Bách Khoa</b> cho bạn, cho lớp và cho khoa của bạn.</p>
+  </div><div class="split-b">
   <form class="col" id="f" novalidate>
     <label>Email<input id="em" type="email" autocomplete="email" required placeholder="ban@email.com"></label>
     <label>Mật khẩu<input id="pw" type="password" autocomplete="${mode==='login'?'current-password':'new-password'}" minlength="6" required placeholder="Ít nhất 6 ký tự"></label>
@@ -506,7 +581,8 @@ function authScreen(mode='login'){
   <button class="link" id="sw">${mode==='login'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập'}</button>
   ${mode==='login'?'<button class="link" id="forgot">Quên mật khẩu?</button>':''}
   <button class="link" id="guest">Chơi thử, không tính điểm</button>
-  <button class="link" id="contact">Liên hệ người làm game</button>`);
+  <button class="link" id="contact">Liên hệ người làm game</button>
+  </div></div>`);
   $('contact').onclick=()=>contactScreen(()=>authScreen(mode));
   if(linkError){$('msg').textContent=linkError;linkError=''}
   if(mode==='login') $('forgot').onclick=()=>forgotScreen($('em').value.trim());
@@ -628,14 +704,19 @@ function home(){
        <div class="pts">${p.diem}<small>ĐBK${myRank?` · hạng #${myRank}`:''}</small></div></div>`
     :`<div class="me"><div class="nm">Đang chơi thử</div><div class="sub">Không tính điểm${guestBest.day?` · kỷ lục ngày ${guestBest.day}`:''}</div>
        <div class="pts">—<small>ĐBK</small></div></div>`;
-  openOv(`<div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3-5 Đặng Dung, Hòa Khánh Bắc</div>
+  openOv(`<div class="split"><div class="split-a">
+  <img class="hero-icon desk" src="icons/favicon.svg" alt="" width="88" height="88">
+  <div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3-5 Đặng Dung, Hòa Khánh Bắc</div>
   <h1>Mì Quảng <em>Bách Khoa</em></h1>
   ${meCard}
+  <ol class="steps desk"><li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi bấm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li></ol>
+  <p class="muted desk keys">Chơi bằng bàn phím: <kbd>1</kbd>–<kbd>8</kbd> chọn món, <kbd>Space</kbd> chan nước lèo, <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> bưng cho bàn 1–4, <kbd>X</kbd> đổ bỏ.</p>
+  </div><div class="split-b">
   <div class="col"><div class="eyebrow">Chọn độ khó</div>
     <div class="diffs" id="diffs">${Object.entries(DIFF).map(([k,v])=>`<button class="diff d-${k}" data-d="${k}" aria-pressed="${k===diff}">
       <b>${v.n}</b><span class="x">×${v.hs}</span><small>Phạt ${phat(k)}/tim</small></button>`).join('')}</div>
     <p class="muted" id="dd"></p></div>
-  <ol class="steps"><li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi chạm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li></ol>
+  <ol class="steps mob"><li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi chạm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li></ol>
   <div class="msg" id="msg"></div>
   <div class="col grow">
     <button class="btn" id="go">${ranked?'Mở quán':'Mở quán (chơi thử)'}</button>
@@ -643,8 +724,8 @@ function home(){
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <button class="link" id="contact">Liên hệ người làm game</button>
-    <div class="muted">Phiên bản 1.9</div>
-  </div>`);
+    <div class="muted">Phiên bản 2.0</div>
+  </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
     :'Khách cực vội, tô nhiều topping. Thưởng ×2.2, nhưng mất 5 tim là bị trừ 363 điểm.'};
@@ -768,6 +849,14 @@ $('pad').addEventListener('click',e=>{const b=e.target.closest('.ing');if(!b||!r
 $('pour').onclick=()=>{if(!running||!D.bowl.items.has('mi'))return;D.bowl.broth=true;renderBowl()};
 $('trash').onclick=()=>{if(running)resetBowl()};
 $('tables').addEventListener('click',e=>{const c=e.target.closest('.cust[data-i]');if(c)serve(+c.dataset.i)});
+document.addEventListener('keydown',e=>{
+  if(!running||e.ctrlKey||e.metaKey||e.altKey||/input|select|textarea/i.test(e.target.tagName)) return;
+  const k=e.key.toLowerCase(), keys=Object.keys(ING);
+  if(/^[1-8]$/.test(k)){e.preventDefault();$('pad').querySelector(`[data-k="${keys[+k-1]}"]`)?.click()}
+  else if(k===' '||k==='spacebar'){e.preventDefault();$('pour').click()}
+  else if('qwer'.includes(k)&&k.length===1){e.preventDefault();serve('qwer'.indexOf(k))}
+  else if(k==='x'||k==='backspace'){e.preventDefault();$('trash').click()}
+});
 $('tables').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const c=e.target.closest('.cust[data-i]');if(c){e.preventDefault();serve(+c.dataset.i)}}});
 window.addEventListener('beforeunload',e=>{if(ranked&&runId&&!submitting){e.preventDefault();e.returnValue=''}});
 
