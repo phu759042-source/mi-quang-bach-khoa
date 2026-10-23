@@ -71,6 +71,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
   padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));padding-block:20px;z-index:5;overflow-y:auto;user-select:text;-webkit-user-select:text}
 .ov > *{flex-shrink:0}
 .ov .grow{margin-top:auto}
+.ov{padding-bottom:52px!important}
 .ov h1{font-family:var(--display);font-weight:800;font-size:42px;line-height:.95;margin:0;color:var(--navy);text-wrap:balance}
 .ov h1 em{font-style:normal;color:var(--turmeric);display:block}
 .ov h2{font-family:var(--display);font-size:28px;margin:0;line-height:1.05;color:var(--navy);text-wrap:balance}
@@ -137,6 +138,11 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .tb th,.tb td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
 .tb th:first-child,.tb td:first-child{text-align:left}
 
+.visits{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:12px;z-index:6;display:flex;align-items:center;gap:6px;
+  background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;color:var(--muted);
+  font-variant-numeric:tabular-nums;pointer-events:none;line-height:1}
+.visits svg{width:15px;height:15px;flex:none}
+.visits b{color:var(--navy);font-size:13px}
 .float{position:absolute;font-family:var(--display);font-weight:800;font-size:20px;pointer-events:none;z-index:4;animation:up 1s ease-out forwards}
 @keyframes up{to{transform:translateY(-40px);opacity:0}}
 .toast{position:absolute;left:50%;top:42%;transform:translateX(-50%);background:var(--ink);color:#fff;font-weight:700;font-size:14px;padding:8px 14px;border-radius:999px;z-index:6;pointer-events:none;white-space:nowrap}
@@ -166,6 +172,10 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
     <button class="btn pour" id="pour">Chan nước lèo</button>
   </div>
   <div class="ov" id="ov"></div>
+  <div class="visits" id="visits" hidden aria-live="polite" title="Mỗi trình duyệt được tính một lượt mỗi ngày">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+    <span><b id="vTong">—</b> lượt truy cập</span>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -425,7 +435,19 @@ function renderPad(){
 }
 
 /* ================= Màn hình tài khoản ================= */
-function showOv(on){const ov=$('ov');ov.hidden=!on;ov.style.display=on?'flex':'none'}
+function showOv(on){const ov=$('ov');ov.hidden=!on;ov.style.display=on?'flex':'none';
+  const v=$('visits');if(v){const show=on&&visitCount!=null;v.hidden=!show;v.style.display=show?'flex':'none'}}
+let visitCount=null;
+async function countVisit(){
+  let id=null;
+  try{id=localStorage.getItem('mqbk-khach');if(!id){id=crypto.randomUUID();localStorage.setItem('mqbk-khach',id)}}catch(e){id=null}
+  const {data,error}=await rpcRetry('ghi_luot_truy_cap',{p_khach:id},2);
+  if(error||!data) return;
+  visitCount=data.tong;
+  $('vTong').textContent=Number(data.tong).toLocaleString('vi-VN');
+  $('visits').title=`Hôm nay: ${data.hom_nay} lượt. Mỗi trình duyệt được tính một lượt mỗi ngày.`;
+  showOv(!$('ov').hidden);
+}
 function openOv(html){const ov=$('ov');showOv(true);ov.innerHTML=html;ov.scrollTop=0;return ov}
 const khoaTen=id=>(khoaList.find(k=>k.id===id)||{}).ten||'';
 
@@ -579,7 +601,7 @@ function home(){
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <button class="link" id="contact">Liên hệ người làm game</button>
-    <div class="muted">Phiên bản 1.5</div>
+    <div class="muted">Phiên bản 1.6</div>
   </div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -720,6 +742,7 @@ const cleanUrl=()=>{try{history.replaceState(null,'',BACK_URL)}catch(e){}};
     if(ev==='PASSWORD_RECOVERY'){recovering=true;user=session?.user||user;setTimeout(()=>{cleanUrl();newPasswordScreen()},0)}
   });
   openOv('<div class="empty-state">Đang mở quán…</div>');
+  countVisit();
   try{
     await loadKhoa();
     const {data:{session}}=await sb.auth.getSession();
