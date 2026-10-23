@@ -138,6 +138,14 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .tb th,.tb td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
 .tb th:first-child,.tb td:first-child{text-align:left}
 
+.ptr{position:absolute;left:50%;top:0;z-index:7;width:40px;height:40px;margin-left:-20px;border-radius:50%;
+  background:var(--card);border:1.5px solid var(--line);box-shadow:0 2px 8px rgba(42,33,24,.15);display:grid;place-items:center;
+  color:var(--navy);transform:translateY(-48px);opacity:0;pointer-events:none}
+.ptr svg{width:20px;height:20px;transition:transform .15s}
+.ptr.ready svg{transform:rotate(180deg)}
+.ptr.spin svg{animation:ptrspin .8s linear infinite}
+@keyframes ptrspin{to{transform:rotate(360deg)}}
+.ov{overscroll-behavior-y:contain}
 .visits{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:12px;z-index:6;display:flex;align-items:center;gap:6px;
   background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;color:var(--muted);
   font-variant-numeric:tabular-nums;pointer-events:none;line-height:1}
@@ -172,6 +180,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
     <button class="btn pour" id="pour">Chan nước lèo</button>
   </div>
   <div class="ov" id="ov"></div>
+  <div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></div>
   <div class="visits" id="visits" hidden aria-live="polite" title="Mỗi trình duyệt được tính một lượt mỗi ngày">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
     <span><b id="vTong">—</b> lượt truy cập</span>
@@ -255,7 +264,8 @@ const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 
 /* ================= Vòng chơi ================= */
-function newGame(){S={day:1,money:0,rep:5,upg:{},total:0};startDay()}
+let midRun=false;
+function newGame(){midRun=true;S={day:1,money:0,rep:5,upg:{},total:0};startDay()}
 function startDay(){
   const n=lv('ban')?4:3;
   D={t:DAYLEN,earned:0,served:0,lost:0,slots:Array(n).fill(null),spawnT:1.2,shield:lv('the'),
@@ -355,7 +365,7 @@ async function flushPending(){
 
 /* ================= Kết thúc lượt & nộp điểm ================= */
 async function finishRun(why, cashOut=false){
-  running=false;
+  running=false; midRun=false;
   const lost=Math.max(0,5-S.rep);
   const hs=DIFF[diff].hs;
   const est=Math.round(S.total*hs/10)-Math.round(lost*15*hs**2);
@@ -623,7 +633,7 @@ function home(){
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <button class="link" id="contact">Liên hệ người làm game</button>
-    <div class="muted">Phiên bản 1.7</div>
+    <div class="muted">Phiên bản 1.8</div>
   </div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -750,6 +760,29 @@ $('trash').onclick=()=>{if(running)resetBowl()};
 $('tables').addEventListener('click',e=>{const c=e.target.closest('.cust[data-i]');if(c)serve(+c.dataset.i)});
 $('tables').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const c=e.target.closest('.cust[data-i]');if(c){e.preventDefault();serve(+c.dataset.i)}}});
 window.addEventListener('beforeunload',e=>{if(ranked&&runId&&!submitting){e.preventDefault();e.returnValue=''}});
+
+/* ================= Kéo xuống để tải lại (chỉ khi không đang trong lượt chơi) ================= */
+(function pullToRefresh(){
+  const ov=$('ov'), ind=$('ptr'), PULL=80;
+  let y0=null, dy=0;
+  const setInd=(d)=>{const t=Math.min(d,110);ind.style.transform=`translateY(${t*.6-8}px)`;ind.style.opacity=Math.min(1,d/PULL);ind.classList.toggle('ready',d>=PULL)};
+  const reset=()=>{y0=null;dy=0;ind.style.transition='transform .2s, opacity .2s';setInd(0);setTimeout(()=>ind.style.transition='',220)};
+  ov.addEventListener('touchstart',e=>{
+    if(midRun||running||submitting||ov.scrollTop>0||e.touches.length!==1){y0=null;return}
+    y0=e.touches[0].clientY; dy=0; ind.style.transition='';
+  },{passive:true});
+  ov.addEventListener('touchmove',e=>{
+    if(y0==null) return;
+    if(ov.scrollTop>0){reset();return}
+    dy=Math.max(0,(e.touches[0].clientY-y0)*.55); setInd(dy);
+  },{passive:true});
+  ov.addEventListener('touchend',()=>{
+    if(y0==null) return;
+    if(dy>=PULL&&!midRun&&!running){ind.classList.remove('ready');ind.classList.add('spin');ind.style.transform='translateY(40px)';ind.style.opacity=1;setTimeout(()=>location.reload(),150)}
+    else reset();
+  });
+  ov.addEventListener('touchcancel',reset);
+})();
 
 /* ================= Khởi động ================= */
 S={day:1,money:0,rep:5,upg:{},total:0};
