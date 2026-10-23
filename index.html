@@ -633,7 +633,7 @@ function home(){
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <button class="link" id="contact">Liên hệ người làm game</button>
-    <div class="muted">Phiên bản 1.8</div>
+    <div class="muted">Phiên bản 1.8.1</div>
   </div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -788,7 +788,7 @@ window.addEventListener('beforeunload',e=>{if(ranked&&runId&&!submitting){e.prev
 S={day:1,money:0,rep:5,upg:{},total:0};
 D={t:DAYLEN,earned:0,served:0,lost:0,slots:[null,null,null],spawnT:1,bowl:{items:new Set(['mi','tom','trung','rau']),broth:true},ev:EVENTS[0]};
 renderAll();
-let recovering=/type=recovery/.test(location.hash), linkError='';
+let recovering=/type=recovery/.test(location.hash), justConfirmed=/type=(signup|email_change)/.test(location.hash), linkError='';
 (function readLink(){
   const q=new URLSearchParams(location.hash.slice(1)+'&'+location.search.slice(1));
   if(q.get('error_description')) linkError=/expired|invalid/i.test(q.get('error_description'))
@@ -807,10 +807,9 @@ const cleanUrl=()=>{try{history.replaceState(null,'',BACK_URL)}catch(e){}};
     await loadKhoa();
     const {data:{session}}=await sb.auth.getSession();
     user=session?.user||null;
-    const justConfirmed=/type=signup/.test(location.hash);
     if(/access_token|error_description/.test(location.hash)) cleanUrl();
     if(recovering&&user){newPasswordScreen();return}
-    if(user){ if(justConfirmed) toast('Đã xác nhận email, chào mừng bạn'); await afterLogin(); } else authScreen();
+    if(user){ await afterLogin(); if(justConfirmed) toast('Đã xác nhận email, chào mừng bạn'); } else authScreen();
   }catch(e){ranked=false;home();toast('Không kết nối được máy chủ, đang chơi thử')}
 })();
 </script>
