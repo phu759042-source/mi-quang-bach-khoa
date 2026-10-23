@@ -440,7 +440,10 @@ function authScreen(mode='login'){
     <button class="btn" type="submit">${mode==='login'?'Đăng nhập':'Tạo tài khoản'}</button>
   </form>
   <button class="link" id="sw">${mode==='login'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập'}</button>
+  ${mode==='login'?'<button class="link" id="forgot">Quên mật khẩu?</button>':''}
   <button class="link" id="guest">Chơi thử, không tính điểm</button>`);
+  if(linkError){$('msg').textContent=linkError;linkError=''}
+  if(mode==='login') $('forgot').onclick=()=>forgotScreen($('em').value.trim());
   $('sw').onclick=()=>authScreen(mode==='login'?'signup':'login');
   $('guest').onclick=()=>{ranked=false;home()};
   $('f').onsubmit=async e=>{
@@ -457,7 +460,49 @@ function authScreen(mode='login'){
     user=res.data.user; await afterLogin();
   };
 }
+const BACK_URL=location.origin+location.pathname;
+function forgotScreen(email=''){
+  openOv(`<div class="eyebrow">Tài khoản</div><h2>Quên mật khẩu</h2>
+  <p class="muted">Nhập email bạn đã đăng ký. Mình sẽ gửi link để bạn đặt mật khẩu mới.</p>
+  <form class="col" id="f" novalidate>
+    <label>Email<input id="em" type="email" autocomplete="email" value="${esc(email)}" placeholder="ban@email.com"></label>
+    <div class="msg" id="msg"></div>
+    <button class="btn" type="submit">Gửi link đặt lại mật khẩu</button>
+  </form>
+  <button class="link" id="back">Quay lại đăng nhập</button>`);
+  $('back').onclick=()=>authScreen('login');
+  $('f').onsubmit=async e=>{
+    e.preventDefault();
+    const em=$('em').value.trim(), msg=$('msg');
+    if(!/^\S+@\S+\.\S+$/.test(em)){msg.className='msg';msg.textContent='Email chưa đúng định dạng.';return}
+    msg.className='msg ok';msg.textContent='Đang gửi…';
+    const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:BACK_URL});
+    if(error){msg.className='msg';msg.textContent=viErr(error.message);return}
+    msg.textContent='Đã gửi. Mở email từ Mì Quảng Bách Khoa và bấm nút Đặt mật khẩu mới. Nhớ xem cả mục Spam.';
+  };
+}
+function newPasswordScreen(){
+  openOv(`<div class="eyebrow">Tài khoản</div><h2>Đặt mật khẩu mới</h2>
+  <form class="col" id="f" novalidate>
+    <label>Mật khẩu mới<input id="pw" type="password" autocomplete="new-password" placeholder="Ít nhất 6 ký tự"></label>
+    <label>Nhập lại mật khẩu<input id="pw2" type="password" autocomplete="new-password"></label>
+    <div class="msg" id="msg"></div>
+    <button class="btn" type="submit">Lưu mật khẩu</button>
+  </form>`);
+  $('f').onsubmit=async e=>{
+    e.preventDefault();
+    const pw=$('pw').value, msg=$('msg');
+    if(pw.length<6){msg.className='msg';msg.textContent='Mật khẩu cần ít nhất 6 ký tự.';return}
+    if(pw!==$('pw2').value){msg.className='msg';msg.textContent='Hai mật khẩu chưa giống nhau.';return}
+    msg.className='msg ok';msg.textContent='Đang lưu…';
+    const {data,error}=await sb.auth.updateUser({password:pw});
+    if(error){msg.className='msg';msg.textContent=viErr(error.message);return}
+    recovering=false; user=data.user; toast('Đã đổi mật khẩu'); await afterLogin();
+  };
+}
 function viErr(m){
+  if(/should be different/i.test(m)) return 'Mật khẩu mới phải khác mật khẩu cũ.';
+  if(/session missing|expired|invalid.*(link|token)/i.test(m)) return 'Link đã hết hạn hoặc đã dùng rồi. Hãy gửi lại link mới.';
   if(/Invalid login/i.test(m)) return 'Sai email hoặc mật khẩu.';
   if(/not confirmed/i.test(m)) return 'Email chưa được xác nhận. Kiểm tra hộp thư (cả mục Spam).';
   if(/already registered/i.test(m)) return 'Email này đã có tài khoản, hãy đăng nhập.';
@@ -531,7 +576,7 @@ function home(){
     <button class="btn ghost" id="lb">Bảng xếp hạng</button>
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
-    <div class="muted">Phiên bản 1.3</div>
+    <div class="muted">Phiên bản 1.4</div>
   </div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -639,14 +684,28 @@ window.addEventListener('beforeunload',e=>{if(ranked&&runId&&!submitting){e.prev
 S={day:1,money:0,rep:5,upg:{},total:0};
 D={t:DAYLEN,earned:0,served:0,lost:0,slots:[null,null,null],spawnT:1,bowl:{items:new Set(['mi','tom','trung','rau']),broth:true},ev:EVENTS[0]};
 renderAll();
+let recovering=/type=recovery/.test(location.hash), linkError='';
+(function readLink(){
+  const q=new URLSearchParams(location.hash.slice(1)+'&'+location.search.slice(1));
+  if(q.get('error_description')) linkError=/expired|invalid/i.test(q.get('error_description'))
+    ?'Link trong email đã hết hạn hoặc đã dùng rồi. Hãy đăng nhập, hoặc bấm Quên mật khẩu để nhận link mới.'
+    :q.get('error_description').replace(/\+/g,' ');
+})();
+const cleanUrl=()=>{try{history.replaceState(null,'',BACK_URL)}catch(e){}};
 (async function boot(){
   if(!sb){ranked=false;home();return}
+  sb.auth.onAuthStateChange((ev,session)=>{
+    if(ev==='PASSWORD_RECOVERY'){recovering=true;user=session?.user||user;setTimeout(()=>{cleanUrl();newPasswordScreen()},0)}
+  });
   openOv('<div class="empty-state">Đang mở quán…</div>');
   try{
     await loadKhoa();
     const {data:{session}}=await sb.auth.getSession();
     user=session?.user||null;
-    if(user) await afterLogin(); else authScreen();
+    const justConfirmed=/type=signup/.test(location.hash);
+    if(/access_token|error_description/.test(location.hash)) cleanUrl();
+    if(recovering&&user){newPasswordScreen();return}
+    if(user){ if(justConfirmed) toast('Đã xác nhận email, chào mừng bạn'); await afterLogin(); } else authScreen();
   }catch(e){ranked=false;home();toast('Không kết nối được máy chủ, đang chơi thử')}
 })();
 </script>
