@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mì Quảng Bách Khoa</title>
-<meta name="description" content="Game quán mì Quảng trước cổng Bách Khoa Đà Nẵng. Đua điểm theo lớp, theo khoa.">
+<meta name="description" content="Game quán mì Quảng của sinh viên Bách Khoa Đà Nẵng, lấy cảm hứng từ Mì Quảng Bích ở Hòa Khánh Bắc. Đua điểm theo lớp, theo khoa.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;600;700&display=swap">
 <style>
@@ -430,9 +430,9 @@ function openOv(html){const ov=$('ov');showOv(true);ov.innerHTML=html;ov.scrollT
 const khoaTen=id=>(khoaList.find(k=>k.id===id)||{}).ten||'';
 
 function authScreen(mode='login'){
-  openOv(`<div class="eyebrow">Quán trước cổng trường · 54 Nguyễn Lương Bằng</div>
+  openOv(`<div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3-5 Đặng Dung, Hòa Khánh Bắc</div>
   <h1>Mì Quảng <em>Bách Khoa</em></h1>
-  <p>Mở quán mì Quảng ngay cổng Bách Khoa Đà Nẵng, bán cho sinh viên các khoa. Mỗi lượt chơi cộng hoặc trừ <b>Điểm Bách Khoa</b> cho bạn, cho lớp và cho khoa của bạn.</p>
+  <p>Mở quán mì Quảng ở Hòa Khánh Bắc, nơi sinh viên Bách Khoa Đà Nẵng hay ghé ăn, và bán cho sinh viên các khoa. Mỗi lượt chơi cộng hoặc trừ <b>Điểm Bách Khoa</b> cho bạn, cho lớp và cho khoa của bạn.</p>
   <form class="col" id="f" novalidate>
     <label>Email<input id="em" type="email" autocomplete="email" required placeholder="ban@email.com"></label>
     <label>Mật khẩu<input id="pw" type="password" autocomplete="${mode==='login'?'current-password':'new-password'}" minlength="6" required placeholder="Ít nhất 6 ký tự"></label>
@@ -441,7 +441,9 @@ function authScreen(mode='login'){
   </form>
   <button class="link" id="sw">${mode==='login'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập'}</button>
   ${mode==='login'?'<button class="link" id="forgot">Quên mật khẩu?</button>':''}
-  <button class="link" id="guest">Chơi thử, không tính điểm</button>`);
+  <button class="link" id="guest">Chơi thử, không tính điểm</button>
+  <button class="link" id="contact">Liên hệ người làm game</button>`);
+  $('contact').onclick=()=>contactScreen(()=>authScreen(mode));
   if(linkError){$('msg').textContent=linkError;linkError=''}
   if(mode==='login') $('forgot').onclick=()=>forgotScreen($('em').value.trim());
   $('sw').onclick=()=>authScreen(mode==='login'?'signup':'login');
@@ -562,7 +564,7 @@ function home(){
        <div class="pts">${p.diem}<small>ĐBK${myRank?` · hạng #${myRank}`:''}</small></div></div>`
     :`<div class="me"><div class="nm">Đang chơi thử</div><div class="sub">Không tính điểm${guestBest.day?` · kỷ lục ngày ${guestBest.day}`:''}</div>
        <div class="pts">—<small>ĐBK</small></div></div>`;
-  openOv(`<div class="eyebrow">Quán trước cổng trường · 54 Nguyễn Lương Bằng</div>
+  openOv(`<div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3-5 Đặng Dung, Hòa Khánh Bắc</div>
   <h1>Mì Quảng <em>Bách Khoa</em></h1>
   ${meCard}
   <div class="col"><div class="eyebrow">Chọn độ khó</div>
@@ -576,7 +578,8 @@ function home(){
     <button class="btn ghost" id="lb">Bảng xếp hạng</button>
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
-    <div class="muted">Phiên bản 1.4</div>
+    <button class="link" id="contact">Liên hệ người làm game</button>
+    <div class="muted">Phiên bản 1.5</div>
   </div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -586,6 +589,7 @@ function home(){
     $('diffs').querySelectorAll('.diff').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===diff));desc()};
   $('go').onclick=startRun;
   $('lb').onclick=()=>leaderboard('sv');
+  $('contact').onclick=()=>contactScreen(home);
   if(ranked){$('edit').onclick=profileScreen;$('out').onclick=logout}else $('login').onclick=()=>sb?authScreen():toast('Không kết nối được máy chủ');
 }
 async function startRun(){
@@ -622,6 +626,24 @@ function drawShop(){
     <button data-u="${u.id}" ${S.upg[u.id]||S.money<u.c?'disabled':''}>${S.upg[u.id]?'Đã có':u.c+'k'}</button></div>`).join('');
   $('shop').querySelectorAll('button').forEach(b=>b.onclick=()=>{const u=UPG.find(x=>x.id===b.dataset.u);
     if(S.money>=u.c&&!S.upg[u.id]){S.money-=u.c;S.upg[u.id]=1;showShop()}});
+}
+
+/* ================= Liên hệ ================= */
+const CONTACT={ten:'Nguyễn Tấn Phú',lop:'26T_ATTT · Công nghệ Thông tin',email:'phu759042@gmail.com',sdt:'0905416772'};
+function contactScreen(back){
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Liên hệ</div><button class="link" id="back">Đóng</button></div>
+  <h2>Người làm game</h2>
+  <div class="me"><div class="nm">${CONTACT.ten}</div><div class="sub">Sinh viên ${CONTACT.lop}, Bách Khoa Đà Nẵng</div><div class="pts"></div></div>
+  <p class="muted">Gặp lỗi, muốn góp ý món mới, hay muốn thêm khoa hoặc sự kiện cho lớp mình? Nhắn mình qua email hoặc số điện thoại dưới đây.</p>
+  <div class="list">
+    <div class="li"><span class="rk">Mail</span><span class="nm"><a href="mailto:${CONTACT.email}" style="color:var(--navy)">${CONTACT.email}</a></span><button class="link" data-copy="${CONTACT.email}">Sao chép</button></div>
+    <div class="li"><span class="rk">SĐT</span><span class="nm"><a href="tel:${CONTACT.sdt}" style="color:var(--navy)">${CONTACT.sdt.replace(/(\d{4})(\d{3})(\d{3})/,'$1 $2 $3')}</a></span><button class="link" data-copy="${CONTACT.sdt}">Sao chép</button></div>
+  </div>
+  <p class="rule">Game lấy cảm hứng từ Mì Quảng Bích, 1-3-5 Đặng Dung, Hòa Khánh Bắc, Liên Chiểu, Đà Nẵng. Quán quen của sinh viên Bách Khoa.</p>`);
+  $('back').onclick=back;
+  $('ov').querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{
+    try{await navigator.clipboard.writeText(b.dataset.copy);toast('Đã sao chép')}catch(e){toast(b.dataset.copy)}
+  });
 }
 
 /* ================= Bảng xếp hạng ================= */
