@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mì Quảng Bách Khoa</title>
 <meta name="description" content="Game quán mì Quảng của sinh viên Bách Khoa Đà Nẵng, lấy cảm hứng từ Mì Quảng Bích ở Hòa Khánh Bắc. Đua điểm theo lớp, theo khoa.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1B3A6B">
+<meta name="apple-mobile-web-app-title" content="Mì Quảng BK">
+<meta property="og:title" content="Mì Quảng Bách Khoa">
+<meta property="og:description" content="Game quán mì Quảng của sinh viên Bách Khoa Đà Nẵng. Đua điểm theo lớp, theo khoa.">
+<meta property="og:image" content="https://phu759042-source.github.io/mi-quang-bach-khoa/icons/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;600;700&display=swap">
 <style>
@@ -633,7 +643,7 @@ function home(){
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <button class="link" id="contact">Liên hệ người làm game</button>
-    <div class="muted">Phiên bản 1.8.1</div>
+    <div class="muted">Phiên bản 1.9</div>
   </div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
