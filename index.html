@@ -54,6 +54,11 @@ kbd{display:none;font:700 10px/1 var(--body);color:var(--muted);background:var(-
   .cust[data-i]:hover{border-color:var(--navy)}
 }
 .event{font-size:12px;font-weight:700;color:var(--navy);text-align:center;margin-top:-4px}
+.event{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 6px}
+.event .tag.rush{background:var(--chili);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.6}}
+.queue{display:inline-flex;align-items:center;gap:5px;color:var(--chili);font-weight:700}
+.queue i{width:12px;height:12px;border-radius:50%;background:var(--c);display:inline-block}
 .event .tag{display:inline-block;padding:1px 7px;border-radius:999px;color:#fff;margin-right:4px;font-size:11px}
 
 .tables{display:grid;gap:8px;grid-template-columns:repeat(var(--n,3),1fr)}
@@ -115,7 +120,10 @@ input,select{font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid va
 .me .pts{grid-row:1/3;grid-column:2;text-align:right;font-family:var(--display);font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
 .me .pts small{display:block;font-family:var(--body);font-size:11px;opacity:.8;font-weight:600}
 
-.diffs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.diffs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.diff.d-bk .x{color:var(--navy)}
+.diff b{white-space:nowrap}
+@media (max-width:420px){.diff b{font-size:13px}.diff .x{font-size:19px}.diff small{font-size:10px}.diff{padding:9px 3px}}
 .diff{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 6px;cursor:pointer;display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center}
 .diff b{font-family:var(--display);font-size:17px;line-height:1}
 .diff .x{font-family:var(--display);font-size:22px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
@@ -155,6 +163,9 @@ input,select{font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid va
 .li .pt{font-family:var(--display);font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
 .li.mine{background:var(--soft);box-shadow:inset 3px 0 0 var(--turmeric)}
 .empty-state{padding:22px 14px;text-align:center;color:var(--muted)}
+.donate{display:grid;grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:14px;align-items:start}
+.donate img{width:100%;height:auto;border-radius:14px;border:1.5px solid var(--line);background:#fff}
+@media (max-width:620px){.donate{grid-template-columns:1fr;justify-items:center}.donate img{max-width:280px}.donate .list{width:100%}}
 .rule{font-size:12px;color:var(--muted);line-height:1.5}
 table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 .tb th,.tb td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
@@ -186,7 +197,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
   #app{max-width:1180px;display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto auto auto minmax(0,1fr);
     column-gap:28px;row-gap:12px;padding-block:20px}
   .bar{grid-column:1;grid-row:1}
-  .event{grid-column:1;grid-row:2;margin-top:0;text-align:left;font-size:13px}
+  .event{grid-column:1;grid-row:2;margin-top:0;justify-content:flex-start;font-size:13px}
   .tables{grid-column:1;grid-row:3;gap:12px}
   .station{grid-column:1;grid-row:4}
   .kitchen{grid-column:2;grid-row:1/5;display:flex;flex-direction:column;gap:12px;background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:18px;min-height:0}
@@ -318,7 +329,8 @@ const lv=id=>S.upg[id]||0;
 const DIFF={
   thuong:{n:'Thường',hs:1,  pat:1,   spawn:1,   top:0,   tgt:1,   color:'#2F6B3A'},
   kho:   {n:'Khó',   hs:1.5,pat:.8,  spawn:.85, top:.6,  tgt:1.15,color:'#C99A1E'},
-  dianguc:{n:'Địa ngục',hs:2.2,pat:.62,spawn:.7,top:1.2, tgt:1.3, color:'#C8321E'}};
+  dianguc:{n:'Địa ngục',hs:2.2,pat:.62,spawn:.7,top:1.2, tgt:1.3, color:'#C8321E'},
+  bk:    {n:'Bách Khoa',hs:3, pat:.52, spawn:.6, top:1.6, tgt:1.4, color:'#1B3A6B'}};
 const phat=k=>Math.round(15*DIFF[k].hs**2);
 const DAYLEN=75;
 
@@ -332,14 +344,20 @@ try{ diff=localStorage.getItem('mqbk-diff')||'thuong'; if(!DIFF[diff]) diff='thu
 let guestBest={day:0,money:0};
 try{guestBest=JSON.parse(localStorage.getItem('mqbk-best'))||guestBest}catch(e){}
 
-/* Mục tiêu = doanh thu tiềm năng của ngày (số khách dự kiến × giá trung bình) × tỉ lệ tăng dần 50% → 80% */
-function avgTop(d){const U=2.6+d*.35+DIFF[diff].top;let s=0;for(let i=0;i<200;i++){const x=1+(U-1)*(i+.5)/200;s+=Math.min(4,Math.max(1,Math.floor(x)))}return s/200}
+/* Mục tiêu: doanh thu chuẩn mỗi ngày, lấy từ mô phỏng 2.000 ván của người chơi khá
+   (trung bình giữa người chơi giỏi và trung bình, có mua nâng cấp dần), nhân tỉ lệ 75% ở ngày 1, +3% mỗi ngày, tối đa 100% */
+const REF={
+  thuong:[820,1130,1630,1040,1540,2190,2550,2160,2380,2550,2440,2740],
+  kho:[1000,1300,1690,1270,1760,2290,2490,2470,2430,2460,2310,2910],
+  dianguc:[1160,1470,1660,1550,1970,2260,2330,2740,2390,2320,1920,2850],
+  bk:[1230,1490,1450,1750,2010,2110,2030,2840,2250,2130,1670,2710]};
 function target(d){
-  const df=DIFF[diff], ev=EVENTS[(d-1)%4], t=avgTop(d);
-  const khach=Math.min(DAYLEN/(Math.max(2.4,5.6-d*.3)*df.spawn*ev.spawn), DAYLEN/(2.2+.6*t));
-  const gia=(25+5*t)*1.08*(1+.18*ev.tip);
-  return Math.round(khach*gia*Math.min(.8,.5+.05*(d-1))/10)*10;
+  const r=REF[diff]||REF.thuong;
+  const ref=d<=12?r[d-1]:r[8+((d-1)%4)]*(1+.06*(d-12));
+  return Math.round(ref*Math.min(1,.75+.03*(d-1))/10)*10;
 }
+const RUSH=[25,45]; // giờ cao điểm: khi đồng hồ còn 45s → 25s, khách đến gấp đôi
+const inRush=()=>D&&D.t<=RUSH[1]&&D.t>RUSH[0];
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 
@@ -348,20 +366,28 @@ let midRun=false;
 function newGame(){midRun=true;S={day:1,money:0,rep:5,upg:{},total:0};startDay()}
 function startDay(){
   const n=lv('ban')?4:3;
-  D={t:DAYLEN,earned:0,served:0,lost:0,slots:Array(n).fill(null),spawnT:1.2,shield:lv('the'),
+  D={t:DAYLEN,earned:0,served:0,lost:0,slots:Array(n).fill(null),queue:[],rushSaid:false,spawnT:1.2,shield:lv('the'),
      bowl:{items:new Set(lv('phubep')?['mi']:[]),broth:false},ev:EVENTS[(S.day-1)%4]};
   showOv(false); renderAll(); running=true; last=performance.now(); requestAnimationFrame(loop);
 }
 function spawn(){
-  const i=D.slots.findIndex(x=>!x); if(i<0) return;
+  const i=D.slots.findIndex(x=>!x);
+  if(i<0&&D.queue.length>=4) return;
   const df=DIFF[diff], kh=pick(KHACH), teacher=Math.random()<.08;
   const nTop=Math.min(4,Math.max(1,Math.floor(rnd(1,2.6+S.day*.35+df.top))));
   const tops=[...TOPS].sort(()=>Math.random()-.5).slice(0,nTop);
   const order=['mi',...TOPS.filter(t=>tops.includes(t)&&!(t==='rau'&&lv('rau')))];
-  let max=(Math.max(12,22-S.day*.8)+nTop*2.5)*(1+.15*lv('quat'))*D.ev.pat*df.pat*(teacher?.8:1);
+  const cool=(1+.15*lv('quat'))*D.ev.pat*df.pat;
+  const max=(Math.max(9,22-S.day)+nTop*2.5)*cool*(teacher?.8:1);
+  const qmax=Math.max(8,14-S.day*.5)*cool;
   const price=(25+5*nTop)*(1+.1*lv('bang'))*(teacher?2:1);
-  D.slots[i]={kh,teacher,order,max,p:max,price,line:teacher?'Thầy ghé ăn trưa, nhanh giúp thầy nhé':pick(LINES)};
-  renderTables();
+  const c={kh,teacher,order,max,p:max,qmax,q:qmax,price,line:teacher?'Thầy ghé ăn trưa, nhanh giúp thầy nhé':pick(LINES)};
+  if(i>=0){D.slots[i]=c;renderTables()} else {D.queue.push(c);renderStats()}
+}
+function seatQueue(){
+  let moved=false;
+  D.slots.forEach((c,i)=>{if(!c&&D.queue.length){D.slots[i]=D.queue.shift();moved=true}});
+  if(moved){renderTables();renderStats()}
 }
 function loop(now){
   if(!running) return;
@@ -369,8 +395,15 @@ function loop(now){
   D.t-=dt;
   if(D.t>0){
     D.spawnT-=dt;
-    if(D.spawnT<=0){spawn();const base=Math.max(2.4,5.6-S.day*.3)*(1-.06*lv('bang'))*DIFF[diff].spawn;D.spawnT=rnd(base*.7,base*1.3)*D.ev.spawn}
+    if(inRush()&&!D.rushSaid){D.rushSaid=true;toast('Giờ cao điểm! Khách đến gấp đôi');renderStats()}
+    if(!inRush()&&D.rushSaid&&D.t<=RUSH[0]&&!D.rushEnd){D.rushEnd=true;renderStats()}
+    if(D.spawnT<=0){spawn();const base=Math.max(2.2,5.4-S.day*.3)*(1-.06*lv('bang'))*DIFF[diff].spawn*(inRush()?.5:1);D.spawnT=rnd(base*.7,base*1.3)*D.ev.spawn}
   }
+  seatQueue();
+  for(let k=D.queue.length-1;k>=0;k--){const c=D.queue[k];c.q-=dt;if(c.q<=0&&running){
+    if(D.shield>0){D.shield--;c.q=c.qmax*.5;toast('Thẻ tích điểm giữ chân khách');continue}
+    D.queue.splice(k,1);loseHeart('Khách xếp hàng lâu quá nên bỏ về')}}
+  if(!running) return;
   D.slots.forEach((c,i)=>{if(!c)return;c.p-=dt;if(c.p<=0&&running){
     if(D.shield>0){D.shield--;c.p=c.max*.5;toast('Thẻ tích điểm giữ chân khách');return}
     angry(i,'Khách bỏ đi vì chờ lâu')}});
@@ -380,9 +413,12 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 function angry(i,msg){
-  D.slots[i]=null; S.rep--; D.lost++; toast(msg);
+  D.slots[i]=null;
   const el=$('tables').children[i]; if(el) el.classList.add('shake');
-  renderTables(); renderStats();
+  renderTables(); loseHeart(msg);
+}
+function loseHeart(msg){
+  S.rep--; D.lost++; toast(msg); renderStats();
   if(S.rep<=0){running=false;setTimeout(()=>finishRun('Mất hết uy tín, sinh viên rủ nhau sang quán khác.'),400)}
 }
 function serve(i){
@@ -506,7 +542,10 @@ function renderStats(){
   const hp=(on)=>`<svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21C5 15.5 1 12 1 7a5.5 5.5 0 0 1 11-1 5.5 5.5 0 0 1 11 1c0 5-4 8.5-11 14z" fill="${on?'currentColor':'none'}" stroke="currentColor" stroke-width="2"/></svg>`;
   $('sRep').innerHTML=Array.from({length:5},(_,i)=>hp(i<S.rep)).join('');
   $('sRep').setAttribute('aria-label',`Còn ${Math.max(0,S.rep)} trên 5 tim`);
-  $('sEvent').innerHTML=`<span class="tag" style="background:${DIFF[diff].color}">${DIFF[diff].n}</span>${esc(D.ev.n)} · ${esc(D.ev.d)}`;
+  const q=D.queue||[];
+  const rush=inRush()?`<span class="tag rush">Giờ cao điểm</span>`:'';
+  const queue=q.length?`<span class="queue" aria-label="${q.length} khách đang xếp hàng">Xếp hàng ${q.map(c=>`<i style="--c:${c.kh[2]}"></i>`).join('')}</span>`:'';
+  $('sEvent').innerHTML=`<span class="tag" style="background:${DIFF[diff].color}">${DIFF[diff].n}</span>${rush}<span class="evn">${esc(D.ev.n)} · ${esc(D.ev.d)}</span>${queue}`;
 }
 function renderTables(){
   const t=$('tables'); t.style.setProperty('--n',D.slots.length);
@@ -521,6 +560,8 @@ function renderTables(){
 }
 function updateBars(){
   $('sTime').textContent=Math.max(0,Math.ceil(D.t))+'s';
+  const qi=$('sEvent').querySelectorAll('.queue i');
+  (D.queue||[]).forEach((c,k)=>{const r=c.q/c.qmax;if(qi[k])qi[k].style.boxShadow=`0 0 0 2px ${r>.5?'var(--leaf)':r>.25?'var(--turmeric)':'var(--chili)'}`});
   [...$('tables').children].forEach((el,i)=>{
     const c=D.slots[i]; if(!c) return; const r=Math.max(0,c.p/c.max);
     const bar=el.querySelector('.pat i'); bar.style.width=(r*100)+'%';
@@ -709,32 +750,34 @@ function home(){
   <div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3-5 Đặng Dung, Hòa Khánh Bắc</div>
   <h1>Mì Quảng <em>Bách Khoa</em></h1>
   ${meCard}
-  <ol class="steps desk"><li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi bấm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li></ol>
+  <ol class="steps desk"><li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi bấm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li><li>Hết bàn thì khách xếp hàng. Để khách chờ lâu là mất tim, nhất là giờ cao điểm</li></ol>
   <p class="muted desk keys">Chơi bằng bàn phím: <kbd>1</kbd>–<kbd>8</kbd> chọn món, <kbd>Space</kbd> chan nước lèo, <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> bưng cho bàn 1–4, <kbd>X</kbd> đổ bỏ.</p>
   </div><div class="split-b">
   <div class="col"><div class="eyebrow">Chọn độ khó</div>
     <div class="diffs" id="diffs">${Object.entries(DIFF).map(([k,v])=>`<button class="diff d-${k}" data-d="${k}" aria-pressed="${k===diff}">
       <b>${v.n}</b><span class="x">×${v.hs}</span><small>Phạt ${phat(k)}/tim</small></button>`).join('')}</div>
     <p class="muted" id="dd"></p></div>
-  <ol class="steps mob"><li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi chạm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li></ol>
+  <ol class="steps mob"><li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi chạm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li><li>Hết bàn thì khách xếp hàng. Để khách chờ lâu là mất tim</li></ol>
   <div class="msg" id="msg"></div>
   <div class="col grow">
     <button class="btn" id="go">${ranked?'Mở quán':'Mở quán (chơi thử)'}</button>
     <button class="btn ghost" id="lb">Bảng xếp hạng</button>
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
-    <button class="link" id="contact">Liên hệ người làm game</button>
-    <div class="muted">Phiên bản 2.0</div>
+    <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
+    <div class="muted">Phiên bản 2.1</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
-    :'Khách cực vội, tô nhiều topping. Thưởng ×2.2, nhưng mất 5 tim là bị trừ 363 điểm.'};
+    :diff==='dianguc'?'Khách cực vội, tô nhiều topping. Thưởng ×2.2, nhưng mất 5 tim là bị trừ 363 điểm.'
+    :'Mức cao nhất. Khách vội nhất, gần như tô nào cũng 4 món, hàng chờ ngắn. Thưởng ×3, mất 5 tim bị trừ 675 điểm.'};
   desc();
   $('diffs').onclick=e=>{const b=e.target.closest('.diff');if(!b)return;diff=b.dataset.d;try{localStorage.setItem('mqbk-diff',diff)}catch(e){}
     $('diffs').querySelectorAll('.diff').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===diff));desc()};
   $('go').onclick=startRun;
   $('lb').onclick=()=>leaderboard('sv');
   $('contact').onclick=()=>contactScreen(home);
+  $('donate').onclick=()=>donateScreen(home);
   if(ranked){$('edit').onclick=profileScreen;$('out').onclick=logout}else $('login').onclick=()=>sb?authScreen():toast('Không kết nối được máy chủ');
 }
 async function startRun(){
@@ -789,7 +832,30 @@ function contactScreen(back){
     <div class="li"><span class="rk">Mail</span><span class="nm"><a href="mailto:${CONTACT.email}" style="color:var(--navy)">${CONTACT.email}</a></span><button class="link" data-copy="${CONTACT.email}">Sao chép</button></div>
     <div class="li"><span class="rk">SĐT</span><span class="nm"><a href="tel:${CONTACT.sdt}" style="color:var(--navy)">${CONTACT.sdt.replace(/(\d{4})(\d{3})(\d{3})/,'$1 $2 $3')}</a></span><button class="link" data-copy="${CONTACT.sdt}">Sao chép</button></div>
   </div>
+  <button class="btn warm" id="donate">Ủng hộ game</button>
   <p class="rule">Game lấy cảm hứng từ Mì Quảng Bích, 1-3-5 Đặng Dung, Hòa Khánh Bắc, Liên Chiểu, Đà Nẵng. Quán quen của sinh viên Bách Khoa.</p>`);
+  $('back').onclick=back;
+  $('donate').onclick=()=>donateScreen(()=>contactScreen(back));
+  $('ov').querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{
+    try{await navigator.clipboard.writeText(b.dataset.copy);toast('Đã sao chép')}catch(e){toast(b.dataset.copy)}
+  });
+}
+
+/* ================= Ủng hộ ================= */
+function donateScreen(back){
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Ủng hộ</div><button class="link" id="back">Đóng</button></div>
+  <h2>Mời người làm game một tô mì</h2>
+  <p>Mì Quảng Bách Khoa miễn phí và sẽ luôn miễn phí. Nếu bạn thấy game vui, có thể ủng hộ để mình trả tiền máy chủ, email và làm thêm tính năng mới.</p>
+  <div class="donate">
+    <img src="icons/ung-ho-qr.png" alt="Mã VietQR chuyển khoản MB Bank cho Nguyễn Tấn Phú, số tài khoản 0905416772" width="280" height="380">
+    <div class="list">
+      <div class="li"><span class="rk">NH</span><span class="nm">MB Bank (Quân đội)</span><span></span></div>
+      <div class="li"><span class="rk">Tên</span><span class="nm">NGUYEN TAN PHU</span><span></span></div>
+      <div class="li"><span class="rk">STK</span><span class="nm">0905416772</span><button class="link" data-copy="0905416772">Sao chép</button></div>
+      <div class="li"><span class="rk">ND</span><span class="nm">Ung ho Mi Quang BK</span><button class="link" data-copy="Ung ho Mi Quang BK">Sao chép</button></div>
+    </div>
+  </div>
+  <p class="rule">Quét mã bằng ứng dụng ngân hàng bất kỳ. Ủng hộ hoàn toàn tự nguyện, số tiền tuỳ bạn, và không đổi ra điểm, tim hay vật phẩm nào trong game. Cảm ơn bạn rất nhiều!</p>`);
   $('back').onclick=back;
   $('ov').querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{
     try{await navigator.clipboard.writeText(b.dataset.copy);toast('Đã sao chép')}catch(e){toast(b.dataset.copy)}
