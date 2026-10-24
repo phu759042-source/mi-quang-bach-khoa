@@ -192,6 +192,45 @@ input,select{font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid va
 .hearts.big{color:var(--chili);display:inline-flex;gap:3px}.hearts.big svg{width:20px;height:20px}
 .plus{font:800 20px/1 var(--display);width:36px;height:36px;border-radius:50%;border:0;background:var(--chili);color:#fff;cursor:pointer;display:grid;place-items:center}
 .plus:disabled{background:var(--line);color:var(--muted);cursor:default}
+/* ===== Chuỗi ngày ===== */
+.streak-pill{display:flex;align-items:center;gap:8px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;color:var(--muted)}
+.streak-pill .flame{width:24px;height:30px;flex:none}
+.streak-pill b{font-family:var(--display);font-size:22px;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums}
+.streak-pill span{font-size:12px;font-weight:600;line-height:1.3}
+.streak-pill.on{border-color:#F59A2A;background:var(--soft)}
+.streak-pill.on b{color:#E8661E}
+.streak-stage{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin-block:auto}
+.flame-wrap{position:relative;width:160px;height:190px;margin-bottom:-6px}
+.flame-wrap .flame{position:absolute;left:20px;top:10px;width:120px;height:150px;transform-origin:50% 90%}
+.glow{position:absolute;left:50%;top:55%;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,150,40,.55),rgba(255,120,30,.18) 45%,transparent 70%);opacity:0;animation:glowIn .9s .7s ease-out forwards}
+.f-gray{animation:grayOut .5s .55s ease-in forwards}
+.f-lit{opacity:0;transform:scale(.25);animation:litPop .7s .65s cubic-bezier(.2,1.6,.4,1) forwards,flicker 1.6s 1.4s ease-in-out infinite}
+.sparks{position:absolute;left:50%;bottom:34px}
+.sparks i{position:absolute;width:var(--s);height:var(--s);border-radius:50%;background:#FFB23A;box-shadow:0 0 6px #FF8A1F;opacity:0;
+  animation:spark 1.1s var(--d) ease-out forwards}
+.streak-num b{display:inline-block;font-family:var(--display);font-weight:800;font-size:64px;line-height:1;color:#E8661E;font-variant-numeric:tabular-nums}
+.streak-num b.pop{animation:numPop .5s cubic-bezier(.2,1.8,.4,1)}
+.record{font-weight:800;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#E8661E;border-radius:999px;padding:4px 12px}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;width:100%;max-width:360px;margin-top:4px}
+.wd{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--muted)}
+.wd i{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:var(--card);display:grid;place-items:center;font-style:normal;color:#fff;font-size:14px}
+.wd.on i{background:#F59A2A;border-color:#F59A2A}
+.wd.today i{border-color:#F59A2A;animation:todayLit .4s 1.1s ease-out forwards}
+.wd.today span{color:#E8661E}
+.wd.future i{opacity:.5}
+.streak-stage .btn{width:100%;max-width:360px;margin-top:8px}
+@keyframes grayOut{to{opacity:0;transform:scale(.85)}}
+@keyframes litPop{0%{opacity:0;transform:scale(.25)}100%{opacity:1;transform:scale(1)}}
+@keyframes flicker{0%,100%{transform:scale(1) skewX(0)}30%{transform:scale(1.04,.97) skewX(-2deg)}60%{transform:scale(.97,1.04) skewX(2deg)}}
+@keyframes glowIn{to{opacity:1}}
+@keyframes spark{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}100%{opacity:0;transform:translate(var(--x),-150px) scale(.4)}}
+@keyframes numPop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+@keyframes todayLit{to{background:#F59A2A;box-shadow:0 0 0 4px rgba(245,154,42,.25)}}
+@media (prefers-reduced-motion:reduce){
+  .f-gray{display:none}.f-lit{opacity:1;transform:none;animation:none}.glow{opacity:1;animation:none}.sparks{display:none}
+  .wd.today i{background:#F59A2A;animation:none}.streak-num b.pop{animation:none}}
+@media (min-width:900px) and (min-height:560px){.streak-stage{max-width:520px!important}.flame-wrap{transform:scale(1.15)}}
 .rule{font-size:12px;color:var(--muted);line-height:1.5}
 table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 .tb th,.tb td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
@@ -559,6 +598,54 @@ async function flushPending(){
   return !isNetErr(error);
 }
 
+/* ================= Chuỗi ngày (streak) ================= */
+// Ngày theo giờ Việt Nam, dạng YYYY-MM-DD; off = số ngày lệch so với hôm nay
+const vnDate=(off=0)=>new Date(Date.now()+off*864e5).toLocaleDateString('en-CA',{timeZone:'Asia/Ho_Chi_Minh'});
+function guestStreak(){try{return JSON.parse(localStorage.getItem('mqbk-streak'))||{chuoi:0,ngay:null,best:0}}catch(e){return {chuoi:0,ngay:null,best:0}}}
+function streakState(){
+  const s=ranked&&profile?{chuoi:profile.chuoi||0,ngay:profile.ngay_chuoi||null,best:profile.chuoi_dai_nhat||0}:guestStreak();
+  const lit=s.ngay===vnDate(), alive=lit||s.ngay===vnDate(-1);
+  return {n:alive?s.chuoi:0,lit,best:s.best};
+}
+// Người chơi thử: tự tính chuỗi trên máy
+function bumpGuestStreak(){
+  const s=guestStreak(), today=vnDate();
+  if(s.ngay===today) return {moi:false,chuoi:s.chuoi,best:s.best};
+  s.chuoi=s.ngay===vnDate(-1)?s.chuoi+1:1; s.ngay=today; s.best=Math.max(s.best||0,s.chuoi);
+  try{localStorage.setItem('mqbk-streak',JSON.stringify(s))}catch(e){}
+  return {moi:true,chuoi:s.chuoi,best:s.best};
+}
+let flameId=0;
+function flameSVG(lit,cls=''){
+  const id='fl'+(++flameId);
+  return `<svg class="flame ${cls}" viewBox="0 0 64 80" aria-hidden="true"><defs>
+    <linearGradient id="${id}o" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${lit?'#E8461E':'#8A9099'}"/><stop offset="1" stop-color="${lit?'#FFA41F':'#B4B9C1'}"/></linearGradient>
+    <linearGradient id="${id}i" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${lit?'#FFB23A':'#C9CDD3'}"/><stop offset="1" stop-color="${lit?'#FFF0A8':'#E4E7EB'}"/></linearGradient></defs>
+    <path fill="url(#${id}o)" d="M32 3c4 15 21 23 21 44a21 21 0 0 1-42 0c0-10 5-17 10-21 0 8 3 12 8 13C26 26 27 14 32 3z"/>
+    <path fill="url(#${id}i)" d="M33 36c3 7 11 11 11 20a12 12 0 0 1-24 0c0-6 3-9 6-11 1 4 3 7 6 7-1-6-1-11 1-16z"/></svg>`;
+}
+const streakPill=()=>{const s=streakState();
+  return `<div class="streak-pill ${s.lit?'on':''}">${flameSVG(s.lit)}<b>${s.n}</b><span>${s.n?'ngày liên tiếp':'Chưa có chuỗi'}${s.lit?' · hôm nay đã giữ lửa':' · chốt sổ 1 lượt hôm nay để '+(s.n?'giữ':'thắp')+' lửa'}</span></div>`};
+// Màn hiệu ứng: lửa xám bùng thành lửa cam, số chuỗi nhảy lên
+function streakScreen(oldN,newN,best,next){
+  const week=[], dow=(new Date(vnDate()+'T00:00:00').getDay()+6)%7; // 0 = thứ Hai
+  for(let k=0;k<7;k++){const off=k-dow, inStreak=off<=0&&off>-newN;
+    week.push(`<div class="wd ${inStreak?(off===0?'today':'on'):''} ${off>0?'future':''}"><i>${off===0?'':inStreak?'✓':''}</i><span>${['T2','T3','T4','T5','T6','T7','CN'][k]}</span></div>`)}
+  const record=newN>1&&newN>=best;
+  openOv(`<div class="streak-stage" role="status" aria-live="polite">
+    <div class="flame-wrap"><div class="glow"></div>${flameSVG(false,'f-gray')}${flameSVG(true,'f-lit')}
+      <div class="sparks">${Array.from({length:14},(_,k)=>`<i style="--x:${Math.round((Math.random()-.5)*160)}px;--d:${(.7+Math.random()*.9).toFixed(2)}s;--s:${(4+Math.random()*5).toFixed(1)}px"></i>`).join('')}</div></div>
+    <div class="streak-num"><b id="sNum">${oldN}</b></div>
+    <h2>${newN===1?'Thắp lửa chuỗi mới!':`Chuỗi ${newN} ngày liên tiếp!`}</h2>
+    ${record?'<div class="record">Kỷ lục mới của bạn</div>':''}
+    <p class="muted">Ngày mai quay lại mở quán và chốt sổ ít nhất một lượt để giữ lửa. Bỏ một ngày là chuỗi về 0.</p>
+    <div class="week">${week.join('')}</div>
+    <button class="btn warm grow" id="sNext">Tiếp tục</button></div>`);
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setTimeout(()=>{const n=$('sNum');if(n){n.textContent=newN;n.classList.add('pop')}},reduce?0:900);
+  $('sNext').onclick=next;
+}
+
 /* ================= Kết thúc lượt & nộp điểm ================= */
 async function finishRun(why, cashOut=false){
   running=false; midRun=false;
@@ -573,10 +660,13 @@ async function finishRun(why, cashOut=false){
     <span>Phạt (${lost} tim × ${phat(diff)})</span><b>−${Math.round(lost*15*hs**2)}</b></div>`;
   if(!ranked){
     if(S.day>guestBest.day||(S.day===guestBest.day&&S.total>guestBest.money)){guestBest={day:S.day,money:S.total};try{localStorage.setItem('mqbk-best',JSON.stringify(guestBest))}catch(e){}}
-    ov.innerHTML=`${head}<p>${esc(why)}</p>${summary}
+    const showGuest=()=>{openOv(`${head}<p>${esc(why)}</p>${summary}
       <p class="muted">Lượt chơi thử không được tính điểm. Nếu đăng nhập, lượt này sẽ ${est>=0?'cộng':'trừ'} <b>${Math.abs(est)}</b> ĐBK.</p>
-      <div class="col grow"><button class="btn" id="again">Chơi lại</button><button class="btn ghost" id="home">Về màn hình chính</button></div>`;
-    $('again').onclick=()=>startRun(); $('home').onclick=home; return;
+      <div class="col grow"><button class="btn" id="again">Chơi lại</button><button class="btn ghost" id="home">Về màn hình chính</button></div>`);
+      $('again').onclick=()=>startRun(); $('home').onclick=home};
+    const before=streakState().n, g=bumpGuestStreak();
+    if(g.moi) streakScreen(before,g.chuoi,g.best,showGuest); else showGuest();
+    return;
   }
   // Lưu kết quả trên máy trước khi gửi, để không mất nếu mạng lỗi
   const pend={uid:user.id,run:runId,so_ngay:S.day,doanh_thu:S.total,tim_mat:lost};
@@ -597,7 +687,11 @@ async function finishRun(why, cashOut=false){
         <div class="col grow"><button class="btn" id="retry">Thử nộp lại</button><button class="btn ghost" id="home">Về màn hình chính</button></div>`;
       $('retry').onclick=trySubmit; $('home').onclick=home; return;
     }
-    showResult(head,why,summary,data);
+    if(data&&data.chuoi_moi){
+      const before=streakState().n;
+      if(profile){profile.chuoi=data.chuoi;profile.ngay_chuoi=vnDate();profile.chuoi_dai_nhat=data.chuoi_dai_nhat}
+      streakScreen(before,data.chuoi,data.chuoi_dai_nhat,()=>{openOv('');showResult(head,why,summary,data)});
+    } else showResult(head,why,summary,data);
   };
   trySubmit();
 }
@@ -784,7 +878,7 @@ async function loadKhoa(){
   khoaList=data||[];
 }
 async function loadProfile(){
-  const {data}=await sb.from('profiles').select('ten,khoa_id,lop,diem,so_luot,ngay_xa_nhat').eq('id',user.id).maybeSingle();
+  const {data}=await sb.from('profiles').select('ten,khoa_id,lop,diem,so_luot,ngay_xa_nhat,chuoi,ngay_chuoi,chuoi_dai_nhat').eq('id',user.id).maybeSingle();
   profile=data||null; myRank=null;
   if(profile&&profile.so_luot>0){
     const r=await sb.from('bxh_sinh_vien').select('hang').eq('id',user.id).maybeSingle();
@@ -826,11 +920,13 @@ function home(){
        <div class="pts">${p.diem}<small>ĐBK${myRank?` · hạng #${myRank}`:''}</small></div></div>`
     :`<div class="me"><div class="nm">Đang chơi thử</div><div class="sub">Không tính điểm${guestBest.day?` · kỷ lục ngày ${guestBest.day}`:''}</div>
        <div class="pts">—<small>ĐBK</small></div></div>`;
+  const pill=streakPill();
   openOv(`<div class="split"><div class="split-a">
   <img class="hero-icon desk" src="icons/favicon.svg" alt="" width="88" height="88">
   <div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3-5 Đặng Dung, Hòa Khánh Bắc</div>
   <h1>Mì Quảng <em>Bách Khoa</em></h1>
   ${meCard}
+  ${pill}
   <ol class="steps desk"><li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi bấm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li><li>Hết bàn thì khách xếp hàng. Để khách chờ lâu là mất tim, nhất là giờ cao điểm</li></ol>
   <p class="muted desk keys">Chơi bằng bàn phím: <kbd>1</kbd>–<kbd>8</kbd> chọn món, <kbd>Space</kbd> chan nước lèo, <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> bưng cho bàn 1–4, <kbd>X</kbd> đổ bỏ.</p>
   </div><div class="split-b">
@@ -847,7 +943,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     ${themeHTML()}
-    <div class="muted">Phiên bản 2.2</div>
+    <div class="muted">Phiên bản 2.3</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -962,13 +1058,13 @@ async function leaderboard(tab){
     :'Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30.';
   if(!sb){$('lbBody').innerHTML='<div class="empty-state">Không kết nối được máy chủ bảng xếp hạng.</div>';return}
   let rows=[],err=null;
-  if(tab==='sv'){({data:rows,error:err}=await sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang').order('diem',{ascending:false}).limit(50))}
+  if(tab==='sv'){({data:rows,error:err}=await sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,chuoi').order('diem',{ascending:false}).limit(50))}
   else if(tab==='lop'){({data:rows,error:err}=await sb.from('bxh_lop').select('lop,khoa_id,so_nguoi,diem,hang').order('hang').limit(50))}
   else {({data:rows,error:err}=await sb.from('bxh_khoa').select('khoa_id,khoa,so_nguoi,diem,hang').order('hang'))}
   if(err){$('lbBody').innerHTML=`<div class="empty-state">Không tải được: ${esc(err.message)}</div>`;return}
   rows=rows||[];
   const norm=rows.map(r=>tab==='sv'
-    ?{rk:r.hang,nm:r.ten,sb:`${r.lop} · ${r.khoa}`,pt:r.diem,mine:user&&r.id===user.id}
+    ?{rk:r.hang,nm:r.ten,sb:`${r.lop} · ${r.khoa}${r.chuoi>0?` · ${r.chuoi} ngày liên tiếp`:''}`,pt:r.diem,mine:user&&r.id===user.id}
     :tab==='lop'?{rk:r.hang,nm:r.lop,sb:`${khoaTen(r.khoa_id)} · ${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.lop===profile.lop}
     :{rk:r.hang,nm:r.khoa,sb:`${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.khoa_id===profile.khoa_id});
   if(!norm.length||(tab!=='khoa'&&!norm.length)){$('lbBody').innerHTML=`<div class="empty-state">Chưa có ai trên bảng. Chơi một lượt để ghi tên ${tab==='lop'?'lớp bạn':'mình'} đầu tiên.</div>`;return}
