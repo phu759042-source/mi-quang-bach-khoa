@@ -294,7 +294,8 @@ Dự án được làm cùng **Claude**, trợ lý AI của Anthropic. Mình đ�
 |---|---|
 | Ý tưởng ban đầu: một game đậm chất Bách Khoa Đà Nẵng | Mình |
 | Bối cảnh thật: quán Mì Quảng Bích ở Đặng Dung, Hòa Khánh Bắc | Mình. Claude đề xuất món mì Quảng nhưng đặt quán ở trước cổng trường, nơi không có quán mì nào, nên mình sửa lại cho đúng thực tế |
-| Hệ thống độ khó và cách quản lý | Mình quyết định |
+| Hệ thống độ khó | Mình quyết định |
+| Quản lý tài khoản: lưu người chơi trên Supabase, tổ chức theo lớp và theo khoa | Mình quyết định |
 | Hồ sơ người chơi, cách hiển thị dữ liệu, bảng xếp hạng | Mình quyết định |
 | Giao diện sáng/tối, ảnh đại diện | Mình quyết định |
 | Có hiệu ứng âm thanh | Mình quyết định. Claude đề xuất và thiết kế từng tiếng |
