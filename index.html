@@ -664,14 +664,23 @@ const sfx={
     noise(D,{type:'bandpass',f:380,to:1100,q:22,vol:.3,attack:.03});                // tô đầy dần, tiếng cao lên
     for(let i=0;i<n;i++){const at=.01+Math.random()*(D-.06), f=520+Math.random()*1200;
       tone(f,.02+Math.random()*.03,{to:f*(1.5+Math.random()*.6),vol:.04+Math.random()*.06,at,attack:.002})}},
-  // chốt sổ: bấm két "cạch", ngăn kéo trượt ra, tiền xu rơi leng keng, rồi hợp âm vui
-  close(){tone(150,.12,{to:70,vol:.35});noise(.04,{type:'highpass',f:2500,vol:.2});            // cạch
-    noise(.28,{type:'bandpass',f:900,to:300,q:2,vol:.16,at:.1,attack:.03});                    // ngăn kéo trượt
-    tone(110,.1,{to:60,vol:.25,at:.38});noise(.05,{type:'lowpass',f:1200,vol:.15,at:.38});      // ngăn kéo chạm
-    tone(1760,.5,{type:'triangle',vol:.2,at:.42});tone(2637,.45,{vol:.1,at:.42});              // chuông két
-    for(let i=0;i<16;i++){const at=.55+i*.045+Math.random()*.03, f=2600+Math.random()*2400;    // xu leng keng
+  // chốt sổ, phần 1 — bấm xác nhận: két "cạch", ngăn kéo trượt ra
+  closeStart(){tone(150,.12,{to:70,vol:.35});noise(.04,{type:'highpass',f:2500,vol:.2});
+    noise(.28,{type:'bandpass',f:900,to:300,q:2,vol:.16,at:.1,attack:.03});
+    tone(110,.1,{to:60,vol:.25,at:.38});noise(.05,{type:'lowpass',f:1200,vol:.15,at:.38})},
+  // chốt sổ, phần 2 — đang nộp điểm: tiếng đếm tiền lặp đều cho tới khi máy chủ trả lời
+  countStart(){this.countStop(); let k=0;
+    const tick=()=>{noise(.05,{type:'bandpass',f:2600+Math.random()*900,q:1.2,vol:.13,attack:.004});   // tờ tiền "soạt"
+      if(k%4===3) tone(3000+Math.random()*1500,.09,{type:'triangle',vol:.05});                       // thỉnh thoảng xu kêu
+      k++};
+    SFX.countT=setTimeout(function go(){tick();SFX.countT=setTimeout(go,140)},450)},
+  countStop(){clearTimeout(SFX.countT);SFX.countT=null},
+  // chốt sổ, phần 3 — đã cộng điểm: chuông két, xu rơi, hợp âm kết
+  closeEnd(){tone(1760,.5,{type:'triangle',vol:.2});tone(2637,.45,{vol:.1});
+    for(let i=0;i<12;i++){const at=.12+i*.04+Math.random()*.02, f=2600+Math.random()*2400;
       tone(f,.12,{type:'triangle',vol:.06+Math.random()*.05,at});tone(f*1.47,.08,{vol:.03,at})}
-    [523,659,784,1046].forEach((f,i)=>tone(f,.7,{type:'triangle',vol:.14,at:1.35+i*.08}))},
+    [523,659,784,1046].forEach((f,i)=>tone(f,.7,{type:'triangle',vol:.14,at:.6+i*.08}))},
+  closeFail(){this.countStop();tone(330,.18,{type:'triangle',vol:.16});tone(247,.3,{type:'triangle',vol:.16,at:.17})},
   // bán thành công: tiếng két tiền "ka-ching" + leng keng đồng xu
   cash(big){tone(1318,.09,{type:'triangle',vol:.22});noise(.05,{type:'highpass',f:5000,vol:.12});
             tone(1760,.45,{type:'triangle',vol:.22,at:.08});tone(2637,.4,{vol:.12,at:.08});
@@ -763,7 +772,9 @@ async function finishRun(why, cashOut=false){
       <div class="col grow"><button class="btn" id="again">Chơi lại</button><button class="btn ghost" id="home">Về màn hình chính</button></div>`);
       $('again').onclick=()=>startRun(); $('home').onclick=home};
     const before=streakState().n, g=bumpGuestStreak();
-    if(g.moi) streakScreen(before,g.chuoi,g.best,showGuest); else showGuest();
+    if(cashOut) setTimeout(()=>sfx.closeEnd(),450);
+    const go=()=>g.moi?streakScreen(before,g.chuoi,g.best,showGuest):showGuest();
+    if(cashOut&&g.moi) setTimeout(go,1300); else go();
     return;
   }
   // Lưu kết quả trên máy trước khi gửi, để không mất nếu mạng lỗi
@@ -771,9 +782,11 @@ async function finishRun(why, cashOut=false){
   savePending(pend); runId=null;
   const trySubmit=async()=>{
     ov.innerHTML=`${head}<p>${esc(why)}</p>${summary}<div class="msg ok" id="msg">Đang nộp điểm…</div>`;
-    submitting=true;
+    submitting=true; if(cashOut) sfx.countStart();
     const {data,error}=await submitPending(pend);
-    submitting=false;
+    submitting=false; sfx.countStop();
+    if(error){if(cashOut) sfx.closeFail()}
+    else if(cashOut) sfx.closeEnd();
     if(error&&!isNetErr(error)){
       ov.innerHTML=`${head}${summary}<div class="msg">Không nộp được điểm: ${esc(error.message)}</div>
         <div class="col grow"><button class="btn" id="home">Về màn hình chính</button></div>`;
@@ -788,7 +801,8 @@ async function finishRun(why, cashOut=false){
     if(data&&data.chuoi_moi){
       const before=streakState().n;
       if(profile){profile.chuoi=data.chuoi;profile.ngay_chuoi=vnDate();profile.chuoi_dai_nhat=data.chuoi_dai_nhat}
-      streakScreen(before,data.chuoi,data.chuoi_dai_nhat,()=>{openOv('');showResult(head,why,summary,data)});
+      const go=()=>streakScreen(before,data.chuoi,data.chuoi_dai_nhat,()=>{openOv('');showResult(head,why,summary,data)});
+      if(cashOut) setTimeout(go,1300); else go();   // cho tiếng chốt sổ kêu xong rồi mới thắp lửa
     } else showResult(head,why,summary,data);
   };
   trySubmit();
@@ -1134,7 +1148,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.6</div>
+    <div class="muted">Phiên bản 2.6.1</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -1179,7 +1193,7 @@ function showShop(){
   $('next').onclick=()=>{S.day++;startDay()};
   let armed=false;
   $('cash').onclick=e=>{ if(!armed){armed=true;e.target.textContent='Bấm lần nữa để chốt '+(now>=0?'+':'')+now+' ĐBK';return}
-    sfx.close(); finishRun('Bạn dừng đúng lúc, giữ lại thành quả.',true) };
+    sfx.closeStart(); finishRun('Bạn dừng đúng lúc, giữ lại thành quả.',true) };
 }
 function drawShop(){
   $('shop').innerHTML=UPG.map(u=>{
