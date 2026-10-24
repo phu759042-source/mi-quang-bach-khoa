@@ -13,7 +13,7 @@ Bán mì cho sinh viên các khoa, giữ uy tín quán, rồi đua điểm theo 
 
 </div>
 
-> **In English.** *Mì Quảng Bách Khoa* is a browser-based restaurant time-management game built for students of the University of Science and Technology, University of Da Nang. Players assemble bowls of mì Quảng (a central-Vietnamese noodle dish) against customer patience timers, upgrade their shop between days, and compete on student, class and faculty leaderboards. It is a single-file HTML/CSS/vanilla JS app (no build step, no framework) backed by Supabase (Postgres + Auth + Storage), with server-side score validation via `SECURITY DEFINER` RPCs and row-level security, offline-safe score submission, Duolingo-style daily streaks, and sound effects synthesised entirely with the Web Audio API. The concept, setting and product decisions are mine; the code was written by Claude (Anthropic's AI assistant) working from my ideas and direction — see section 11 for who did what.
+> **In English.** *Mì Quảng Bách Khoa* is a browser-based restaurant time-management game built for students of the University of Science and Technology, University of Da Nang. Players assemble bowls of mì Quảng (a central-Vietnamese noodle dish) against customer patience timers, upgrade their shop between days, and compete on student, class and faculty leaderboards, or challenge each other to real-time 1v1 matches rated with Elo. It is a single-file HTML/CSS/vanilla JS app (no build step, no framework) backed by Supabase (Postgres + Auth + Storage), with server-side score validation via `SECURITY DEFINER` RPCs and row-level security, offline-safe score submission, Duolingo-style daily streaks, and sound effects synthesised entirely with the Web Audio API. The concept, setting and product decisions are mine; the code was written by Claude (Anthropic's AI assistant) working from my ideas and direction — see section 11 for who did what.
 
 ---
 
@@ -24,6 +24,7 @@ Bán mì cho sinh viên các khoa, giữ uy tín quán, rồi đua điểm theo 
 3. [Độ khó và cách tính điểm](#3-độ-khó-và-cách-tính-điểm)
 4. [Nâng cấp quán](#4-nâng-cấp-quán)
 5. [Tài khoản, bảng xếp hạng và streak](#5-tài-khoản-bảng-xếp-hạng-và-streak)
+   - [Solo: thách đấu bạn bè](#solo-thách-đấu-bạn-bè)
 6. [Giao diện và trải nghiệm](#6-giao-diện-và-trải-nghiệm)
 7. [Kiến trúc kỹ thuật](#7-kiến-trúc-kỹ-thuật)
 8. [Những bài toán kỹ thuật đáng chú ý](#8-những-bài-toán-kỹ-thuật-đáng-chú-ý)
@@ -164,6 +165,24 @@ Cuối mỗi ngày, người chơi dùng tiền trong két để mua nâng cấp
 
 <sub>Tên và điểm trong ảnh chụp màn hình là dữ liệu minh hoạ.</sub>
 
+### Solo: thách đấu bạn bè
+
+Chế độ đấu trực tiếp hai người, lấy cảm hứng từ chess.com:
+
+1. Tìm bạn bằng **ô tìm kiếm** (theo tên hoặc lớp), hoặc bấm vào tên một bạn trên **bảng xếp hạng**. Chấm xanh cạnh tên nghĩa là bạn đó đang mở game.
+2. Người thách chọn **độ khó** và **luật thắng**:
+   - *Sinh tồn*: ai hết tim trước thì thua. Cả hai trụ đủ 3 ngày thì so ĐBK.
+   - *Điểm cao*: hết 3 ngày, ai nhiều ĐBK hơn thì thắng.
+3. Người được thách nhận **thông báo ở góc dưới bên phải**, kèm âm thanh, có nút **Đồng ý / Từ chối** và 60 giây để trả lời.
+4. Đồng ý xong, hai bên đếm ngược rồi cùng bán 3 ngày. Trong lúc bán, mỗi người thấy **ngày, doanh thu và số tim của đối thủ** cập nhật trực tiếp. Giữa các ngày vẫn có cửa hàng nâng cấp, nhưng không mua lại tim được.
+5. Kết quả tính bằng **Elo** như cờ vua (bắt đầu 1200, K = 32): thắng người Elo cao hơn thì được cộng nhiều, thua người Elo thấp hơn thì bị trừ nhiều. Solo không cộng trừ ĐBK, và có bảng xếp hạng Solo riêng.
+
+Rời trận quá 25 giây hoặc bấm bỏ trận đều bị tính thua.
+
+<p align="center"><img src="docs/images/solo-luong-thach-dau.png" width="820" alt="Tìm bạn, chọn luật và gửi lời thách"></p>
+<p align="center"><img src="docs/images/solo-thong-bao.png" width="820" alt="Thông báo thách đấu ở góc dưới bên phải trên laptop"></p>
+<p align="center"><img src="docs/images/solo-tran-dau.png" width="820" alt="Đếm ngược, đang đấu, cửa hàng và kết quả Elo"></p>
+
 ## 6. Giao diện và trải nghiệm
 
 - **Responsive**: trên điện thoại bố cục một cột, bếp nằm dưới; trên laptop chia hai cột, có thêm phím tắt.
@@ -190,7 +209,7 @@ flowchart TB
     subgraph SB["Supabase"]
         AU[Auth<br/>email + mật khẩu]
         DB[(Postgres<br/>bật RLS: client chỉ đọc)]
-        RPC[RPC SECURITY DEFINER<br/>bat_dau_luot · nop_ket_qua<br/>luu_ho_so · luu_avatar ...]
+        RPC[RPC SECURITY DEFINER<br/>bat_dau_luot · nop_ket_qua<br/>gui_thach_dau · cap_nhat_solo ...]
         V[View xếp hạng<br/>bxh_sinh_vien · bxh_lop · bxh_khoa]
         ST[Storage<br/>bucket avatars]
     end
@@ -224,6 +243,8 @@ flowchart TB
 | `khoa` | Danh sách khoa |
 | `profiles` | Hồ sơ người chơi: tên, khoa, lớp, tổng điểm, số lượt, streak, avatar |
 | `runs` | Từng lượt chơi: độ khó, trạng thái, số ngày, doanh thu, tim mất, điểm cộng/trừ, thời gian |
+| `thach_dau` | Lời thách và trận solo: hai người chơi, độ khó, luật, tiến độ từng bên, người thắng, Elo trước và sau |
+| `bxh_solo` | View xếp hạng Solo theo Elo |
 | `luot_truy_cap`, `khach_ghe`, `thong_ke` | Thống kê lượt truy cập |
 | `bxh_sinh_vien`, `bxh_lop`, `bxh_khoa` | View tính bảng xếp hạng |
 
@@ -236,6 +257,8 @@ flowchart TB
 - Lượt bị bỏ dở được xử lý như mất cả 5 tim, nên người chơi không thể thoát game để né điểm phạt.
 
 **Không mất điểm khi mạng chập chờn.** Safari trên iOS hay báo lỗi `Load failed` khi dùng lại kết nối cũ. Kết quả lượt chơi vì thế được **lưu vào localStorage trước khi gửi**. Game gửi lại tự động kèm cơ chế thử lại (`rpcRetry`), và nếu vẫn lỗi thì lần mở game sau trên máy đó sẽ tự nộp (`flushPending`). Lượt đang chờ nộp không bị tính là bỏ dở.
+
+**Solo realtime mà vẫn chống gian lận.** Thông báo thách đấu và tiến độ đối thủ đến qua Supabase Realtime, nhưng RLS chỉ cho mỗi người đọc trận của chính mình. Mọi thay đổi đều đi qua RPC trên server (`gui_thach_dau`, `tra_loi_thach_dau`, `cap_nhat_solo`…). Server kiểm tra doanh thu không giảm, tim mất không giảm, thời gian chơi khớp số ngày, rồi tự phân thắng thua và tính Elo. Người chơi phải báo về mỗi 4 giây; ai im lặng quá 25 giây bị xử thua, nên không thể tắt game để né trận thua.
 
 **Cân bằng độ khó bằng mô phỏng.** Mục tiêu doanh thu mỗi ngày không đặt theo cảm tính. Chúng được lấy từ mô phỏng 2.000 ván với chiến lược của người chơi khá, có mua nâng cấp dần, rồi nhân thêm một tỉ lệ tăng theo ngày.
 
@@ -270,7 +293,8 @@ Các phần chính trong `index.html`, tìm theo tên:
 | Âm thanh | `SFX`, `tone`, `noise`, `sfx` |
 | Streak | `streakState`, `streakScreen`, `flameSVG` |
 | Tài khoản, avatar | `authScreen`, `profileScreen`, `avatarEditor` |
-| Bảng xếp hạng | `leaderboard`, `ruleText` |
+| Bảng xếp hạng, tìm người chơi | `leaderboard`, `loadBoard`, `searchPlayers`, `ruleText` |
+| Solo | `soloConnect`, `showNotice`, `challengeScreen`, `startSolo`, `soloPush`, `soloEnd` |
 | Giao diện | `applyTheme`, `home` |
 
 ## 10. Chạy thử trên máy
@@ -296,12 +320,13 @@ Dự án được làm cùng **Claude**, trợ lý AI của Anthropic. Mình đ�
 | Bối cảnh thật: quán Mì Quảng Bích ở Đặng Dung, Hòa Khánh Bắc | Mình. Claude đề xuất món mì Quảng nhưng đặt quán ở trước cổng trường, nơi không có quán mì nào, nên mình sửa lại cho đúng thực tế |
 | Hệ thống độ khó | Mình quyết định |
 | Quản lý tài khoản: lưu người chơi trên Supabase, tổ chức theo lớp và theo khoa | Mình quyết định |
+| Chế độ Solo kiểu chess.com: thách qua tìm kiếm hoặc bảng xếp hạng, thông báo góc dưới bên phải có âm thanh, hai luật thắng, tính Elo theo chênh lệch | Ý tưởng và luật của mình. Claude đề xuất chi tiết (3 ngày, không mua tim, xử thua khi rời trận) và mình duyệt |
 | Hồ sơ người chơi, cách hiển thị dữ liệu, bảng xếp hạng | Mình quyết định |
 | Giao diện sáng/tối, ảnh đại diện | Mình quyết định |
 | Có hiệu ứng âm thanh | Mình quyết định. Claude đề xuất và thiết kế từng tiếng |
 | Topping, lối chơi lõi (ghép tô, kiên nhẫn của khách, giờ cao điểm) | Ý tưởng của Claude |
 | Toàn bộ code: giao diện, logic game, đồ hoạ SVG, âm thanh Web Audio | Claude viết |
-| Backend Supabase: bảng, RLS, RPC, chống gian lận, cân bằng bằng mô phỏng | Claude viết |
+| Backend Supabase: bảng, RLS, RPC, realtime, chống gian lận, tính Elo, cân bằng bằng mô phỏng | Claude viết |
 
 Cách làm này giúp mình đưa một ý tưởng thành sản phẩm chạy thật, có tài khoản, có bảng xếp hạng toàn trường.
 ## 12. Tác giả

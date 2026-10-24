@@ -285,6 +285,43 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .shake{animation:sh .35s}
 @keyframes sh{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 @media (prefers-reduced-motion:reduce){.float,.shake{animation:none}.float{display:none}}
+/* ===== Solo: thông báo thách đấu, tìm người chơi, màn đấu ===== */
+.notices{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(52px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;flex-direction:column;gap:10px;width:min(340px,calc(100vw - 32px));pointer-events:none}
+.notice{pointer-events:auto;background:var(--card);color:var(--ink);border:1.5px solid var(--turmeric);border-radius:16px;box-shadow:0 14px 36px rgba(20,16,10,.25);padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;align-items:center;animation:noticeIn .38s cubic-bezier(.2,1.4,.4,1)}
+.notice > .av{grid-row:1/3}
+.notice .t{font-weight:800;font-size:14px;line-height:1.3;overflow-wrap:anywhere}
+.notice .d{font-size:12px;color:var(--muted);line-height:1.35}
+.notice .note{grid-column:1/3;font-size:12px;color:var(--chili);font-weight:600;margin-top:4px}
+.notice .timer{grid-column:1/3;height:4px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:8px}
+.notice .timer i{display:block;height:100%;background:var(--turmeric);transform-origin:left;animation:noticeT linear forwards}
+.notice .acts2{grid-column:1/3;display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:8px}
+.notice .acts2 .btn{font-size:15px;padding:8px 10px}
+.notice.out{transition:opacity .25s,transform .25s;opacity:0;transform:translateX(30px)}
+@keyframes noticeIn{from{transform:translateY(28px) scale(.95);opacity:0}}
+@keyframes noticeT{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media (prefers-reduced-motion:reduce){.notice{animation:none}}
+.search{position:relative}
+.search input{padding-left:40px}
+.search svg{position:absolute;left:13px;top:50%;width:18px;height:18px;margin-top:-9px;color:var(--muted);pointer-events:none}
+.li .act{font:inherit;font-weight:800;font-size:13px;border:0;border-radius:10px;padding:8px 12px;background:var(--navy);color:#fff;cursor:pointer;white-space:nowrap}
+[data-uid][role=button]{cursor:pointer}
+.li[data-uid]:hover,.pod[data-uid]:hover{border-color:var(--heading)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--leaf);margin-right:6px;vertical-align:1px;box-shadow:0 0 0 2px var(--card)}
+.tabs.t4{grid-template-columns:repeat(4,1fr)}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mode{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px}
+.mode b{font-family:var(--display);font-size:17px;line-height:1.1}
+.mode small{font-size:12px;color:var(--muted);line-height:1.35}
+.mode[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink);background:var(--soft)}
+.vs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;text-align:center;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:14px 10px}
+.vs .p{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.vs .p .nm{font-weight:800;overflow-wrap:anywhere;line-height:1.25}
+.vs .p .sb{font-size:12px;color:var(--muted)}
+.vs .x{font-family:var(--display);font-weight:800;font-size:28px;color:var(--chili)}
+.opp{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:2px 9px 2px 2px;font-size:12px;color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+.opp .av-txt{font-size:8px!important}
+.opp .hearts{color:var(--chili);display:inline-flex;gap:1px;height:auto}.opp .hearts svg{width:10px;height:10px}
+.countdown{font-family:var(--display);font-weight:800;font-size:132px;line-height:1;color:var(--heading);text-align:center;margin-block:auto;font-variant-numeric:tabular-nums}
 /* ======== Laptop / màn hình rộng ======== */
 @media (min-width:900px) and (min-height:560px){
   .desk{display:revert!important}
@@ -528,7 +565,7 @@ function angry(i,msg){
 }
 function loseHeart(msg){
   S.rep--; S.lost++; D.lost++; toast(msg); renderStats();
-  if(S.rep<=0){running=false;setTimeout(()=>S.money>=GIA_TIM?reviveScreen():finishRun('Mất hết uy tín, sinh viên rủ nhau sang quán khác.'),400)}
+  if(S.rep<=0){running=false;setTimeout(()=>solo?soloFinish('Hết tim rồi!'):S.money>=GIA_TIM?reviveScreen():finishRun('Mất hết uy tín, sinh viên rủ nhau sang quán khác.'),400)}
 }
 const heartsHTML=n=>Array.from({length:TIM_MAX},(_,i)=>`<svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21C5 15.5 1 12 1 7a5.5 5.5 0 0 1 11-1 5.5 5.5 0 0 1 11 1c0 5-4 8.5-11 14z" fill="${i<n?'currentColor':'none'}" stroke="currentColor" stroke-width="2"/></svg>`).join('');
 function buyHeart(){
@@ -537,7 +574,7 @@ function buyHeart(){
   S.money-=GIA_TIM; S.rep++; S.bought++; toast('Đã mua 1 tim'); sfx.heart();
   return true;
 }
-const heartRow=()=>`<div class="heart-row"><span class="lbl">Uy tín</span><span class="hearts big" aria-label="Còn ${S.rep} trên ${TIM_MAX} tim">${heartsHTML(S.rep)}</span>
+const heartRow=()=>solo?`<div class="heart-row"><span class="lbl">Uy tín</span><span class="hearts big">${heartsHTML(S.rep)}</span><span class="muted">Solo không mua lại tim</span><button type="button" id="buyHeart" hidden></button></div>`:`<div class="heart-row"><span class="lbl">Uy tín</span><span class="hearts big" aria-label="Còn ${S.rep} trên ${TIM_MAX} tim">${heartsHTML(S.rep)}</span>
   <button type="button" class="plus" id="buyHeart" aria-label="Mua 1 tim với giá ${GIA_TIM}k" ${S.rep>=TIM_MAX||S.money<GIA_TIM?'disabled':''}>+</button>
   <span class="muted">${GIA_TIM}k/tim · két còn <b id="ketH">${S.money}k</b></span></div>`;
 /* Hết tim giữa ngày: tạm dừng, cho mua tim để bán tiếp */
@@ -592,6 +629,7 @@ function autoServe(){
 function resetBowl(){D.bowl={items:new Set(lv('phubep')?['mi']:[]),broth:false};renderBowl();renderPad()}
 function endDay(){
   running=false;
+  if(solo){soloPush(true); if(S.day>=SOLO_NGAY){soloFinish('Đã bán đủ 3 ngày.');return} soloShop(); return}
   if(D.earned<target(S.day)){finishRun(`Hôm nay chỉ bán được ${D.earned}k, chưa đủ ${target(S.day)}k tiền mặt bằng.`);return}
   showShop();
 }
@@ -699,7 +737,10 @@ const sfx={
            tone(140,.5,{to:55,vol:.4,at:.62});noise(.5,{type:'lowpass',f:1600,to:300,vol:.38,at:.62,attack:.02});
            for(let i=0;i<9;i++) noise(.03,{type:'highpass',f:3500,vol:.12,at:.8+Math.random()*1.1});
            [1046,1318,1568,2093].forEach((f,i)=>tone(f,.5,{type:'triangle',vol:.16,at:.95+i*.09}))},
-  num(){tone(880,.12,{to:1320,type:'triangle',vol:.18})}
+  num(){tone(880,.12,{to:1320,type:'triangle',vol:.18})},
+  // có lời thách đấu: gõ bàn "cốc cốc" rồi chuông leng keng đi lên
+  challenge(){noise(.06,{type:'bandpass',f:700,q:4,vol:.45,attack:.002});noise(.06,{type:'bandpass',f:640,q:4,vol:.45,at:.16,attack:.002});
+    tone(523,.6,{vol:.1,at:.36});[1046,1568,2093].forEach((f,i)=>tone(f,.34,{type:'triangle',vol:.2,at:.36+i*.11}))}
 };
 function setSound(on){SFX.on=on;try{localStorage.setItem('mqbk-sound',on?'on':'off')}catch(e){}
   if(on){ac();tone(880,.08,{vol:.15})}
@@ -829,14 +870,15 @@ function showResult(head,why,summary,data){
 /* ================= Render game ================= */
 function renderAll(){renderStats();renderTables();renderBowl();renderPad()}
 function renderStats(){
-  $('sDay').textContent=S.day; $('sEarn').textContent=`${D.earned}/${target(S.day)}k`;
+  $('sDay').textContent=S.day; $('sEarn').textContent=solo?`${D.earned}k`:`${D.earned}/${target(S.day)}k`;
   const hp=(on)=>`<svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21C5 15.5 1 12 1 7a5.5 5.5 0 0 1 11-1 5.5 5.5 0 0 1 11 1c0 5-4 8.5-11 14z" fill="${on?'currentColor':'none'}" stroke="currentColor" stroke-width="2"/></svg>`;
   $('sRep').innerHTML=Array.from({length:TIM_MAX},(_,i)=>hp(i<S.rep)).join('');
   $('sRep').setAttribute('aria-label',`Còn ${Math.max(0,S.rep)} trên 5 tim`);
   const q=D.queue||[];
   const rush=inRush()?`<span class="tag rush">Giờ cao điểm</span>`:'';
   const queue=q.length?`<span class="queue" aria-label="${q.length} khách đang xếp hàng">Xếp hàng ${q.map(c=>`<i style="--c:${c.kh[2]}"></i>`).join('')}</span>`:'';
-  $('sEvent').innerHTML=`<span class="tag" style="background:${DIFF[diff].color}">${DIFF[diff].n}</span>${rush}<span class="evn">${esc(D.ev.n)} · ${esc(D.ev.d)}</span>${queue}`;
+  $('sEvent').innerHTML=`<span class="tag" style="background:${DIFF[diff].color}">${DIFF[diff].n}</span>${rush}<span class="evn">${esc(D.ev.n)} · ${esc(D.ev.d)}</span>${queue}${soloHud()}`;
+  if(solo&&running) soloPush();
 }
 function renderTables(){
   const t=$('tables'); t.style.setProperty('--n',D.slots.length);
@@ -988,7 +1030,7 @@ function viErr(m){
 async function afterLogin(){
   await loadProfile();
   if(profile) await flushPending();
-  ranked=!!profile;
+  ranked=!!profile; if(ranked) soloConnect();
   profile?home():profileScreen();
 }
 async function loadKhoa(){
@@ -996,7 +1038,7 @@ async function loadKhoa(){
   khoaList=data||[];
 }
 async function loadProfile(){
-  const {data}=await sb.from('profiles').select('ten,khoa_id,lop,diem,so_luot,ngay_xa_nhat,chuoi,ngay_chuoi,chuoi_dai_nhat,avatar_url,avatar_khung').eq('id',user.id).maybeSingle();
+  const {data}=await sb.from('profiles').select('ten,khoa_id,lop,diem,so_luot,ngay_xa_nhat,chuoi,ngay_chuoi,chuoi_dai_nhat,avatar_url,avatar_khung,elo,solo_thang,solo_thua,solo_hoa').eq('id',user.id).maybeSingle();
   profile=data||null; myRank=null;
   if(profile&&profile.so_luot>0){
     const r=await sb.from('bxh_sinh_vien').select('hang').eq('id',user.id).maybeSingle();
@@ -1033,10 +1075,10 @@ function profileScreen(){
     msg.className='msg ok'; msg.textContent='Đang lưu…';
     const {error}=await sb.rpc('luu_ho_so',{p_ten:ten,p_khoa_id:kh,p_lop:lop});
     if(error){msg.className='msg';msg.textContent='Không lưu được: '+error.message;return}
-    await loadProfile(); ranked=true; home();
+    await loadProfile(); ranked=true; soloConnect(); home();
   };
 }
-async function logout(){await sb.auth.signOut();user=null;profile=null;ranked=false;authScreen()}
+async function logout(){soloDisconnect();await sb.auth.signOut();user=null;profile=null;ranked=false;authScreen()}
 
 /* ================= Avatar ================= */
 const AV_BASE=SB_URL+'/storage/v1/object/public/avatars/';
@@ -1124,9 +1166,10 @@ async function removeAvatar(){
 
 /* ================= Màn hình chính ================= */
 function home(){
+  setTimeout(refreshNotices,0);
   const p=profile;
   const meCard=ranked&&p
-    ?`<div class="me has-av">${avatarHTML(p.avatar_url,p.ten,48,'me-av')}<div class="nm">${esc(p.ten)}</div><div class="sub">${esc(p.lop)} · ${esc(khoaTen(p.khoa_id))}</div>
+    ?`<div class="me has-av">${avatarHTML(p.avatar_url,p.ten,48,'me-av')}<div class="nm">${esc(p.ten)}</div><div class="sub">${esc(p.lop)} · ${esc(khoaTen(p.khoa_id))} · Elo ${p.elo??1200}</div>
        <div class="pts">${p.diem}<small>ĐBK${myRank?` · hạng #${myRank}`:''}</small></div></div>`
     :`<div class="me"><div class="nm">Đang chơi thử</div><div class="sub">Không tính điểm${guestBest.day?` · kỷ lục ngày ${guestBest.day}`:''}</div>
        <div class="pts">—<small>ĐBK</small></div></div>`;
@@ -1149,11 +1192,12 @@ function home(){
   <div class="col grow">
     <button class="btn" id="go">${ranked?'Mở quán':'Mở quán (chơi thử)'}</button>
     <button class="btn ghost" id="lb">Bảng xếp hạng</button>
+    ${ranked?'<button class="btn warm" id="solo">Solo · thách đấu bạn bè</button>':''}
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.6.2</div>
+    <div class="muted">Phiên bản 2.7.0</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -1164,6 +1208,7 @@ function home(){
     $('diffs').querySelectorAll('.diff').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===diff));desc()};
   $('go').onclick=startRun;
   $('lb').onclick=()=>leaderboard('sv');
+  if(ranked) $('solo').onclick=()=>leaderboard('solo',true);
   $('contact').onclick=()=>contactScreen(home);
   $('donate').onclick=()=>donateScreen(home);
   if(ranked){$('edit').onclick=profileScreen;$('out').onclick=logout}else $('login').onclick=()=>sb?authScreen():toast('Không kết nối được máy chủ');
@@ -1184,12 +1229,12 @@ function showShop(){
   const ev=EVENTS[S.day%4], hs=DIFF[diff].hs, lost=S.lost||0;
   const now=Math.round(S.total*hs/10)-Math.round(lost*15*hs**2);
   openOv(`<div class="eyebrow">Đóng quán · Ngày ${S.day} · ${DIFF[diff].n}</div><h2>Hết một ngày bán</h2>
-  <div class="sum"><span>Doanh thu hôm nay</span><b>${D.earned}k</b><span>Mục tiêu</span><b>${target(S.day)}k</b>
+  <div class="sum"><span>Doanh thu hôm nay</span><b>${D.earned}k</b>${solo?'':`<span>Mục tiêu</span><b>${target(S.day)}k</b>`}
   <span>Tô đã bán</span><b>${D.served}</b><span>Khách bỏ về</span><b>${D.lost}</b><span>Tiền trong két</span><b id="ket">${S.money}k</b>
-  <span>Nếu chốt sổ bây giờ</span><b style="color:${now>=0?'var(--leaf)':'var(--chili)'}">${now>=0?'+':''}${now} ĐBK</b></div>
+  <span>${solo?'ĐBK của bạn':'Nếu chốt sổ bây giờ'}</span><b style="color:${now>=0?'var(--leaf)':'var(--chili)'}">${now>=0?'+':''}${now} ĐBK</b></div>
   <div id="hrWrap">${heartRow()}</div>
   <div class="eyebrow">Nâng cấp quán</div><p class="muted" style="margin-top:-8px">Tiền mua nâng cấp lấy từ két, không làm giảm doanh thu tính điểm.</p><div class="col" id="shop"></div>
-  <p class="muted">Ngày mai: <b>${ev.n}</b>. ${ev.d} Mục tiêu ${target(S.day+1)}k.</p>
+  <p class="muted">Ngày mai: <b>${ev.n}</b>. ${ev.d} ${solo?'':`Mục tiêu ${target(S.day+1)}k.`}</p>
   <div class="col grow"><button class="btn" id="next">Mở quán ngày ${S.day+1}</button>
   <button class="btn ghost" id="cash">Chốt sổ, nghỉ bán</button></div>`);
   drawShop();
@@ -1255,35 +1300,56 @@ function donateScreen(back){
 }
 
 /* ================= Bảng xếp hạng ================= */
-async function leaderboard(tab){
+async function leaderboard(tab,focus){
+  const canSolo=ranked&&!!sb;
   openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Vinh danh · Học kỳ 1, 2026–2027</div><button class="link" id="back">Đóng</button></div>
   <h2>Bảng xếp hạng</h2>
-  <div class="tabs" role="tablist">${[['sv','Sinh viên'],['lop','Lớp'],['khoa','Khoa']].map(([k,n])=>`<button role="tab" data-t="${k}" aria-selected="${k===tab}">${n}</button>`).join('')}</div>
+  ${canSolo?`<div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="Tìm bạn theo tên hoặc lớp để solo" autocomplete="off" enterkeyhint="search" aria-label="Tìm người chơi để thách đấu"></div>`:''}
+  <div class="tabs t4" role="tablist">${[['sv','Sinh viên'],['lop','Lớp'],['khoa','Khoa'],['solo','Solo']].map(([k,n])=>`<button role="tab" data-t="${k}" aria-selected="${k===tab}">${n}</button>`).join('')}</div>
   <div class="col" id="lbBody"><div class="empty-state">Đang tải bảng xếp hạng…</div></div>
   <div class="rule" id="rule"></div>`);
   $('back').onclick=home;
   document.querySelector('.tabs').onclick=e=>{const b=e.target.closest('[data-t]');if(b)leaderboard(b.dataset.t)};
-  $('rule').innerHTML=tab==='sv'?ruleText():tab==='lop'
+  const hint=canSolo?' Bấm vào tên một bạn để thách đấu solo.':'';
+  $('rule').innerHTML=tab==='sv'?ruleText()+(hint?`<p style="margin-top:6px">${hint.trim()}</p>`:''):tab==='lop'
     ?'Điểm lớp = tổng ĐBK của 10 bạn cao nhất lớp, chia 10. Lớp chưa đủ 10 người chơi thì phần thiếu tính là 0.'
-    :'Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30.';
+    :tab==='khoa'?'Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30.'
+    :'Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Solo không ảnh hưởng ĐBK.'+hint;
   if(!sb){$('lbBody').innerHTML='<div class="empty-state">Không kết nối được máy chủ bảng xếp hạng.</div>';return}
+  $('lbBody').onclick=e=>{const el=e.target.closest('[data-uid]'); if(!el) return; const p=lbPeople.get(el.dataset.uid); if(p) challengeScreen(p,()=>leaderboard(tab))};
+  const q=$('q');
+  if(q){ if(focus) setTimeout(()=>q.focus(),60);
+    let t; q.oninput=()=>{clearTimeout(t); const v=q.value.trim(); t=setTimeout(()=>v?searchPlayers(v):loadBoard(tab,canSolo),300)} }
+  loadBoard(tab,canSolo);
+}
+async function loadBoard(tab,canSolo){
   let rows=[],err=null;
   if(tab==='sv'){({data:rows,error:err}=await sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,chuoi,avatar_url').order('diem',{ascending:false}).limit(50))}
   else if(tab==='lop'){({data:rows,error:err}=await sb.from('bxh_lop').select('lop,khoa_id,so_nguoi,diem,hang').order('hang').limit(50))}
-  else {({data:rows,error:err}=await sb.from('bxh_khoa').select('khoa_id,khoa,so_nguoi,diem,hang').order('hang'))}
-  if(err){$('lbBody').innerHTML=`<div class="empty-state">Không tải được: ${esc(err.message)}</div>`;return}
+  else if(tab==='khoa'){({data:rows,error:err}=await sb.from('bxh_khoa').select('khoa_id,khoa,so_nguoi,diem,hang').order('hang'))}
+  else {({data:rows,error:err}=await sb.from('bxh_solo').select('id,ten,lop,khoa,elo,solo_thang,solo_thua,solo_hoa,hang,avatar_url').order('hang').limit(50))}
+  const body=$('lbBody'); if(!body||($('q')&&$('q').value.trim())) return;
+  if(err){body.innerHTML=`<div class="empty-state">Không tải được: ${esc(err.message)}</div>`;return}
   rows=rows||[];
   const norm=rows.map(r=>tab==='sv'
-    ?{rk:r.hang,nm:r.ten,sb:`${r.lop} · ${r.khoa}${r.chuoi>0?` · ${r.chuoi} ngày liên tiếp`:''}`,pt:r.diem,mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true}
+    ?{rk:r.hang,nm:r.ten,sb:`${r.lop} · ${r.khoa}${r.chuoi>0?` · ${r.chuoi} ngày liên tiếp`:''}`,pt:r.diem,mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url}}
     :tab==='lop'?{rk:r.hang,nm:r.lop,sb:`${khoaTen(r.khoa_id)} · ${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.lop===profile.lop}
-    :{rk:r.hang,nm:r.khoa,sb:`${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.khoa_id===profile.khoa_id});
-  if(!norm.length||(tab!=='khoa'&&!norm.length)){$('lbBody').innerHTML=`<div class="empty-state">Chưa có ai trên bảng. Chơi một lượt để ghi tên ${tab==='lop'?'lớp bạn':'mình'} đầu tiên.</div>`;return}
+    :tab==='khoa'?{rk:r.hang,nm:r.khoa,sb:`${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.khoa_id===profile.khoa_id}
+    :{rk:r.hang,nm:r.ten,sb:`${r.lop} · ${r.solo_thang} thắng ${r.solo_thua} thua${r.solo_hoa?` ${r.solo_hoa} hoà`:''}`,pt:r.elo,mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url,elo:r.elo}});
+  norm.forEach(r=>{if(r.p)lbPeople.set(r.uid,r.p)});
+  if(!norm.length){body.innerHTML=tab==='solo'
+    ?`<div class="empty-state">Chưa có trận solo nào.${canSolo?' Tìm một bạn ở ô phía trên và thách đấu để mở màn.':' Đăng nhập để thách đấu bạn bè.'}</div>`
+    :`<div class="empty-state">Chưa có ai trên bảng. Chơi một lượt để ghi tên ${tab==='lop'?'lớp bạn':'mình'} đầu tiên.</div>`;return}
+  const tap=r=>canSolo&&r.uid&&!r.mine?` data-uid="${r.uid}" role="button" tabindex="0" aria-label="Thách đấu ${esc(r.nm)}"`:'';
+  const dot=r=>r.uid?`<span class="dot" data-online="${r.uid}" ${onlineSet.has(r.uid)?'':'hidden'}></span>`:'';
   const top=norm.slice(0,3), rest=norm.slice(3);
-  const pod=(r,i)=>r?`<div class="pod r${i+1}${r.mine?' mine':''}">${r.hasAv?avatarHTML(r.av,r.nm,i===0?60:46,'pod-av'):''}<div class="rk">${r.rk}</div><div class="nm">${esc(r.nm)}</div><div class="sb">${esc(r.sb)}</div><div class="pt">${r.pt}</div></div>`:'<div></div>';
+  const pod=(r,i)=>r?`<div class="pod r${i+1}${r.mine?' mine':''}"${tap(r)}>${r.hasAv?avatarHTML(r.av,r.nm,i===0?60:46,'pod-av'):''}<div class="rk">${r.rk}</div><div class="nm">${dot(r)}${esc(r.nm)}</div><div class="sb">${esc(r.sb)}</div><div class="pt">${r.pt}</div></div>`:'<div></div>';
   let html=`<div class="podium">${pod(top[1],1)}${pod(top[0],0)}${pod(top[2],2)}</div>`;
-  if(rest.length) html+=`<div class="list">${rest.map(r=>`<div class="li${r.mine?' mine':''}"><span class="rk">#${r.rk}</span><span class="nm${r.hasAv?' with-av':''}">${r.hasAv?avatarHTML(r.av,r.nm,34):''}<span>${esc(r.nm)}<span class="sb">${esc(r.sb)}</span></span></span><span class="pt">${r.pt}</span></div>`).join('')}</div>`;
+  if(rest.length) html+=`<div class="list">${rest.map(r=>`<div class="li${r.mine?' mine':''}"${tap(r)}><span class="rk">#${r.rk}</span><span class="nm${r.hasAv?' with-av':''}">${r.hasAv?avatarHTML(r.av,r.nm,34):''}<span>${dot(r)}${esc(r.nm)}<span class="sb">${esc(r.sb)}</span></span></span><span class="pt">${r.pt}</span></div>`).join('')}</div>`;
   if(tab==='sv'&&profile&&myRank&&!norm.some(r=>r.mine)) html+=`<div class="list"><div class="li mine"><span class="rk">#${myRank}</span><span class="nm with-av">${avatarHTML(profile.avatar_url,profile.ten,34)}<span>${esc(profile.ten)}<span class="sb">Bạn</span></span></span><span class="pt">${profile.diem}</span></div></div>`;
-  $('lbBody').innerHTML=html;
+  body.innerHTML=html;
+  body.querySelectorAll('[data-uid][role=button]').forEach(el=>el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click()}});
 }
 function ruleText(){
   return `<b>Cách tính ĐBK mỗi lượt:</b> doanh thu × hệ số ÷ 10, trừ số tim mất × mức phạt. Bỏ dở lượt giữa chừng tính như mất cả 5 tim.
@@ -1316,7 +1382,7 @@ document.addEventListener('keydown',e=>{
   else if(k==='x'||k==='backspace'){e.preventDefault();$('trash').click()}
 });
 $('tables').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const c=e.target.closest('.cust[data-i]');if(c){e.preventDefault();serve(+c.dataset.i)}}});
-window.addEventListener('beforeunload',e=>{if(ranked&&runId&&!submitting){e.preventDefault();e.returnValue=''}});
+window.addEventListener('beforeunload',e=>{if(solo||(ranked&&runId&&!submitting)){e.preventDefault();e.returnValue=''}});
 
 /* ================= Kéo xuống để tải lại (chỉ khi không đang trong lượt chơi) ================= */
 (function pullToRefresh(){
@@ -1355,6 +1421,297 @@ function applyTheme(t){
 const themeHTML=()=>`<div class="theme" role="group" aria-label="Giao diện"><span>Giao diện</span>${[['light','Sáng'],['dark','Tối'],['auto','Theo máy']].map(([k,n])=>`<button type="button" data-t="${k}" aria-pressed="${k===theme}">${n}</button>`).join('')}</div>`;
 document.addEventListener('click',e=>{const b=e.target.closest('.theme button');if(b)applyTheme(b.dataset.t)});
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(theme==='auto')applyTheme('auto')})}catch(e){}
+
+/* ================= Solo: thách đấu như chess.com =================
+   Luồng: A tìm B (thanh tìm kiếm hoặc bảng xếp hạng) → chọn độ khó + luật → gui_thach_dau.
+   B nhận thông báo realtime ở góc dưới bên phải (có âm thanh), đồng ý → tra_loi_thach_dau.
+   Hai bên đếm ngược rồi cùng bán 3 ngày; tiến độ gửi qua cap_nhat_solo, server phân thắng thua và tính Elo. */
+const SOLO_NGAY=3, SOLO_SHOP=20;
+const CHE_DO={
+  sinh_ton:{n:'Sinh tồn',d:'Ai hết tim trước thì thua. Cả hai trụ đủ 3 ngày thì so ĐBK.'},
+  diem:{n:'Điểm cao',d:'Hết 3 ngày, ai nhiều ĐBK hơn thì thắng. Hết tim là dừng sớm.'}};
+let solo=null;            // trận đang đấu
+let soloWait=null;        // lời thách mình đã gửi, đang chờ trả lời
+let soloAccepting=null;   // id lời thách mình vừa bấm đồng ý
+let soloCh=null, onlineCh=null, onlineSet=new Set();
+const notices=new Map();  // id lời thách → {el,row,p,timer}
+const diemSolo=(dk,dt,tm)=>Math.round(dt*DIFF[dk].hs/10)-Math.round(tm*15*DIFF[dk].hs**2);
+const eloDoi=(ra,rb,s)=>Math.round(32*(s-1/(1+10**((rb-ra)/400))));
+const myElo=()=>profile?.elo??1200;
+const tenNgan=s=>String(s||'').trim().split(/\s+/).pop()||'Đối thủ';
+const HEART_PATH='M12 21C5 15.5 1 12 1 7a5.5 5.5 0 0 1 11-1 5.5 5.5 0 0 1 11 1c0 5-4 8.5-11 14z';
+
+/* ---- kết nối realtime: lời thách tới, cập nhật trận, ai đang online ---- */
+function soloConnect(){
+  if(!sb||!user||soloCh) return;
+  soloCh=sb.channel('solo-'+user.id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'thach_dau'},p=>soloRow(p.new))
+    .subscribe();
+  onlineCh=sb.channel('online',{config:{presence:{key:user.id}}});
+  onlineCh.on('presence',{event:'sync'},()=>{
+      onlineSet=new Set(Object.keys(onlineCh.presenceState()));
+      document.querySelectorAll('[data-online]').forEach(el=>el.hidden=!onlineSet.has(el.dataset.online))})
+    .subscribe(s=>{if(s==='SUBSCRIBED') onlineCh.track({at:Date.now()})});
+  soloPoll(true); clearInterval(soloConnect.t); soloConnect.t=setInterval(()=>soloPoll(false),15000);
+}
+function soloDisconnect(){
+  if(soloCh){sb.removeChannel(soloCh);soloCh=null}
+  if(onlineCh){sb.removeChannel(onlineCh);onlineCh=null}
+  clearInterval(soloConnect.t); [...notices.keys()].forEach(dropNotice);
+}
+// Dự phòng khi realtime chập chờn: hỏi server lời thách đang chờ; trận cũ còn treo (tải lại trang giữa trận) thì tính bỏ trận
+async function soloPoll(boot){
+  if(!sb||!user) return;
+  const {data}=await sb.from('thach_dau').select('*').or(`a.eq.${user.id},b.eq.${user.id}`)
+    .in('trang_thai',['cho','dang_dau']).order('id',{ascending:false}).limit(10);
+  (data||[]).forEach(r=>{
+    if(r.trang_thai==='cho'){ if(r.b===user.id&&new Date(r.het_han)>Date.now()) soloRow(r); else if(boot&&r.a===user.id) sb.rpc('huy_thach_dau',{p_id:r.id}); return }
+    const mine=(solo&&solo.id===r.id)||(soloWait&&soloWait.id===r.id)||soloAccepting===r.id;
+    if(!mine&&new Date(r.bat_dau)<Date.now()-10000)
+      sb.rpc('bo_tran_solo',{p_id:r.id}).then(()=>toast('Trận solo trước bị tính thua vì bạn rời trận'));
+  });
+}
+function soloRow(r){
+  if(!r||!user) return;
+  const mine=r.a===user.id?'a':r.b===user.id?'b':null; if(!mine) return;
+  if(mine==='b'&&r.trang_thai==='cho'){ if(!notices.has(r.id)&&new Date(r.het_han)>Date.now()) showNotice(r); return }
+  if(notices.has(r.id)) dropNotice(r.id);
+  if(soloWait&&soloWait.id===r.id){
+    if(r.trang_thai==='dang_dau') return startSolo(r,soloWait.opp);
+    if(['tu_choi','het_han','huy'].includes(r.trang_thai)) return waitEnded(r);
+  }
+  if(solo&&solo.id===r.id) soloUpdate(r);
+}
+
+/* ---- thông báo thách đấu ở góc dưới bên phải ---- */
+const TITLE0=document.title;
+function titleBlink(on){clearInterval(titleBlink.t);document.title=TITLE0;if(!on)return;let k=0;
+  titleBlink.t=setInterval(()=>{document.title=(k++%2)?TITLE0:'(!) Có lời thách đấu'},1000)}
+const soloBusy=()=>midRun||!!solo||!!soloWait;
+async function showNotice(r){
+  notices.set(r.id,{row:r});                      // giữ chỗ để không hiện hai lần
+  const {data:p}=await sb.from('profiles').select('id,ten,lop,khoa_id,elo,avatar_url').eq('id',r.a).maybeSingle();
+  if(!notices.has(r.id)) return;
+  const left=Math.max(0,new Date(r.het_han)-Date.now());
+  let box=$('notices');
+  if(!box){box=document.createElement('div');box.id='notices';box.className='notices';box.setAttribute('aria-live','assertive');document.body.appendChild(box)}
+  const el=document.createElement('div'); el.className='notice'; el.setAttribute('role','alertdialog'); el.setAttribute('aria-label','Lời thách đấu');
+  el.innerHTML=`${avatarHTML(p?.avatar_url,p?.ten||'?',44)}
+    <div class="t">${esc(p?.ten||'Một người chơi')} thách đấu bạn!</div>
+    <div class="d">${esc(p?.lop||'')} · Elo ${p?.elo??'—'} · ${DIFF[r.do_kho].n} · ${CHE_DO[r.che_do].n}</div>
+    <div class="note" hidden>Bạn đang chơi dở, chốt sổ xong mới nhận được.</div>
+    <div class="timer"><i style="animation-duration:${left}ms"></i></div>
+    <div class="acts2"><button type="button" class="btn ghost" data-no>Từ chối</button><button type="button" class="btn" data-yes>Đồng ý</button></div>`;
+  box.appendChild(el);
+  Object.assign(notices.get(r.id),{el,p,timer:setTimeout(()=>dropNotice(r.id),left)});
+  refreshNotices();
+  sfx.challenge(); try{navigator.vibrate&&navigator.vibrate([120,80,120])}catch(e){}
+  titleBlink(true);
+  el.querySelector('[data-no]').onclick=()=>answer(r.id,false);
+  el.querySelector('[data-yes]').onclick=()=>answer(r.id,true);
+}
+function refreshNotices(){
+  const busy=soloBusy();
+  notices.forEach(n=>{if(!n.el)return;n.el.querySelector('[data-yes]').disabled=busy;n.el.querySelector('.note').hidden=!busy});
+}
+function dropNotice(id){
+  const n=notices.get(id); notices.delete(id); if(!n) return;
+  clearTimeout(n.timer); if(n.el){n.el.classList.add('out');setTimeout(()=>n.el.remove(),250)}
+  if(!notices.size) titleBlink(false);
+}
+async function answer(id,yes){
+  const n=notices.get(id); if(!n||!n.el) return;
+  if(yes&&soloBusy()){toast('Bạn đang chơi dở');return}
+  n.el.querySelectorAll('button').forEach(b=>b.disabled=true);
+  if(yes) soloAccepting=id;
+  const {data,error}=await sb.rpc('tra_loi_thach_dau',{p_id:id,p_dong_y:yes});
+  dropNotice(id);
+  if(error){soloAccepting=null;toast(error.message);return}
+  if(yes&&data?.trang_thai==='dang_dau'){[...notices.keys()].forEach(dropNotice);startSolo(data,n.p)}
+  soloAccepting=null;
+}
+
+/* ---- gửi lời thách ---- */
+const vsHTML=(opp)=>`<div class="vs">
+  <div class="p">${avatarHTML(profile?.avatar_url,profile?.ten||'Bạn',56)}<div class="nm">${esc(profile?.ten||'Bạn')}</div><div class="sb">Elo ${myElo()}</div></div>
+  <div class="x">VS</div>
+  <div class="p">${avatarHTML(opp.avatar_url,opp.ten,56)}<div class="nm">${esc(opp.ten)}</div><div class="sb">${opp.lop?esc(opp.lop)+' · ':''}Elo ${opp.elo??'—'}</div></div></div>`;
+async function challengeScreen(p,back,opt={}){
+  if(!ranked||!sb){toast('Đăng nhập để solo');return}
+  if(!p||p.id===user.id) return;
+  if(solo||midRun){toast('Bạn đang chơi dở');return}
+  if(p.elo==null){
+    const {data}=await sb.from('profiles').select('id,ten,lop,elo,avatar_url').eq('id',p.id).maybeSingle();
+    if(data) p={...p,...data};
+  }
+  let dk=opt.dk||diff, md=opt.md||'sinh_ton';
+  const win=eloDoi(myElo(),p.elo??1200,1), lose=eloDoi(myElo(),p.elo??1200,0);
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Solo · thách đấu</div><button class="link" id="back">Đóng</button></div>
+    <h2>Thách đấu ${esc(tenNgan(p.ten))}</h2>
+    ${vsHTML(p)}
+    <div class="col"><div class="eyebrow">Độ khó</div><div class="diffs" id="sDiffs">${Object.entries(DIFF).map(([k,v])=>`<button type="button" class="diff d-${k}" data-d="${k}" aria-pressed="${k===dk}"><b>${v.n}</b><span class="x">×${v.hs}</span><small>Phạt ${phat(k)}/tim</small></button>`).join('')}</div></div>
+    <div class="col"><div class="eyebrow">Luật thắng</div><div class="modes" id="sModes">${Object.entries(CHE_DO).map(([k,v])=>`<button type="button" class="mode" data-m="${k}" aria-pressed="${k===md}"><b>${v.n}</b><small>${v.d}</small></button>`).join('')}</div></div>
+    <p class="muted">Mỗi người bán 3 ngày cùng lúc, có cửa hàng giữa các ngày, không mua lại tim. Thắng <b>+${win}</b> Elo, thua <b>${lose}</b> Elo. Solo không cộng trừ ĐBK.</p>
+    <div class="msg" id="msg"></div>
+    <div class="col grow"><button class="btn" id="send">Gửi lời thách</button></div>`);
+  $('back').onclick=back||home;
+  $('sDiffs').onclick=e=>{const b=e.target.closest('.diff');if(!b)return;dk=b.dataset.d;$('sDiffs').querySelectorAll('.diff').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===dk))};
+  $('sModes').onclick=e=>{const b=e.target.closest('.mode');if(!b)return;md=b.dataset.m;$('sModes').querySelectorAll('.mode').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===md))};
+  $('send').onclick=async()=>{
+    const msg=$('msg'); msg.className='msg ok'; msg.textContent='Đang gửi…'; $('send').disabled=true;
+    const {data,error}=await sb.rpc('gui_thach_dau',{p_b:p.id,p_do_kho:dk,p_che_do:md});
+    if(error){msg.className='msg';msg.textContent=error.message;$('send').disabled=false;return}
+    waitScreen({id:data,opp:p,dk,md});
+  };
+}
+function waitScreen(w){
+  soloWait=w; refreshNotices(); const end=Date.now()+60000;
+  openOv(`<div class="eyebrow">Solo · ${DIFF[w.dk].n} · ${CHE_DO[w.md].n}</div><h2>Đang chờ ${esc(tenNgan(w.opp.ten))} trả lời</h2>
+    ${vsHTML(w.opp)}
+    <p class="muted">Lời thách hiện ở góc màn hình của ${esc(w.opp.ten)}, kèm âm thanh.${onlineSet.has(w.opp.id)?'':' Bạn ấy có vẻ không mở game lúc này nên có thể không thấy.'}</p>
+    <div class="submitting"><span class="coin" aria-hidden="true"></span>Còn <span id="wLeft">60</span> giây</div>
+    <div class="col grow"><button class="btn ghost" id="cancel">Huỷ lời thách</button></div>`);
+  $('cancel').onclick=async()=>{if(soloWait!==w)return;soloWait=null;clearInterval(w.t);refreshNotices();await sb.rpc('huy_thach_dau',{p_id:w.id});home()};
+  w.t=setInterval(async()=>{
+    if(soloWait!==w){clearInterval(w.t);return}
+    const s=Math.max(0,Math.ceil((end-Date.now())/1000)), el=$('wLeft'); if(el) el.textContent=s;
+    if(s%3===0||s===0){const {data}=await sb.rpc('kiem_tra_solo',{p_id:w.id}); if(data&&soloWait===w) soloRow(data)}
+  },1000);
+}
+function waitEnded(r){
+  const w=soloWait; soloWait=null; clearInterval(w.t); refreshNotices();
+  const why=r.trang_thai==='tu_choi'?`${w.opp.ten} đã từ chối lời thách.`
+    :r.trang_thai==='het_han'?`${w.opp.ten} không trả lời trong 60 giây.`:'Lời thách đã bị huỷ.';
+  if(r.trang_thai==='tu_choi') sfx.wrong();
+  openOv(`<div class="eyebrow">Solo</div><h2>Chưa đấu được</h2><p>${esc(why)}</p>
+    <div class="col grow"><button class="btn" id="again">Thách lại</button><button class="btn ghost" id="lbs">Tìm người khác</button><button class="link" id="home">Về màn hình chính</button></div>`);
+  $('again').onclick=()=>challengeScreen(w.opp,null,{dk:w.dk,md:w.md}); $('lbs').onclick=()=>leaderboard('solo',true); $('home').onclick=home;
+}
+
+/* ---- trận đấu ---- */
+function startSolo(r,opp){
+  if(solo&&solo.id===r.id) return;
+  if(soloWait){clearInterval(soloWait.t);soloWait=null}
+  const me=r.a===user.id?'a':'b';
+  solo={id:r.id,me,op:me==='a'?'b':'a',row:r,opp:opp||{ten:'Đối thủ'},dk:r.do_kho,md:r.che_do,prevDiff:diff,sent:'',last:0};
+  diff=r.do_kho; midRun=true; refreshNotices();
+  if(!opp||!opp.ten||opp.elo==null) sb.from('profiles').select('id,ten,lop,elo,avatar_url').eq('id',r[solo.op]).maybeSingle()
+    .then(({data})=>{if(data&&solo&&solo.id===r.id){solo.opp=data;if(running)renderStats()}});
+  let n=Math.round((new Date(r.bat_dau)-Date.now())/1000); if(!(n>=1)) n=3; n=Math.min(4,n);
+  openOv(`<div class="eyebrow" style="text-align:center">Solo · ${DIFF[solo.dk].n} · ${CHE_DO[solo.md].n}</div>
+    ${vsHTML(solo.opp)}<div class="countdown pop-in" id="cd">${n}</div>
+    <p class="muted" style="text-align:center;margin-inline:auto">${CHE_DO[solo.md].d}</p>`);
+  sfx.num();
+  const t=setInterval(()=>{ if(!solo||solo.id!==r.id){clearInterval(t);return}
+    n--; const cd=$('cd'); if(n>0){if(cd){cd.textContent=n;cd.classList.remove('pop-in');void cd.offsetWidth;cd.classList.add('pop-in')}sfx.num()}
+    else {clearInterval(t);sfx.cash(true);soloBegin()}},1000);
+}
+function soloBegin(){
+  if(!solo) return;
+  S={day:1,money:0,rep:5,upg:{},total:0,lost:0,bought:0}; startDay();
+  solo.ping=setInterval(()=>soloPush(true),4000);
+  solo.chk=setInterval(async()=>{if(!solo)return;const id=solo.id;const {data}=await sb.rpc('kiem_tra_solo',{p_id:id});if(data&&solo&&solo.id===id)soloUpdate(data)},10000);
+}
+// Gửi tiến độ của mình (gọi sau mỗi lần đổi tiền/tim, tối đa ~1,4 lần/giây, và mỗi 4 giây để báo còn online)
+async function soloPush(force=false,xong=false){
+  if(!solo) return;
+  const key=[S.day,S.total,S.lost,xong].join();
+  if(!force&&key===solo.sent) return;
+  if(!force&&Date.now()-solo.last<700){clearTimeout(solo.tt);solo.tt=setTimeout(()=>soloPush(),700);return}
+  solo.sent=key; solo.last=Date.now();
+  const id=solo.id;
+  const {data,error}=await sb.rpc('cap_nhat_solo',{p_id:id,p_ngay:Math.min(SOLO_NGAY,S.day),p_doanh_thu:S.total,p_tim_mat:Math.min(5,S.lost),p_xong:xong});
+  if(!solo||solo.id!==id) return;
+  if(data) soloUpdate(data);
+  else if(error&&xong) setTimeout(()=>soloPush(true,true),1500);   // mạng lỗi lúc báo xong: thử lại
+}
+function soloUpdate(r){
+  if(!solo||r.id!==solo.id) return;
+  const prev=solo.row, o=solo.op; solo.row=r;
+  if(r.trang_thai==='xong') return soloEnd(r);
+  if(running){
+    if(prev&&(r[o+'_tim_mat']||0)>(prev[o+'_tim_mat']||0)) toast(`${tenNgan(solo.opp.ten)} vừa mất 1 tim`);
+    renderStats();
+  }
+  const os=$('oppShop'); if(os) os.innerHTML=oppLine();
+  const ow=$('oppNow'); if(ow) ow.innerHTML=oppLine();
+}
+const oppLine=()=>{if(!solo)return'';const r=solo.row,o=solo.op,t=r[o+'_tim_mat']||0;
+  return `<b>${esc(tenNgan(solo.opp.ten))}</b>: ngày ${Math.max(1,r[o+'_ngay']||1)}, ${r[o+'_doanh_thu']||0}k, mất ${t} tim, ${diemSolo(solo.dk,r[o+'_doanh_thu']||0,t)} ĐBK${r[o+'_xong']?' · đã xong':''}`};
+// Thanh đối thủ hiện trong dòng sự kiện khi đang bán
+function soloHud(){
+  if(!solo) return '';
+  const r=solo.row, o=solo.op, t=Math.min(5,r[o+'_tim_mat']||0);
+  const hp=i=>`<svg viewBox="0 0 24 22" aria-hidden="true"><path d="${HEART_PATH}" fill="${i<5-t?'currentColor':'none'}" stroke="currentColor" stroke-width="2"/></svg>`;
+  return `<span class="opp" aria-label="Đối thủ ${esc(solo.opp.ten)}: ${r[o+'_doanh_thu']||0}k, còn ${5-t} tim">${avatarHTML(solo.opp.avatar_url,solo.opp.ten,20)}<b>${esc(tenNgan(solo.opp.ten))}</b>
+    <span>N${Math.max(1,r[o+'_ngay']||1)} · ${r[o+'_doanh_thu']||0}k</span><span class="hearts">${[0,1,2,3,4].map(hp).join('')}</span>${r[o+'_xong']?'<span>· xong</span>':''}</span>`;
+}
+function soloShop(){
+  showShop();
+  const cash=$('cash'), nx=$('next'); let armed=false, s=SOLO_SHOP;
+  cash.textContent='Bỏ trận (tính thua)';
+  cash.onclick=async()=>{ if(!armed){armed=true;cash.textContent='Bấm lần nữa để bỏ trận';return}
+    clearInterval(t); cash.disabled=true; const {data}=await sb.rpc('bo_tran_solo',{p_id:solo.id}); if(data) soloUpdate(data) };
+  nx.insertAdjacentHTML('beforebegin',`<p class="muted" id="oppShop">${oppLine()}</p>`);
+  const lbl=()=>nx.textContent=`Mở quán ngày ${S.day+1} · ${s}s`;
+  const go=nx.onclick; nx.onclick=()=>{clearInterval(t);go()};
+  lbl(); const t=setInterval(()=>{ if(!solo){clearInterval(t);return} s--; if(s<=0){clearInterval(t);nx.onclick()} else lbl()},1000);
+}
+function soloFinish(why){
+  running=false; if(!solo) return;
+  solo.why=why; soloPush(true,true);
+  const my=diemSolo(solo.dk,S.total,Math.min(5,S.lost));
+  openOv(`<div class="eyebrow">Solo · ${DIFF[solo.dk].n} · ${CHE_DO[solo.md].n}</div><h2>${esc(why)}</h2>
+    <div class="sum"><span>Doanh thu của bạn</span><b>${S.total}k</b><span>Tim đã mất</span><b>${Math.min(5,S.lost)}</b><span>ĐBK của bạn</span><b>${my}</b></div>
+    <div class="submitting"><span class="coin" aria-hidden="true"></span>Đang chờ đối thủ…</div>
+    <p class="muted" id="oppNow">${oppLine()}</p>`);
+}
+function soloEnd(r){
+  if(!solo) return;
+  const s=solo; solo=null; document.querySelectorAll('.toast').forEach(t=>t.remove());
+  running=false; midRun=false; clearInterval(s.ping); clearInterval(s.chk); clearTimeout(s.tt);
+  diff=s.prevDiff;
+  const me=s.me, o=s.op, draw=!r.thang, win=r.thang===user.id, d=r['doi_'+me]??0, eloMoi=(r['elo_'+me]??myElo())+d;
+  if(profile){profile.elo=Math.max(100,eloMoi); const k=draw?'solo_hoa':win?'solo_thang':'solo_thua'; profile[k]=(profile[k]||0)+1}
+  const ten=s.opp.ten||'Đối thủ', n=tenNgan(ten);
+  const why={het_tim:win?`${ten} hết tim trước.`:draw?'Hai bạn hết tim cùng lúc.':'Bạn hết tim trước.',
+    diem:draw?'Hai bạn bằng điểm sau 3 ngày.':'So ĐBK sau 3 ngày bán.',
+    roi_tran:win?`${ten} đã rời trận quá lâu nên bị xử thua.`:'Bạn mất kết nối quá lâu nên bị xử thua.',
+    bo_cuoc:win?`${ten} đã bỏ trận.`:'Bạn đã bỏ trận.', ca_hai_roi:'Cả hai đều mất kết nối.'}[r.ly_do]||'';
+  const cell=(k,x)=>`<td>${x}</td>`, dm=diemSolo(s.dk,r[me+'_doanh_thu'],r[me+'_tim_mat']), dt=diemSolo(s.dk,r[o+'_doanh_thu'],r[o+'_tim_mat']);
+  openOv(`<div class="eyebrow">Solo · ${DIFF[s.dk].n} · ${CHE_DO[s.md].n}</div>
+    <h2>${draw?'Hoà!':win?'Bạn thắng!':'Bạn thua rồi'}</h2><p>${esc(why)}</p>
+    <div><div class="eyebrow">Elo solo</div>
+      <div class="big pop-in" style="color:${d>0?'var(--leaf)':d<0?'var(--chili)':'var(--heading)'}">${d>0?'+':d<0?'−':'±'}${Math.abs(d)}</div>
+      <p class="muted">Elo của bạn bây giờ là <b>${Math.max(100,eloMoi)}</b>.</p></div>
+    <div class="sum" style="display:block"><table class="tb"><tr><th></th><th>Bạn</th><th>${esc(n)}</th></tr>
+      <tr><td>Số ngày</td>${cell(0,r[me+'_ngay'])}${cell(0,r[o+'_ngay'])}</tr>
+      <tr><td>Doanh thu</td>${cell(0,r[me+'_doanh_thu']+'k')}${cell(0,r[o+'_doanh_thu']+'k')}</tr>
+      <tr><td>Tim đã mất</td>${cell(0,r[me+'_tim_mat'])}${cell(0,r[o+'_tim_mat'])}</tr>
+      <tr><td>ĐBK</td>${cell(0,'<b>'+dm+'</b>')}${cell(0,'<b>'+dt+'</b>')}</tr></table></div>
+    <div class="col grow"><button class="btn" id="re">Tái đấu</button><button class="btn ghost" id="lbs">Bảng xếp hạng Solo</button><button class="link" id="home">Về màn hình chính</button></div>`);
+  if(win) sfx.closeEnd(); else if(draw) sfx.heart(); else sfx.closeFail();
+  $('re').onclick=()=>challengeScreen({...s.opp,id:r[o]},null,{dk:s.dk,md:s.md});
+  $('lbs').onclick=()=>leaderboard('solo'); $('home').onclick=home;
+  refreshNotices();
+}
+
+/* ---- tìm người chơi ---- */
+const lbPeople=new Map();
+async function searchPlayers(q){
+  const body=$('lbBody'); if(!body) return;
+  body.innerHTML='<div class="empty-state">Đang tìm…</div>';
+  const {data,error}=await sb.rpc('tim_nguoi_choi',{p_q:q});
+  if(!$('q')||$('q').value.trim()!==q) return;
+  if(error){body.innerHTML=`<div class="empty-state">${esc(error.message)}</div>`;return}
+  if(!data||!data.length){body.innerHTML='<div class="empty-state">Không thấy ai có tên hoặc lớp này.</div>';return}
+  const rows=[...data].sort((a,b)=>onlineSet.has(b.id)-onlineSet.has(a.id));
+  rows.forEach(p=>lbPeople.set(p.id,p));
+  body.innerHTML=`<div class="list">${rows.map(p=>`<div class="li"><span>${avatarHTML(p.avatar_url,p.ten,34)}</span>
+    <span class="nm"><span class="dot" data-online="${p.id}" ${onlineSet.has(p.id)?'':'hidden'}></span>${esc(p.ten)}<span class="sb">${esc(p.lop)} · ${esc(p.khoa)} · Elo ${p.elo}</span></span>
+    <button type="button" class="act" data-uid="${p.id}">Thách đấu</button></div>`).join('')}</div>
+    <p class="muted"><span class="dot"></span>đang mở game</p>`;
+}
 
 /* ================= Khởi động ================= */
 S={day:1,money:0,rep:5,upg:{},total:0};

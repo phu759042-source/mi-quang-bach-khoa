@@ -28,6 +28,7 @@ Game web (điện thoại + laptop) cho sinh viên Đại học Bách Khoa Đà 
 - Tài khoản: `authScreen`, `forgotScreen`, `newPasswordScreen`, `profileScreen`, `afterLogin`, `logout`.
 - Avatar (chỉ hiện ở bảng xếp hạng sinh viên): `avatarHTML`, `avatarEditor` (cắt/zoom), `chooseAvatar`, `readjustAvatar`, `removeAvatar`; bucket Storage `avatars`.
 - Màn khác: `home`, `showShop`/`drawShop`, `leaderboard`, `contactScreen` (`CONTACT`), `donateScreen`, `ruleText`.
+- Solo (bản 2.7.0, kiểu chess.com): `soloConnect` (Realtime postgres_changes trên `thach_dau` + presence `online`), `showNotice` (thông báo góc dưới phải, `sfx.challenge`, nháy tiêu đề tab), `challengeScreen` (chọn độ khó + luật `sinh_ton`/`diem`), `waitScreen`, `startSolo` (đếm ngược theo `bat_dau` của server), `soloPush` (gửi tiến độ, ping mỗi 4s), `soloShop` (cửa hàng 20s, không mua tim), `soloFinish`, `soloEnd` (Elo). Trận 3 ngày (`SOLO_NGAY`). Bảng xếp hạng có ô tìm kiếm (`searchPlayers`) và tab Solo; bấm tên để thách.
 - Bộ đếm truy cập kiểu Facemash: `countVisit` (hiện lượt + người).
 - Giao diện: theme sáng/tối/tự động (`applyTheme`, `data-theme`, localStorage), phím tắt laptop (1–8, Space, Q/W/E/R, X), kéo để tải lại (tắt khi đang chơi).
 
@@ -36,8 +37,10 @@ Game web (điện thoại + laptop) cho sinh viên Đại học Bách Khoa Đà 
 Client chỉ đọc được (RLS). Mọi thao tác ghi đi qua RPC `SECURITY DEFINER`.
 
 - Bảng: `khoa(id, ten)`, `profiles(id, ten, khoa_id, lop, diem, so_luot, ngay_xa_nhat, chuoi, chuoi_dai_nhat, ngay_chuoi, avatar_url, avatar_khung)`, `runs(id, user_id, do_kho, trang_thai, so_ngay, doanh_thu, tim_mat, delta, diem_sau, bat_dau, ket_thuc)`, `luot_truy_cap(khach, ngay)`, `khach_ghe(khach, lan_dau, lan_cuoi, so_lan)`, `thong_ke(ten, gia_tri)`.
-- View xếp hạng: `bxh_sinh_vien`, `bxh_lop`, `bxh_khoa`.
+- `profiles` có thêm `elo` (mặc định 1200), `solo_thang`, `solo_thua`, `solo_hoa`. Bảng `thach_dau(a, b, do_kho, che_do, trang_thai cho|tu_choi|huy|het_han|dang_dau|xong, het_han 60s, bat_dau, a_/b_ ngay·doanh_thu·tim_mat·xong·ping·het_tim_luc, thang, ly_do, elo_a, elo_b, doi_a, doi_b)`, RLS chỉ đọc trận của mình, đã thêm vào publication `supabase_realtime`.
+- View xếp hạng: `bxh_sinh_vien`, `bxh_lop`, `bxh_khoa`, `bxh_solo`.
 - RPC: `bat_dau_luot(p_do_kho)`, `nop_ket_qua(p_run_id, p_so_ngay, p_doanh_thu, p_tim_mat)` → json (delta, diem, hang, chuoi, chuoi_moi, chuoi_dai_nhat), `luu_ho_so(p_ten, p_khoa_id, p_lop)`, `luu_avatar(p_url, p_khung)`, `ghi_luot_truy_cap(p_khach)` → json (luot, nguoi, hom_nay, tong), `_xu_ly_bo_cuoc(p_uid)`, `he_so(p_do_kho)`.
+- RPC solo: `gui_thach_dau(p_b, p_do_kho, p_che_do)`, `tra_loi_thach_dau(p_id, p_dong_y)`, `huy_thach_dau`, `cap_nhat_solo(p_id, p_ngay, p_doanh_thu, p_tim_mat, p_xong)`, `kiem_tra_solo`, `bo_tran_solo`, `tim_nguoi_choi(p_q)`; nội bộ `_ket_thuc_solo` (Elo K=32), `_xu_ly_solo`, `_kiem_tra_roi_tran` (im lặng 25s = thua, trận quá 10 phút thì so điểm).
 - Luật chống gian lận trên server: doanh thu tối đa 5000/ngày; số tim mất ≤ 5 + doanh_thu/500.
 - Điểm ĐBK của một lượt = doanh_thu·hs/10 − tim_mat·15·hs².
 
