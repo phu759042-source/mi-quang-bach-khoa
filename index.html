@@ -254,6 +254,13 @@ input,select{font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid va
 .snd svg{width:18px;height:18px}
 .snd-l{padding:5px 11px}
 .snd[aria-pressed="false"]{opacity:.75}
+.submitting{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--leaf);font-size:14px}
+.coin{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE38A,#E8A317 60%,#B97C0C);
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.12);animation:coinspin .48s linear infinite}
+@keyframes coinspin{0%{transform:scaleX(1)}50%{transform:scaleX(.1)}100%{transform:scaleX(1)}}
+.pop-in{animation:popin .35s cubic-bezier(.2,1.7,.4,1)}
+@keyframes popin{0%{transform:scale(.6);opacity:.3}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.coin,.pop-in{animation:none}}
 .rule{font-size:12px;color:var(--muted);line-height:1.5}
 table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 .tb th,.tb td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
@@ -664,22 +671,19 @@ const sfx={
     noise(D,{type:'bandpass',f:380,to:1100,q:22,vol:.3,attack:.03});                // tô đầy dần, tiếng cao lên
     for(let i=0;i<n;i++){const at=.01+Math.random()*(D-.06), f=520+Math.random()*1200;
       tone(f,.02+Math.random()*.03,{to:f*(1.5+Math.random()*.6),vol:.04+Math.random()*.06,at,attack:.002})}},
-  // chốt sổ, phần 1 — bấm xác nhận: két "cạch", ngăn kéo trượt ra
-  closeStart(){tone(150,.12,{to:70,vol:.35});noise(.04,{type:'highpass',f:2500,vol:.2});
-    noise(.28,{type:'bandpass',f:900,to:300,q:2,vol:.16,at:.1,attack:.03});
-    tone(110,.1,{to:60,vol:.25,at:.38});noise(.05,{type:'lowpass',f:1200,vol:.15,at:.38})},
-  // chốt sổ, phần 2 — đang nộp điểm: tiếng đếm tiền lặp đều cho tới khi máy chủ trả lời
+  // chốt sổ, phần 1 — đúng lúc bấm xác nhận: một tiếng "cạch" ngắn của két
+  closeStart(){tone(150,.1,{to:70,vol:.35});noise(.04,{type:'highpass',f:2500,vol:.2})},
+  // chốt sổ, phần 2 — phát ngay khi màn "Đang nộp điểm" hiện, lặp đều cho tới khi màn đổi
   countStart(){this.countStop(); let k=0;
     const tick=()=>{noise(.05,{type:'bandpass',f:2600+Math.random()*900,q:1.2,vol:.13,attack:.004});   // tờ tiền "soạt"
-      if(k%4===3) tone(3000+Math.random()*1500,.09,{type:'triangle',vol:.05});                       // thỉnh thoảng xu kêu
+      if(k%3===2) tone(3000+Math.random()*1500,.08,{type:'triangle',vol:.05});                       // xu kêu
       k++};
-    SFX.countT=setTimeout(function go(){tick();SFX.countT=setTimeout(go,140)},450)},
-  countStop(){clearTimeout(SFX.countT);SFX.countT=null},
-  // chốt sổ, phần 3 — đã cộng điểm: chuông két, xu rơi, hợp âm kết
-  closeEnd(){tone(1760,.5,{type:'triangle',vol:.2});tone(2637,.45,{vol:.1});
-    for(let i=0;i<12;i++){const at=.12+i*.04+Math.random()*.02, f=2600+Math.random()*2400;
-      tone(f,.12,{type:'triangle',vol:.06+Math.random()*.05,at});tone(f*1.47,.08,{vol:.03,at})}
-    [523,659,784,1046].forEach((f,i)=>tone(f,.7,{type:'triangle',vol:.14,at:.6+i*.08}))},
+    tick(); SFX.countT=setInterval(tick,120)},
+  countStop(){clearInterval(SFX.countT);SFX.countT=null},
+  // chốt sổ, phần 3 — phát cùng lúc con số điểm nảy lên, gọn ~0,5 giây
+  closeEnd(){this.countStop(); tone(1760,.35,{type:'triangle',vol:.22});tone(2637,.3,{vol:.1});
+    for(let i=0;i<5;i++) tone(2800+Math.random()*2000,.1,{type:'triangle',vol:.06,at:.05+i*.04});
+    tone(1046,.45,{type:'triangle',vol:.12,at:.08});tone(1568,.4,{type:'triangle',vol:.1,at:.08})},
   closeFail(){this.countStop();tone(330,.18,{type:'triangle',vol:.16});tone(247,.3,{type:'triangle',vol:.16,at:.17})},
   // bán thành công: tiếng két tiền "ka-ching" + leng keng đồng xu
   cash(big){tone(1318,.09,{type:'triangle',vol:.22});noise(.05,{type:'highpass',f:5000,vol:.12});
@@ -754,7 +758,9 @@ function streakScreen(oldN,newN,best,next){
 }
 
 /* ================= Kết thúc lượt & nộp điểm ================= */
+let midClose=false;
 async function finishRun(why, cashOut=false){
+  midClose=cashOut;
   running=false; midRun=false;
   const lost=S.lost||0;
   const hs=DIFF[diff].hs;
@@ -772,21 +778,19 @@ async function finishRun(why, cashOut=false){
       <div class="col grow"><button class="btn" id="again">Chơi lại</button><button class="btn ghost" id="home">Về màn hình chính</button></div>`);
       $('again').onclick=()=>startRun(); $('home').onclick=home};
     const before=streakState().n, g=bumpGuestStreak();
-    if(cashOut) setTimeout(()=>sfx.closeEnd(),450);
-    const go=()=>g.moi?streakScreen(before,g.chuoi,g.best,showGuest):showGuest();
-    if(cashOut&&g.moi) setTimeout(go,1300); else go();
+    const showG=()=>{showGuest();if(midClose){midClose=false;sfx.closeEnd()}};
+    if(g.moi) streakScreen(before,g.chuoi,g.best,showG); else showG();
     return;
   }
   // Lưu kết quả trên máy trước khi gửi, để không mất nếu mạng lỗi
   const pend={uid:user.id,run:runId,so_ngay:S.day,doanh_thu:S.total,tim_mat:lost};
   savePending(pend); runId=null;
   const trySubmit=async()=>{
-    ov.innerHTML=`${head}<p>${esc(why)}</p>${summary}<div class="msg ok" id="msg">Đang nộp điểm…</div>`;
+    ov.innerHTML=`${head}<p>${esc(why)}</p>${summary}<div class="submitting" id="msg"><span class="coin" aria-hidden="true"></span>Đang nộp điểm…</div>`;
     submitting=true; if(cashOut) sfx.countStart();
-    const {data,error}=await submitPending(pend);
+    const [{data,error}]=await Promise.all([submitPending(pend), new Promise(r=>setTimeout(r,cashOut?800:0))]);
     submitting=false; sfx.countStop();
-    if(error){if(cashOut) sfx.closeFail()}
-    else if(cashOut) sfx.closeEnd();
+    if(error&&cashOut) sfx.closeFail();
     if(error&&!isNetErr(error)){
       ov.innerHTML=`${head}${summary}<div class="msg">Không nộp được điểm: ${esc(error.message)}</div>
         <div class="col grow"><button class="btn" id="home">Về màn hình chính</button></div>`;
@@ -802,18 +806,19 @@ async function finishRun(why, cashOut=false){
       const before=streakState().n;
       if(profile){profile.chuoi=data.chuoi;profile.ngay_chuoi=vnDate();profile.chuoi_dai_nhat=data.chuoi_dai_nhat}
       const go=()=>streakScreen(before,data.chuoi,data.chuoi_dai_nhat,()=>{openOv('');showResult(head,why,summary,data)});
-      if(cashOut) setTimeout(go,1300); else go();   // cho tiếng chốt sổ kêu xong rồi mới thắp lửa
+      go();
     } else showResult(head,why,summary,data);
   };
   trySubmit();
 }
 function showResult(head,why,summary,data){
+  if(midClose){midClose=false;sfx.closeEnd()}
   const ov=$('ov');
   if(profile) profile.diem=data.diem; myRank=data.hang;
   const d=data.delta;
   ov.innerHTML=`${head}<p>${esc(why)}</p>
     <div><div class="eyebrow">Điểm Bách Khoa</div>
-      <div class="big" style="color:${d==null||d>=0?'var(--leaf)':'var(--chili)'}">${d==null?'Đã ghi nhận':(d>=0?'+':'−')+Math.abs(d)}</div>
+      <div class="big pop-in" style="color:${d==null||d>=0?'var(--leaf)':'var(--chili)'}">${d==null?'Đã ghi nhận':(d>=0?'+':'−')+Math.abs(d)}</div>
       <p class="muted">Bây giờ bạn có <b>${data.diem}</b> ĐBK, hạng <b>#${data.hang}</b> toàn trường.</p></div>
     ${summary}
     <div class="col grow"><button class="btn" id="again">Chơi lượt mới</button>
@@ -1148,7 +1153,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.6.1</div>
+    <div class="muted">Phiên bản 2.6.2</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
