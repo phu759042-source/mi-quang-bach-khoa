@@ -624,7 +624,7 @@ async function flushPending(){
 
 /* ================= Âm thanh (tạo bằng Web Audio, không cần file) ================= */
 const SFX={on:true,ctx:null,out:null};
-const POUR_KIEU='A';
+const POUR_KIEU='B';
 try{SFX.on=localStorage.getItem('mqbk-sound')!=='off'}catch(e){}
 function ac(){
   if(!SFX.on) return null;
@@ -1133,7 +1133,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.5.2</div>
+    <div class="muted">Phiên bản 2.5.3</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
