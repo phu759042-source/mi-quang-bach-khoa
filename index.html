@@ -361,9 +361,9 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
   </div>
   <div class="ov" id="ov"></div>
   <div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></div>
-  <div class="visits" id="visits" hidden aria-live="polite" title="Mỗi trình duyệt được tính một lượt mỗi ngày">
+  <div class="visits" id="visits" hidden aria-live="polite" title="Mỗi lần mở trang tính 1 lượt truy cập">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-    <span><b id="vTong">—</b> lượt truy cập</span>
+    <span><b id="vTong">—</b> lượt truy cập · <b id="vNguoi">—</b> người</span>
   </div>
 </div>
 
@@ -870,9 +870,10 @@ async function countVisit(){
   try{id=localStorage.getItem('mqbk-khach');if(!id){id=crypto.randomUUID();localStorage.setItem('mqbk-khach',id)}}catch(e){id=null}
   const {data,error}=await rpcRetry('ghi_luot_truy_cap',{p_khach:id},2);
   if(error||!data) return;
-  visitCount=data.tong;
-  $('vTong').textContent=Number(data.tong).toLocaleString('vi-VN');
-  $('visits').title=`Hôm nay: ${data.hom_nay} lượt. Mỗi trình duyệt được tính một lượt mỗi ngày.`;
+  visitCount=data.luot??data.tong;
+  $('vTong').textContent=Number(visitCount).toLocaleString('vi-VN');
+  $('vNguoi').textContent=Number(data.nguoi??0).toLocaleString('vi-VN');
+  $('visits').title=`Lượt truy cập: mỗi lần mở trang tính 1 lượt. Người: số trình duyệt khác nhau đã ghé. Hôm nay có ${data.hom_nay} người ghé.`;
   showOv(!$('ov').hidden);
 }
 function openOv(html){const ov=$('ov');showOv(true);ov.innerHTML=html;ov.scrollTop=0;return ov}
@@ -1133,7 +1134,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.5.3</div>
+    <div class="muted">Phiên bản 2.6</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
