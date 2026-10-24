@@ -12,6 +12,7 @@ Game web (điện thoại + laptop) cho sinh viên Đại học Bách Khoa Đà 
 - `index.html`: toàn bộ game trong một file (HTML + CSS + JS, ~1400 dòng). Supabase JS v2.45.4 qua jsDelivr. Số phiên bản hiện ở cuối màn chính (`Phiên bản x.y.z`). Mỗi lần sửa thì tăng số này và ghi vào commit.
 - `manifest.webmanifest`, `icons/`: favicon, icon PWA, `ung-ho-qr.png` (mã VietQR ủng hộ).
 - `emails/xac-nhan-email.html`, `emails/dat-lai-mat-khau.html`: mẫu email (biến `{{ .ConfirmationURL }}`). Người dùng tự dán vào Supabase › Auth › Templates, repo không tự đồng bộ.
+- `README.md`, `docs/images/`: giới thiệu game để trình bày với nhà tuyển dụng, ảnh chụp bằng Playwright với dữ liệu minh hoạ (Supabase giả). Đổi giao diện hoặc luật chơi thì nhớ cập nhật README và chụp lại ảnh.
 
 ## Các phần chính trong `index.html` (tìm theo tên)
 
