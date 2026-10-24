@@ -624,6 +624,7 @@ async function flushPending(){
 
 /* ================= Âm thanh (tạo bằng Web Audio, không cần file) ================= */
 const SFX={on:true,ctx:null,out:null};
+const POUR_KIEU='A';
 try{SFX.on=localStorage.getItem('mqbk-sound')!=='off'}catch(e){}
 function ac(){
   if(!SFX.on) return null;
@@ -655,11 +656,14 @@ const sfx={
           else {const i=TOPS.indexOf(k);tone(420+i*55,.09,{to:820+i*70,vol:.22});noise(.04,{f:3000,vol:.06})}},
   remove(){tone(700,.08,{to:380,vol:.14})},
   // chan nước lèo: tiếng nước rót + vài bong bóng
-  // chan nước lèo: một tiếng "xèo" ngắn ~0,28 giây, không bong bóng.
-  // Tiếng xì cao như nước sôi + tiếng trầm khi nước chạm tô; bỏ dải tần trung (dải gây cảm giác cọ bìa)
-  pour(){noise(.28,{type:'bandpass',f:4200,q:.7,vol:.3,attack:.02});
-         noise(.2,{type:'highpass',f:7000,vol:.08,attack:.01});
-         noise(.16,{type:'lowpass',f:320,vol:.28,attack:.008})},
+  // chan nước lèo: tiếng nước đổ của bản 2.5, rút gọn còn ~0,3 giây.
+  // dày = nhiều tiếng nước dồn lại (A), mỏng = ít hơn, mượt hơn (B)
+  pour(v=POUR_KIEU){const D=.3, n=v==='B'?12:24;
+    noise(.08,{type:'lowpass',f:1200,vol:.1,attack:.003});                          // nước chạm đáy tô
+    noise(D,{type:'lowpass',f:380,q:.3,vol:.035,attack:.03});                       // dòng nước chảy
+    noise(D,{type:'bandpass',f:380,to:1100,q:22,vol:.3,attack:.03});                // tô đầy dần, tiếng cao lên
+    for(let i=0;i<n;i++){const at=.01+Math.random()*(D-.06), f=520+Math.random()*1200;
+      tone(f,.02+Math.random()*.03,{to:f*(1.5+Math.random()*.6),vol:.04+Math.random()*.06,at,attack:.002})}},
   // chốt sổ: bấm két "cạch", ngăn kéo trượt ra, tiền xu rơi leng keng, rồi hợp âm vui
   close(){tone(150,.12,{to:70,vol:.35});noise(.04,{type:'highpass',f:2500,vol:.2});            // cạch
     noise(.28,{type:'bandpass',f:900,to:300,q:2,vol:.16,at:.1,attack:.03});                    // ngăn kéo trượt
@@ -1129,7 +1133,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.5.1</div>
+    <div class="muted">Phiên bản 2.5.2</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
