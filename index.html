@@ -231,6 +231,29 @@ input,select{font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid va
   .f-gray{display:none}.f-lit{opacity:1;transform:none;animation:none}.glow{opacity:1;animation:none}.sparks{display:none}
   .wd.today i{background:#F59A2A;animation:none}.streak-num b.pop{animation:none}}
 @media (min-width:900px) and (min-height:560px){.streak-stage{max-width:520px!important}.flame-wrap{transform:scale(1.15)}}
+.av{border-radius:50%;object-fit:cover;flex:none;display:inline-block;background:var(--line)}
+.av-txt{display:inline-grid;place-items:center;color:#fff;font-family:var(--display);font-weight:800;line-height:1}
+.me.has-av{grid-template-columns:auto minmax(0,1fr) auto;column-gap:12px}
+.me.has-av .me-av{grid-row:1/3;align-self:center;box-shadow:0 0 0 2px rgba(255,255,255,.6)}
+.me.has-av .nm,.me.has-av .sub{grid-column:2}
+.me.has-av .pts{grid-column:3}
+.li .nm.with-av{display:flex;align-items:center;gap:10px}
+.pod .pod-av{margin:0 auto 4px;box-shadow:0 0 0 3px var(--card)}
+.pod.r1 .pod-av{box-shadow:0 0 0 3px var(--gold)}
+.av-edit{display:flex;align-items:center;gap:14px;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px}
+.av-edit .row .link{font-size:13px}
+.crop{position:relative;width:min(300px,100%);aspect-ratio:1;max-width:100%;margin:0 auto;border-radius:16px;overflow:hidden;touch-action:none;cursor:grab;background:#000;user-select:none}
+.crop:active{cursor:grabbing}
+.crop canvas{width:100%;height:100%;display:block}
+.crop .ring{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 999px rgba(0,0,0,.55);outline:2px solid rgba(255,255,255,.85);outline-offset:-2px;pointer-events:none}
+.zoom{flex-direction:row!important;align-items:center;gap:10px!important;max-width:300px;width:100%;margin:0 auto}
+.zoom input{flex:1;padding:0;accent-color:var(--turmeric)}
+.station{position:relative}
+.snd-slot{position:absolute;top:2px;right:0;z-index:2}
+.snd{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12px;font-weight:700;color:var(--muted);background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:6px 8px;cursor:pointer}
+.snd svg{width:18px;height:18px}
+.snd-l{padding:5px 11px}
+.snd[aria-pressed="false"]{opacity:.75}
 .rule{font-size:12px;color:var(--muted);line-height:1.5}
 table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 .tb th,.tb td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
@@ -324,6 +347,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
   <div class="event" id="sEvent"></div>
   <div class="tables" id="tables"></div>
   <div class="station">
+    <div class="snd-slot" id="sndSlot"></div>
     <svg id="bowl" viewBox="0 0 240 150" aria-label="Tô mì"></svg>
     <div class="hint" id="hint"></div>
   </div>
@@ -480,11 +504,11 @@ function loop(now){
   const pdt=dt*(inRush()&&lv('tv')?.7:1); // TV: giờ cao điểm khách bớt sốt ruột
   for(let k=D.queue.length-1;k>=0;k--){const c=D.queue[k];c.q-=pdt;if(c.q<=0&&running){
     if(D.shield>0){D.shield--;c.q=c.qmax*.5;toast('Thẻ tích điểm giữ chân khách');continue}
-    D.queue.splice(k,1);loseHeart('Khách xếp hàng lâu quá nên bỏ về')}}
+    D.queue.splice(k,1);sfx.leave();loseHeart('Khách xếp hàng lâu quá nên bỏ về')}}
   if(!running) return;
   D.slots.forEach((c,i)=>{if(!c)return;c.p-=pdt;if(c.p<=0&&running){
     if(D.shield>0){D.shield--;c.p=c.max*.5;toast('Thẻ tích điểm giữ chân khách');return}
-    angry(i,'Khách bỏ đi vì chờ lâu')}});
+    sfx.leave();angry(i,'Khách bỏ đi vì chờ lâu')}});
   if(!running) return;
   updateBars();
   if(D.t<=0){endDay();return}
@@ -503,7 +527,7 @@ const heartsHTML=n=>Array.from({length:TIM_MAX},(_,i)=>`<svg viewBox="0 0 24 22"
 function buyHeart(){
   if(S.rep>=TIM_MAX){toast('Uy tín đã đầy');return false}
   if(S.money<GIA_TIM){toast(`Két chưa đủ ${GIA_TIM}k`);return false}
-  S.money-=GIA_TIM; S.rep++; S.bought++; toast('Đã mua 1 tim');
+  S.money-=GIA_TIM; S.rep++; S.bought++; toast('Đã mua 1 tim'); sfx.heart();
   return true;
 }
 const heartRow=()=>`<div class="heart-row"><span class="lbl">Uy tín</span><span class="hearts big" aria-label="Còn ${S.rep} trên ${TIM_MAX} tim">${heartsHTML(S.rep)}</span>
@@ -534,15 +558,15 @@ function serve(i){
   const c=D.slots[i]; if(!c||!running) return;
   const b=D.bowl;
   if(!b.items.size){toast('Tô còn trống');return}
-  if(!b.broth&&lv('noi')&&b.items.has('mi')) b.broth=true;
+  if(!b.broth&&lv('noi')&&b.items.has('mi')){b.broth=true;sfx.pour()}
   if(!b.broth){toast('Chưa chan nước lèo');return}
   const ok=matches(c,b);
   const el=$('tables').children[i];
   resetBowl();
-  if(!ok){angry(i,'Sai món rồi, khách không chịu');return}
+  if(!ok){sfx.wrong();angry(i,'Sai món rồi, khách không chịu');return}
   const tip=Math.round(c.price*.3*(c.p/c.max)*D.ev.tip*(lv('wifi')?1.5:1)*(lv('fanpage')>=2?1.2:1));
   const gain=Math.round(c.price)+tip+(lv('qr')?3:0);
-  D.earned+=gain;S.money+=gain;S.total+=gain;D.served++;
+  D.earned+=gain;S.money+=gain;S.total+=gain;D.served++;sfx.cash(c.teacher||tip>c.price*.2);
   floatText(el,`+${gain}k`,tip>0?'var(--leaf)':'var(--heading)');
   D.slots[i]=null; renderTables(); renderStats();
 }
@@ -598,6 +622,64 @@ async function flushPending(){
   return !isNetErr(error);
 }
 
+/* ================= Âm thanh (tạo bằng Web Audio, không cần file) ================= */
+const SFX={on:true,ctx:null,out:null};
+try{SFX.on=localStorage.getItem('mqbk-sound')!=='off'}catch(e){}
+function ac(){
+  if(!SFX.on) return null;
+  if(!SFX.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
+    SFX.ctx=new C(); const comp=SFX.ctx.createDynamicsCompressor(); SFX.out=SFX.ctx.createGain(); SFX.out.gain.value=.55;
+    SFX.out.connect(comp); comp.connect(SFX.ctx.destination)}
+  if(SFX.ctx.state==='suspended') SFX.ctx.resume();
+  return SFX.ctx;
+}
+// trình duyệt chỉ cho phát tiếng sau khi người dùng chạm/bấm lần đầu
+['pointerdown','keydown'].forEach(ev=>addEventListener(ev,()=>{if(SFX.on)ac()},{once:true,capture:true}));
+function tone(f,dur,{type='sine',vol=.3,at=0,to=null,attack=.005}={}){
+  const c=ac(); if(!c) return; const t=c.currentTime+at, o=c.createOscillator(), g=c.createGain();
+  o.type=type; o.frequency.setValueAtTime(f,t); if(to) o.frequency.exponentialRampToValueAtTime(to,t+dur);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+attack); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(g); g.connect(SFX.out); o.start(t); o.stop(t+dur+.02);
+}
+function noise(dur,{vol=.25,at=0,type='bandpass',f=1000,to=null,q=1,attack=.01}={}){
+  const c=ac(); if(!c) return; const t=c.currentTime+at, n=Math.ceil(c.sampleRate*dur), buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+  const s=c.createBufferSource(), fl=c.createBiquadFilter(), g=c.createGain(); s.buffer=buf;
+  fl.type=type; fl.Q.value=q; fl.frequency.setValueAtTime(f,t); if(to) fl.frequency.exponentialRampToValueAtTime(to,t+dur);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+attack); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  s.connect(fl); fl.connect(g); g.connect(SFX.out); s.start(t); s.stop(t+dur+.02);
+}
+const sfx={
+  // bỏ nguyên liệu: tiếng "lộp" nhỏ, mỗi món một cao độ; mì là tiếng sột soạt
+  add(k){ if(k==='mi'){noise(.16,{f:2400,q:.7,vol:.18});tone(300,.1,{to:180,vol:.12})}
+          else {const i=TOPS.indexOf(k);tone(420+i*55,.09,{to:820+i*70,vol:.22});noise(.04,{f:3000,vol:.06})}},
+  remove(){tone(700,.08,{to:380,vol:.14})},
+  // chan nước lèo: tiếng nước rót + vài bong bóng
+  pour(){noise(.7,{f:1100,to:420,q:.9,vol:.32,attack:.06});noise(.5,{type:'lowpass',f:600,vol:.15,at:.05});
+         for(let i=0;i<5;i++) tone(260+Math.random()*320,.07,{to:520+Math.random()*400,vol:.09,at:.15+i*.1})},
+  // bán thành công: tiếng két tiền "ka-ching" + leng keng đồng xu
+  cash(big){tone(1318,.09,{type:'triangle',vol:.22});noise(.05,{type:'highpass',f:5000,vol:.12});
+            tone(1760,.45,{type:'triangle',vol:.22,at:.08});tone(2637,.4,{vol:.12,at:.08});
+            noise(.25,{type:'highpass',f:7000,vol:.08,at:.1});if(big)tone(3136,.35,{vol:.1,at:.18})},
+  // sai món: hai tiếng "è è" trầm
+  wrong(){tone(233,.16,{type:'square',vol:.12});tone(185,.24,{type:'square',vol:.12,at:.17})},
+  // khách chờ lâu bỏ về: tiếng huýt buồn trượt xuống + tiếng bước đi
+  leave(){tone(620,.55,{to:230,type:'triangle',vol:.2});noise(.06,{f:500,vol:.12,at:.45});noise(.06,{f:450,vol:.1,at:.62})},
+  heart(){[784,988,1318].forEach((f,i)=>tone(f,.2,{type:'triangle',vol:.16,at:i*.07}))},
+  // thắp lửa chuỗi: gió hút vào, "phừng" bùng lửa, lách tách, rồi chuông vui
+  streak(){noise(.6,{type:'lowpass',f:200,to:2800,vol:.22,attack:.45});
+           tone(140,.5,{to:55,vol:.4,at:.62});noise(.5,{type:'lowpass',f:1600,to:300,vol:.38,at:.62,attack:.02});
+           for(let i=0;i<9;i++) noise(.03,{type:'highpass',f:3500,vol:.12,at:.8+Math.random()*1.1});
+           [1046,1318,1568,2093].forEach((f,i)=>tone(f,.5,{type:'triangle',vol:.16,at:.95+i*.09}))},
+  num(){tone(880,.12,{to:1320,type:'triangle',vol:.18})}
+};
+function setSound(on){SFX.on=on;try{localStorage.setItem('mqbk-sound',on?'on':'off')}catch(e){}
+  if(on){ac();tone(880,.08,{vol:.15})}
+  document.querySelectorAll('.snd').forEach(b=>{b.setAttribute('aria-pressed',on);b.innerHTML=sndIcon(on)+(b.dataset.label?`<span>${on?'Âm thanh: bật':'Âm thanh: tắt'}</span>`:'')})}
+const sndIcon=on=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/>${on?'<path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>':'<path d="M17 9l5 6M22 9l-5 6"/>'}</svg>`;
+const soundBtn=(label)=>`<button type="button" class="snd${label?' snd-l':''}" ${label?'data-label="1"':''} aria-pressed="${SFX.on}" aria-label="Bật hoặc tắt âm thanh">${sndIcon(SFX.on)}${label?`<span>${SFX.on?'Âm thanh: bật':'Âm thanh: tắt'}</span>`:''}</button>`;
+document.addEventListener('click',e=>{if(e.target.closest('.snd'))setSound(!SFX.on)});
+
 /* ================= Chuỗi ngày (streak) ================= */
 // Ngày theo giờ Việt Nam, dạng YYYY-MM-DD; off = số ngày lệch so với hôm nay
 const vnDate=(off=0)=>new Date(Date.now()+off*864e5).toLocaleDateString('en-CA',{timeZone:'Asia/Ho_Chi_Minh'});
@@ -642,7 +724,8 @@ function streakScreen(oldN,newN,best,next){
     <div class="week">${week.join('')}</div>
     <button class="btn warm grow" id="sNext">Tiếp tục</button></div>`);
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  setTimeout(()=>{const n=$('sNum');if(n){n.textContent=newN;n.classList.add('pop')}},reduce?0:900);
+  sfx.streak();
+  setTimeout(()=>{const n=$('sNum');if(n){n.textContent=newN;n.classList.add('pop');sfx.num()}},reduce?0:900);
   $('sNext').onclick=next;
 }
 
@@ -783,7 +866,7 @@ const khoaTen=id=>(khoaList.find(k=>k.id===id)||{}).ten||'';
 function authScreen(mode='login'){
   openOv(`<div class="split"><div class="split-a">
   <img class="hero-icon desk" src="icons/favicon.svg" alt="" width="88" height="88">
-  <div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3-5 Đặng Dung, Hòa Khánh Bắc</div>
+  <div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc</div>
   <h1>Mì Quảng <em>Bách Khoa</em></h1>
   <p>Mở quán mì Quảng ở Hòa Khánh Bắc, nơi sinh viên Bách Khoa Đà Nẵng hay ghé ăn, và bán cho sinh viên các khoa. Mỗi lượt chơi cộng hoặc trừ <b>Điểm Bách Khoa</b> cho bạn, cho lớp và cho khoa của bạn.</p>
   </div><div class="split-b">
@@ -878,7 +961,7 @@ async function loadKhoa(){
   khoaList=data||[];
 }
 async function loadProfile(){
-  const {data}=await sb.from('profiles').select('ten,khoa_id,lop,diem,so_luot,ngay_xa_nhat,chuoi,ngay_chuoi,chuoi_dai_nhat').eq('id',user.id).maybeSingle();
+  const {data}=await sb.from('profiles').select('ten,khoa_id,lop,diem,so_luot,ngay_xa_nhat,chuoi,ngay_chuoi,chuoi_dai_nhat,avatar_url,avatar_khung').eq('id',user.id).maybeSingle();
   profile=data||null; myRank=null;
   if(profile&&profile.so_luot>0){
     const r=await sb.from('bxh_sinh_vien').select('hang').eq('id',user.id).maybeSingle();
@@ -889,6 +972,11 @@ function profileScreen(){
   const p=profile||{};
   openOv(`<div class="eyebrow">${profile?'Sửa hồ sơ':'Bước cuối'}</div><h2>${profile?'Thông tin của bạn':'Bạn học lớp nào?'}</h2>
   <p class="muted">Tên, lớp và khoa sẽ hiện công khai trên bảng xếp hạng. Không cần nhập MSSV.</p>
+  ${profile?`<div class="av-edit">${avatarHTML(p.avatar_url,p.ten,72)}
+    <div class="col" style="gap:4px"><b>Avatar</b><span class="muted">Hiện cạnh tên bạn trên bảng xếp hạng sinh viên.</span>
+    <div class="row">${p.avatar_url?`<button type="button" class="link" id="avAdjust">Chỉnh lại khung</button><button type="button" class="link" id="avNew">Đổi ảnh</button><button type="button" class="link" id="avDel">Xoá</button>`
+      :`<button type="button" class="link" id="avNew">Thêm avatar</button>`}</div></div></div>`
+    :`<p class="muted">Lưu hồ sơ xong, bạn có thể thêm avatar trong mục Sửa hồ sơ.</p>`}
   <form class="col" id="f" novalidate>
     <label>Tên hiển thị<input id="ten" maxlength="40" autocomplete="nickname" value="${esc(p.ten)}" placeholder="Ví dụ: Phú 26T"></label>
     <label>Khoa<select id="khoa"><option value="">Chọn khoa</option>${khoaList.map(k=>`<option value="${k.id}"${k.id===p.khoa_id?' selected':''}>${esc(k.ten)}</option>`).join('')}</select></label>
@@ -898,6 +986,9 @@ function profileScreen(){
   </form>
   <button class="link" id="out">Đăng xuất</button>`);
   $('out').onclick=logout;
+  if($('avNew')) $('avNew').onclick=chooseAvatar;
+  if($('avAdjust')) $('avAdjust').onclick=readjustAvatar;
+  if($('avDel')) $('avDel').onclick=e=>{if(e.target.dataset.sure){removeAvatar()}else{e.target.dataset.sure=1;e.target.textContent='Bấm lần nữa để xoá'}};
   $('f').onsubmit=async e=>{
     e.preventDefault();
     const ten=$('ten').value.trim(), kh=$('khoa').value, lop=$('lop').value.trim().toUpperCase().replace(/\s+/g,'_'), msg=$('msg');
@@ -912,18 +1003,102 @@ function profileScreen(){
 }
 async function logout(){await sb.auth.signOut();user=null;profile=null;ranked=false;authScreen()}
 
+/* ================= Avatar ================= */
+const AV_BASE=SB_URL+'/storage/v1/object/public/avatars/';
+const avColor=s=>['#1B3A6B','#6B4A2B','#C8321E','#5A6270','#2F6B3A','#7B3F8C','#B5651D','#2E7D7A','#8A2E4B'][[...String(s||'?')].reduce((a,c)=>a+c.charCodeAt(0),0)%9];
+const initials=s=>String(s||'?').trim().split(/\s+/).slice(-2).map(w=>w[0]).join('').toUpperCase();
+function avatarHTML(url,name,size=36,cls=''){
+  return url?`<img class="av ${cls}" src="${esc(url)}" alt="" width="${size}" height="${size}" loading="lazy" style="width:${size}px;height:${size}px">`
+    :`<span class="av av-txt ${cls}" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.38)}px;background:${avColor(name)}" aria-hidden="true">${esc(initials(name))}</span>`;
+}
+function loadImg(src){return new Promise((ok,no)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>ok(i);i.onerror=()=>no(new Error('Không mở được ảnh'));i.src=src})}
+function canvasBlob(cv,q=.88){return new Promise(ok=>cv.toBlob(ok,'image/jpeg',q))}
+// Ảnh gốc thu nhỏ tối đa 1080px để lưu nhẹ, giữ lại để chỉnh khung sau này
+async function shrink(file){
+  const url=URL.createObjectURL(file); try{
+    const img=await loadImg(url), k=Math.min(1,1080/Math.max(img.naturalWidth,img.naturalHeight));
+    const cv=document.createElement('canvas'); cv.width=Math.round(img.naturalWidth*k); cv.height=Math.round(img.naturalHeight*k);
+    cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height); return cv;
+  } finally {URL.revokeObjectURL(url)}
+}
+function pickFile(){return new Promise(ok=>{const f=document.createElement('input');f.type='file';f.accept='image/*';f.onchange=()=>ok(f.files[0]||null);f.click()})}
+async function chooseAvatar(){
+  const file=await pickFile(); if(!file) return;
+  if(!/^image\//.test(file.type)){toast('Hãy chọn một file ảnh');return}
+  try{const cv=await shrink(file); avatarEditor(cv,{x:.5,y:.5,z:1},true)}catch(e){toast('Không mở được ảnh này, thử ảnh khác')}
+}
+async function readjustAvatar(){
+  const k=profile&&profile.avatar_khung; if(!k){chooseAvatar();return}
+  toast('Đang mở ảnh gốc…');
+  try{const img=await loadImg(AV_BASE+user.id+'/goc.jpg?v='+(k.v||0)); avatarEditor(img,k,false)}
+  catch(e){toast('Không tải được ảnh gốc, hãy chọn lại ảnh')}
+}
+// Trình cắt: kéo để di chuyển, thanh trượt / lăn chuột / chụm 2 ngón để phóng to
+function avatarEditor(src,khung,isNew){
+  const W=src.naturalWidth||src.width, H=src.naturalHeight||src.height, M=Math.min(W,H);
+  const st={x:khung.x??.5,y:khung.y??.5,z:Math.min(4,Math.max(1,khung.z??1))};
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Avatar</div><button class="link" id="cancel">Huỷ</button></div>
+  <h2>Căn khung avatar</h2>
+  <p class="muted">Kéo ảnh để chọn phần nằm trong vòng tròn, kéo thanh trượt để phóng to hoặc thu nhỏ.</p>
+  <div class="crop" id="crop"><canvas id="cv"></canvas><div class="ring"></div></div>
+  <label class="zoom">Thu nhỏ<input type="range" id="zm" min="1" max="4" step="0.01" value="${st.z}" aria-label="Phóng to">Phóng to</label>
+  <div class="msg" id="msg"></div>
+  <div class="col grow"><button class="btn" id="save">Lưu avatar</button><button class="btn ghost" id="other">Chọn ảnh khác</button></div>`);
+  const box=$('crop'), cv=$('cv'), ctx=cv.getContext('2d');
+  const size=()=>box.clientWidth, dpr=Math.min(2,devicePixelRatio||1);
+  const clamp=()=>{const h=M/st.z/2; st.x=Math.min(1-h/W,Math.max(h/W,st.x)); st.y=Math.min(1-h/H,Math.max(h/H,st.y))};
+  const rect=()=>{const s=M/st.z; return [st.x*W-s/2, st.y*H-s/2, s, s]};
+  const draw=()=>{const V=size(); cv.width=V*dpr; cv.height=V*dpr; clamp(); const [sx,sy,sw,sh]=rect();
+    ctx.imageSmoothingQuality='high'; ctx.drawImage(src,sx,sy,sw,sh,0,0,cv.width,cv.height)};
+  draw(); addEventListener('resize',draw);
+  const pts=new Map(); let pinch=0;
+  box.addEventListener('pointerdown',e=>{box.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY})});
+  box.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;const pr=pts.get(e.pointerId);
+    if(pts.size===1){const k=M/st.z/size(); st.x-=(e.clientX-pr.x)*k/W; st.y-=(e.clientY-pr.y)*k/H}
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===2){const [a,b]=[...pts.values()], d=Math.hypot(a.x-b.x,a.y-b.y); if(pinch) st.z=Math.min(4,Math.max(1,st.z*d/pinch)); pinch=d; $('zm').value=st.z}
+    draw()});
+  const up=e=>{pts.delete(e.pointerId);pinch=0};
+  box.addEventListener('pointerup',up); box.addEventListener('pointercancel',up);
+  box.addEventListener('wheel',e=>{e.preventDefault();st.z=Math.min(4,Math.max(1,st.z*(e.deltaY<0?1.08:.93)));$('zm').value=st.z;draw()},{passive:false});
+  $('zm').oninput=e=>{st.z=+e.target.value;draw()};
+  const leave=()=>{removeEventListener('resize',draw);profileScreen()};
+  $('cancel').onclick=leave;
+  $('other').onclick=()=>{removeEventListener('resize',draw);chooseAvatar()};
+  $('save').onclick=async()=>{
+    const msg=$('msg'); msg.className='msg ok'; msg.textContent='Đang lưu avatar…'; $('save').disabled=true;
+    try{
+      const v=isNew?Date.now():(khung.v||Date.now());
+      const out=document.createElement('canvas'); out.width=out.height=256; const [sx,sy,sw,sh]=rect();
+      const o=out.getContext('2d'); o.imageSmoothingQuality='high'; o.drawImage(src,sx,sy,sw,sh,0,0,256,256);
+      const bucket=sb.storage.from('avatars');
+      if(isNew){const g=await bucket.upload(user.id+'/goc.jpg',await canvasBlob(src.tagName==='CANVAS'?src:out,.85),{upsert:true,contentType:'image/jpeg',cacheControl:'31536000'});if(g.error)throw g.error}
+      const a=await bucket.upload(user.id+'/avatar.jpg',await canvasBlob(out,.9),{upsert:true,contentType:'image/jpeg',cacheControl:'31536000'}); if(a.error) throw a.error;
+      const url=AV_BASE+user.id+'/avatar.jpg?v='+Date.now(), k={x:+st.x.toFixed(4),y:+st.y.toFixed(4),z:+st.z.toFixed(3),v};
+      const r=await sb.rpc('luu_avatar',{p_url:url,p_khung:k}); if(r.error) throw r.error;
+      profile.avatar_url=url; profile.avatar_khung=k; toast('Đã lưu avatar'); leave();
+    }catch(e){msg.className='msg';msg.textContent='Chưa lưu được: '+(e.message||e);$('save').disabled=false}
+  };
+}
+async function removeAvatar(){
+  const r=await sb.rpc('luu_avatar',{p_url:null,p_khung:null});
+  if(r.error){toast('Chưa xoá được, thử lại');return}
+  sb.storage.from('avatars').remove([user.id+'/goc.jpg',user.id+'/avatar.jpg']);
+  profile.avatar_url=null; profile.avatar_khung=null; toast('Đã xoá avatar'); profileScreen();
+}
+
 /* ================= Màn hình chính ================= */
 function home(){
   const p=profile;
   const meCard=ranked&&p
-    ?`<div class="me"><div class="nm">${esc(p.ten)}</div><div class="sub">${esc(p.lop)} · ${esc(khoaTen(p.khoa_id))}</div>
+    ?`<div class="me has-av">${avatarHTML(p.avatar_url,p.ten,48,'me-av')}<div class="nm">${esc(p.ten)}</div><div class="sub">${esc(p.lop)} · ${esc(khoaTen(p.khoa_id))}</div>
        <div class="pts">${p.diem}<small>ĐBK${myRank?` · hạng #${myRank}`:''}</small></div></div>`
     :`<div class="me"><div class="nm">Đang chơi thử</div><div class="sub">Không tính điểm${guestBest.day?` · kỷ lục ngày ${guestBest.day}`:''}</div>
        <div class="pts">—<small>ĐBK</small></div></div>`;
   const pill=streakPill();
   openOv(`<div class="split"><div class="split-a">
   <img class="hero-icon desk" src="icons/favicon.svg" alt="" width="88" height="88">
-  <div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3-5 Đặng Dung, Hòa Khánh Bắc</div>
+  <div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc</div>
   <h1>Mì Quảng <em>Bách Khoa</em></h1>
   ${meCard}
   ${pill}
@@ -942,8 +1117,8 @@ function home(){
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
-    ${themeHTML()}
-    <div class="muted">Phiên bản 2.3</div>
+    <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
+    <div class="muted">Phiên bản 2.4</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -1015,7 +1190,7 @@ function contactScreen(back){
     <div class="li"><span class="rk">SĐT</span><span class="nm"><a href="tel:${CONTACT.sdt}" style="color:var(--heading)">${CONTACT.sdt.replace(/(\d{4})(\d{3})(\d{3})/,'$1 $2 $3')}</a></span><button class="link" data-copy="${CONTACT.sdt}">Sao chép</button></div>
   </div>
   <button class="btn warm" id="donate">Ủng hộ game</button>
-  <p class="rule">Game lấy cảm hứng từ Mì Quảng Bích, 1-3-5 Đặng Dung, Hòa Khánh Bắc, Liên Chiểu, Đà Nẵng. Quán quen của sinh viên Bách Khoa.</p>`);
+  <p class="rule">Game lấy cảm hứng từ Mì Quảng Bích, 1-3 Đặng Dung, Hòa Khánh Bắc, Liên Chiểu, Đà Nẵng. Quán quen của sinh viên Bách Khoa.</p>`);
   $('back').onclick=back;
   $('donate').onclick=()=>donateScreen(()=>contactScreen(back));
   $('ov').querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{
@@ -1058,21 +1233,21 @@ async function leaderboard(tab){
     :'Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30.';
   if(!sb){$('lbBody').innerHTML='<div class="empty-state">Không kết nối được máy chủ bảng xếp hạng.</div>';return}
   let rows=[],err=null;
-  if(tab==='sv'){({data:rows,error:err}=await sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,chuoi').order('diem',{ascending:false}).limit(50))}
+  if(tab==='sv'){({data:rows,error:err}=await sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,chuoi,avatar_url').order('diem',{ascending:false}).limit(50))}
   else if(tab==='lop'){({data:rows,error:err}=await sb.from('bxh_lop').select('lop,khoa_id,so_nguoi,diem,hang').order('hang').limit(50))}
   else {({data:rows,error:err}=await sb.from('bxh_khoa').select('khoa_id,khoa,so_nguoi,diem,hang').order('hang'))}
   if(err){$('lbBody').innerHTML=`<div class="empty-state">Không tải được: ${esc(err.message)}</div>`;return}
   rows=rows||[];
   const norm=rows.map(r=>tab==='sv'
-    ?{rk:r.hang,nm:r.ten,sb:`${r.lop} · ${r.khoa}${r.chuoi>0?` · ${r.chuoi} ngày liên tiếp`:''}`,pt:r.diem,mine:user&&r.id===user.id}
+    ?{rk:r.hang,nm:r.ten,sb:`${r.lop} · ${r.khoa}${r.chuoi>0?` · ${r.chuoi} ngày liên tiếp`:''}`,pt:r.diem,mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true}
     :tab==='lop'?{rk:r.hang,nm:r.lop,sb:`${khoaTen(r.khoa_id)} · ${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.lop===profile.lop}
     :{rk:r.hang,nm:r.khoa,sb:`${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.khoa_id===profile.khoa_id});
   if(!norm.length||(tab!=='khoa'&&!norm.length)){$('lbBody').innerHTML=`<div class="empty-state">Chưa có ai trên bảng. Chơi một lượt để ghi tên ${tab==='lop'?'lớp bạn':'mình'} đầu tiên.</div>`;return}
   const top=norm.slice(0,3), rest=norm.slice(3);
-  const pod=(r,i)=>r?`<div class="pod r${i+1}${r.mine?' mine':''}"><div class="rk">${r.rk}</div><div class="nm">${esc(r.nm)}</div><div class="sb">${esc(r.sb)}</div><div class="pt">${r.pt}</div></div>`:'<div></div>';
+  const pod=(r,i)=>r?`<div class="pod r${i+1}${r.mine?' mine':''}">${r.hasAv?avatarHTML(r.av,r.nm,i===0?60:46,'pod-av'):''}<div class="rk">${r.rk}</div><div class="nm">${esc(r.nm)}</div><div class="sb">${esc(r.sb)}</div><div class="pt">${r.pt}</div></div>`:'<div></div>';
   let html=`<div class="podium">${pod(top[1],1)}${pod(top[0],0)}${pod(top[2],2)}</div>`;
-  if(rest.length) html+=`<div class="list">${rest.map(r=>`<div class="li${r.mine?' mine':''}"><span class="rk">#${r.rk}</span><span class="nm">${esc(r.nm)}<span class="sb">${esc(r.sb)}</span></span><span class="pt">${r.pt}</span></div>`).join('')}</div>`;
-  if(tab==='sv'&&profile&&myRank&&!norm.some(r=>r.mine)) html+=`<div class="list"><div class="li mine"><span class="rk">#${myRank}</span><span class="nm">${esc(profile.ten)}<span class="sb">Bạn</span></span><span class="pt">${profile.diem}</span></div></div>`;
+  if(rest.length) html+=`<div class="list">${rest.map(r=>`<div class="li${r.mine?' mine':''}"><span class="rk">#${r.rk}</span><span class="nm${r.hasAv?' with-av':''}">${r.hasAv?avatarHTML(r.av,r.nm,34):''}<span>${esc(r.nm)}<span class="sb">${esc(r.sb)}</span></span></span><span class="pt">${r.pt}</span></div>`).join('')}</div>`;
+  if(tab==='sv'&&profile&&myRank&&!norm.some(r=>r.mine)) html+=`<div class="list"><div class="li mine"><span class="rk">#${myRank}</span><span class="nm with-av">${avatarHTML(profile.avatar_url,profile.ten,34)}<span>${esc(profile.ten)}<span class="sb">Bạn</span></span></span><span class="pt">${profile.diem}</span></div></div>`;
   $('lbBody').innerHTML=html;
 }
 function ruleText(){
@@ -1092,9 +1267,9 @@ function floatText(el,txt,col){if(!el)return;const r=el.getBoundingClientRect(),
 $('pad').addEventListener('click',e=>{const b=e.target.closest('.ing');if(!b||!running)return;const k=b.dataset.k,it=D.bowl.items;
   if(D.bowl.broth){toast('Đã chan nước, đổ bỏ để làm lại');return}
   if(k!=='mi'&&!it.has('mi')){toast('Cho mì vào trước đã');return}
-  if(it.has(k)){if(k==='mi'&&it.size>1){toast('Bỏ topping trước khi bỏ mì');return}it.delete(k)}else it.add(k);
+  if(it.has(k)){if(k==='mi'&&it.size>1){toast('Bỏ topping trước khi bỏ mì');return}it.delete(k);sfx.remove()}else{it.add(k);sfx.add(k)}
   renderBowl();renderPad()});
-$('pour').onclick=()=>{if(!running||!D.bowl.items.has('mi'))return;D.bowl.broth=true;renderBowl();autoServe()};
+$('pour').onclick=()=>{if(!running||!D.bowl.items.has('mi')||D.bowl.broth)return;D.bowl.broth=true;sfx.pour();renderBowl();autoServe()};
 $('trash').onclick=()=>{if(running)resetBowl()};
 $('tables').addEventListener('click',e=>{const c=e.target.closest('.cust[data-i]');if(c)serve(+c.dataset.i)});
 document.addEventListener('keydown',e=>{
@@ -1159,6 +1334,7 @@ let recovering=/type=recovery/.test(location.hash), justConfirmed=/type=(signup|
 })();
 const cleanUrl=()=>{try{history.replaceState(null,'',BACK_URL)}catch(e){}};
 applyTheme(theme);
+$('sndSlot').innerHTML=soundBtn(false);
 (async function boot(){
   if(!sb){ranked=false;home();return}
   sb.auth.onAuthStateChange((ev,session)=>{
