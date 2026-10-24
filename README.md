@@ -173,7 +173,7 @@ Chế độ đấu trực tiếp hai người, lấy cảm hứng từ chess.com
 2. Người thách chọn **độ khó** và **luật thắng**:
    - *Sinh tồn*: ai hết tim trước thì thua. Cả hai trụ đủ 3 ngày thì so ĐBK.
    - *Điểm cao*: hết 3 ngày, ai nhiều ĐBK hơn thì thắng.
-3. Người được thách nhận **thông báo ở góc dưới bên phải**, kèm âm thanh, có nút **Đồng ý / Từ chối** và 60 giây để trả lời.
+3. Người được thách nhận **thông báo ở góc dưới bên phải**, kèm âm thanh, có nút **Đồng ý / Từ chối** và 60 giây để trả lời. Nếu bạn ấy không mở game, điện thoại hoặc laptop vẫn hiện **thông báo hệ thống** (Web Push); bấm vào là mở game đúng lời thách. Trên iPhone cần thêm game vào Màn hình chính trước, và game có hướng dẫn từng bước.
 4. Đồng ý xong, hai bên đếm ngược rồi cùng bán 3 ngày. Trong lúc bán, mỗi người thấy **ngày, doanh thu và số tim của đối thủ** cập nhật trực tiếp. Giữa các ngày vẫn có cửa hàng nâng cấp, nhưng không mua lại tim được.
 5. Kết quả tính bằng **Elo** như cờ vua (bắt đầu 1200, K = 32): thắng người Elo cao hơn thì được cộng nhiều, thua người Elo thấp hơn thì bị trừ nhiều. Solo không cộng trừ ĐBK, và có bảng xếp hạng Solo riêng.
 
@@ -245,6 +245,7 @@ flowchart TB
 | `runs` | Từng lượt chơi: độ khó, trạng thái, số ngày, doanh thu, tim mất, điểm cộng/trừ, thời gian |
 | `thach_dau` | Lời thách và trận solo: hai người chơi, độ khó, luật, tiến độ từng bên, người thắng, Elo trước và sau |
 | `bxh_solo` | View xếp hạng Solo theo Elo |
+| `push_sub` | Đăng ký nhận thông báo đẩy của từng máy (tối đa 10 máy mỗi người) |
 | `luot_truy_cap`, `khach_ghe`, `thong_ke` | Thống kê lượt truy cập |
 | `bxh_sinh_vien`, `bxh_lop`, `bxh_khoa` | View tính bảng xếp hạng |
 
@@ -258,7 +259,7 @@ flowchart TB
 
 **Không mất điểm khi mạng chập chờn.** Safari trên iOS hay báo lỗi `Load failed` khi dùng lại kết nối cũ. Kết quả lượt chơi vì thế được **lưu vào localStorage trước khi gửi**. Game gửi lại tự động kèm cơ chế thử lại (`rpcRetry`), và nếu vẫn lỗi thì lần mở game sau trên máy đó sẽ tự nộp (`flushPending`). Lượt đang chờ nộp không bị tính là bỏ dở.
 
-**Solo realtime mà vẫn chống gian lận.** Thông báo thách đấu và tiến độ đối thủ đến qua Supabase Realtime, nhưng RLS chỉ cho mỗi người đọc trận của chính mình. Mọi thay đổi đều đi qua RPC trên server (`gui_thach_dau`, `tra_loi_thach_dau`, `cap_nhat_solo`…). Server kiểm tra doanh thu không giảm, tim mất không giảm, thời gian chơi khớp số ngày, rồi tự phân thắng thua và tính Elo. Người chơi phải báo về mỗi 4 giây; ai im lặng quá 25 giây bị xử thua, nên không thể tắt game để né trận thua.
+**Solo realtime mà vẫn chống gian lận.** Thông báo thách đấu và tiến độ đối thủ đến qua Supabase Realtime, nhưng RLS chỉ cho mỗi người đọc trận của chính mình. Mọi thay đổi đều đi qua RPC trên server (`gui_thach_dau`, `tra_loi_thach_dau`, `cap_nhat_solo`…). Server kiểm tra doanh thu không giảm, tim mất không giảm, thời gian chơi khớp số ngày, rồi tự phân thắng thua và tính Elo. Thông báo hệ thống đi theo đường: lời thách mới → trigger Postgres gọi Edge Function `thong-bao-thach-dau` qua `pg_net` → hàm gửi Web Push (khoá VAPID cất trong Supabase Vault) → `sw.js` hiện thông báo, và bỏ qua nếu game đang mở trước mặt để không báo hai lần. Người chơi phải báo về mỗi 4 giây; ai im lặng quá 25 giây bị xử thua, nên không thể tắt game để né trận thua.
 
 **Cân bằng độ khó bằng mô phỏng.** Mục tiêu doanh thu mỗi ngày không đặt theo cảm tính. Chúng được lấy từ mô phỏng 2.000 ván với chiến lược của người chơi khá, có mua nâng cấp dần, rồi nhân thêm một tỉ lệ tăng theo ngày.
 
@@ -273,6 +274,7 @@ flowchart TB
 ```
 mi-quang-bach-khoa/
 ├── index.html               # Toàn bộ game: HTML + CSS + JS
+├── sw.js                    # Service worker nhận thông báo thách đấu
 ├── manifest.webmanifest     # Cấu hình PWA
 ├── icons/                   # Favicon, icon PWA, mã QR ủng hộ
 ├── emails/
@@ -295,6 +297,7 @@ Các phần chính trong `index.html`, tìm theo tên:
 | Tài khoản, avatar | `authScreen`, `profileScreen`, `avatarEditor` |
 | Bảng xếp hạng, tìm người chơi | `leaderboard`, `loadBoard`, `searchPlayers`, `ruleText` |
 | Solo | `soloConnect`, `showNotice`, `challengeScreen`, `startSolo`, `soloPush`, `soloEnd` |
+| Thông báo đẩy | `swInit`, `pushCard`, `enablePush`, `pushResync`, `openThach` (và `sw.js`) |
 | Giao diện | `applyTheme`, `home` |
 
 ## 10. Chạy thử trên máy

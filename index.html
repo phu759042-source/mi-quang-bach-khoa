@@ -322,6 +322,14 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .opp .av-txt{font-size:8px!important}
 .opp .hearts{color:var(--chili);display:inline-flex;gap:1px;height:auto}.opp .hearts svg{width:10px;height:10px}
 .countdown{font-family:var(--display);font-weight:800;font-size:132px;line-height:1;color:var(--heading);text-align:center;margin-block:auto;font-variant-numeric:tabular-nums}
+.push-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 10px;align-items:center;background:var(--card);border:1.5px solid var(--turmeric);border-radius:12px;padding:10px 12px}
+.push-card > svg{width:24px;height:24px;color:var(--turmeric)}
+.push-card span{font-size:13px;line-height:1.4;font-weight:600}
+.push-card .btn{grid-column:1/3;font-size:15px;padding:8px 12px}
+.push-card .link{grid-column:1/3;font-size:13px;justify-self:center;padding:0}
+.push-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px}
+.push-row svg{width:22px;height:22px;color:var(--turmeric);flex:none}
+.push-row span{flex:1;min-width:160px;font-size:13px}
 /* ======== Laptop / màn hình rộng ======== */
 @media (min-width:900px) and (min-height:560px){
   .desk{display:revert!important}
@@ -1030,7 +1038,7 @@ function viErr(m){
 async function afterLogin(){
   await loadProfile();
   if(profile) await flushPending();
-  ranked=!!profile; if(ranked) soloConnect();
+  ranked=!!profile; if(ranked){soloConnect();pushResync();if(pendingThach){const t=pendingThach;pendingThach=null;setTimeout(()=>openThach(t),900)}}
   profile?home():profileScreen();
 }
 async function loadKhoa(){
@@ -1062,6 +1070,11 @@ function profileScreen(){
     <button class="btn" type="submit">Lưu và vào quán</button>
   </form>
   <button class="link" id="out">Đăng xuất</button>`);
+  if(profile){(async()=>{const st=await pushState(),el=document.createElement('div');el.className='push-row';
+    el.innerHTML=`${BELL}<span><b>Thông báo thách đấu</b><br>${st==='on'?'Đang bật trên máy này.':st==='ios'?'Cần thêm game vào Màn hình chính trước.':st==='denied'?'Đang bị chặn trong cài đặt trình duyệt.':st==='unsupported'?'Trình duyệt này chưa hỗ trợ.':'Đang tắt trên máy này.'}</span>
+      ${st==='unsupported'?'':`<button type="button" class="link" id="pushTg">${st==='on'?'Tắt':st==='ios'||st==='denied'?'Xem cách làm':'Bật'}</button>`}`;
+    const f=$('f'); if(f) f.before(el);
+    const b=$('pushTg'); if(b) b.onclick=async()=>{if(st==='on'){await disablePush()}else{await enablePush()} profileScreen()};})()}
   $('out').onclick=logout;
   if($('avNew')) $('avNew').onclick=chooseAvatar;
   if($('avAdjust')) $('avAdjust').onclick=readjustAvatar;
@@ -1078,7 +1091,7 @@ function profileScreen(){
     await loadProfile(); ranked=true; soloConnect(); home();
   };
 }
-async function logout(){soloDisconnect();await sb.auth.signOut();user=null;profile=null;ranked=false;authScreen()}
+async function logout(){soloDisconnect();await pushUnlink();await sb.auth.signOut();user=null;profile=null;ranked=false;authScreen()}
 
 /* ================= Avatar ================= */
 const AV_BASE=SB_URL+'/storage/v1/object/public/avatars/';
@@ -1166,7 +1179,7 @@ async function removeAvatar(){
 
 /* ================= Màn hình chính ================= */
 function home(){
-  setTimeout(refreshNotices,0);
+  setTimeout(refreshNotices,0); setTimeout(pushCard,0);
   const p=profile;
   const meCard=ranked&&p
     ?`<div class="me has-av">${avatarHTML(p.avatar_url,p.ten,48,'me-av')}<div class="nm">${esc(p.ten)}</div><div class="sub">${esc(p.lop)} · ${esc(khoaTen(p.khoa_id))} · Elo ${p.elo??1200}</div>
@@ -1180,6 +1193,7 @@ function home(){
   <h1>Mì Quảng <em>Bách Khoa</em></h1>
   ${meCard}
   ${pill}
+  ${ranked?'<div id="pushSlot"></div>':''}
   <ol class="steps desk"><li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi bấm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li><li>Hết bàn thì khách xếp hàng. Để khách chờ lâu là mất tim, nhất là giờ cao điểm</li></ol>
   <p class="muted desk keys">Chơi bằng bàn phím: <kbd>1</kbd>–<kbd>8</kbd> chọn món, <kbd>Space</kbd> chan nước lèo, <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> bưng cho bàn 1–4, <kbd>X</kbd> đổ bỏ.</p>
   </div><div class="split-b">
@@ -1197,7 +1211,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.7.0</div>
+    <div class="muted">Phiên bản 2.8.0</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -1713,6 +1727,119 @@ async function searchPlayers(q){
     <p class="muted"><span class="dot"></span>đang mở game</p>`;
 }
 
+/* ================= Thông báo đẩy khi có lời thách (Web Push) =================
+   sw.js nhận push từ Edge Function thong-bao-thach-dau rồi hiện thông báo hệ thống,
+   kể cả khi game đang đóng hoặc người chơi ở app khác. Bấm thông báo → mở game → hiện lời thách. */
+const PUSH_PUB='BCE_Q504DzeGzAx28t2RdRpc_x7Ui_iMb0Pnzv9C9zGnJlZfnLL02fLD7A_0Eewy3-yCgaxjKTjyITecdDYc9tI';
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+let swReg=null;
+function pushSupport(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window}
+async function swInit(){
+  if(!('serviceWorker' in navigator)) return;
+  try{ swReg=await navigator.serviceWorker.register('sw.js'); }catch(e){ swReg=null }
+  navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='thach'){openThach(e.data.id)}});
+}
+// Trạng thái để vẽ nút: on | off | denied | ios | unsupported
+async function pushState(){
+  if(isIOS&&!isStandalone()) return 'ios';
+  if(!pushSupport()) return 'unsupported';
+  if(Notification.permission==='denied') return 'denied';
+  if(Notification.permission!=='granted') return 'off';
+  const reg=swReg||await navigator.serviceWorker.ready.catch(()=>null);
+  const sub=reg&&await reg.pushManager.getSubscription().catch(()=>null);
+  return sub?'on':'off';
+}
+const b64u=s=>{const p='='.repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(b,c=>c.charCodeAt(0))};
+const key64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+async function saveSub(sub){
+  const {error}=await sb.rpc('luu_push',{p_endpoint:sub.endpoint,p_p256dh:key64(sub.getKey('p256dh')),p_auth:key64(sub.getKey('auth'))});
+  if(error) throw error;
+}
+// Gọi từ nút bấm (trình duyệt chỉ cho xin quyền khi người dùng bấm)
+async function enablePush(){
+  if(!ranked){toast('Đăng nhập để nhận thông báo');return false}
+  const st=await pushState();
+  if(st==='ios'){iosGuide();return false}
+  if(st==='unsupported'){toast('Trình duyệt này chưa hỗ trợ thông báo');return false}
+  if(st==='denied'){deniedGuide();return false}
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){toast(perm==='denied'?'Bạn đã chặn thông báo':'Chưa bật thông báo');return false}
+    const reg=swReg||await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(PUSH_PUB)});
+    await saveSub(sub);
+    try{localStorage.removeItem('mqbk-push-later')}catch(e){}
+    sfx.heart(); toast('Đã bật thông báo thách đấu');
+    return true;
+  }catch(e){toast('Không bật được: '+(e.message||e));return false}
+}
+async function disablePush(){
+  try{const reg=swReg||await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();
+    if(sub){await sb.rpc('xoa_push',{p_endpoint:sub.endpoint});await sub.unsubscribe()}}catch(e){}
+  toast('Đã tắt thông báo trên máy này');
+}
+// Sau khi đăng nhập: máy đã cho phép rồi thì gắn đăng ký vào tài khoản này (âm thầm)
+async function pushResync(){
+  if(!ranked||!pushSupport()||Notification.permission!=='granted') return;
+  try{const reg=swReg||await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(PUSH_PUB)});
+    await saveSub(sub)}catch(e){}
+}
+async function pushUnlink(){ // đăng xuất: máy này thôi nhận thông báo của tài khoản cũ
+  try{const reg=swReg||await navigator.serviceWorker.getRegistration();const sub=reg&&await reg.pushManager.getSubscription();
+    if(sub) await sb.rpc('xoa_push',{p_endpoint:sub.endpoint})}catch(e){}
+}
+const BELL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+// Thẻ mời bật thông báo trên màn chính (ẩn nếu đã bật hoặc bấm "Để sau" trong 7 ngày)
+async function pushCard(){
+  const slot=$('pushSlot'); if(!slot||!ranked) return;
+  const st=await pushState();
+  let later=0; try{later=+localStorage.getItem('mqbk-push-later')||0}catch(e){}
+  if(st==='on'||st==='unsupported'||Date.now()-later<7*864e5){slot.innerHTML='';return}
+  const txt=st==='ios'?'Trên iPhone, thêm game vào Màn hình chính để nhận thông báo khi bạn bè thách đấu.'
+    :st==='denied'?'Thông báo đang bị chặn nên bạn sẽ lỡ lời thách khi không mở game.'
+    :'Nhận thông báo khi bạn bè thách đấu, kể cả lúc không mở game.';
+  slot.innerHTML=`<div class="push-card">${BELL}<span>${txt}</span>
+    <button type="button" class="btn warm" id="pushOn">${st==='ios'?'Xem cách làm':st==='denied'?'Cách mở lại':'Bật thông báo'}</button>
+    <button type="button" class="link" id="pushLater">Để sau</button></div>`;
+  $('pushOn').onclick=async()=>{if(await enablePush()) slot.innerHTML=''};
+  $('pushLater').onclick=()=>{try{localStorage.setItem('mqbk-push-later',Date.now())}catch(e){};slot.innerHTML=''};
+}
+function iosGuide(){
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Thông báo trên iPhone</div><button class="link" id="back">Đóng</button></div>
+    <h2>Thêm game vào Màn hình chính</h2>
+    <p>iPhone chỉ cho trang web gửi thông báo khi đã được thêm vào Màn hình chính (iOS 16.4 trở lên).</p>
+    <ol class="steps"><li>Mở game bằng <b>Safari</b>.</li><li>Bấm nút <b>Chia sẻ</b> (ô vuông có mũi tên lên).</li>
+      <li>Chọn <b>Thêm vào MH chính</b>, rồi bấm <b>Thêm</b>.</li><li>Mở game từ biểu tượng mới trên Màn hình chính, đăng nhập rồi bấm <b>Bật thông báo</b>.</li></ol>
+    <div class="col grow"><button class="btn" id="ok">Đã hiểu</button></div>`);
+  $('back').onclick=home; $('ok').onclick=home;
+}
+function deniedGuide(){
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Thông báo</div><button class="link" id="back">Đóng</button></div>
+    <h2>Thông báo đang bị chặn</h2>
+    <p>Trước đây bạn đã chọn chặn thông báo của game, nên game không tự hỏi lại được.</p>
+    <ol class="steps"><li><b>Android (Chrome)</b>: bấm biểu tượng bên trái thanh địa chỉ › <b>Quyền</b> › <b>Thông báo</b> › Cho phép.</li>
+      <li><b>Laptop</b>: bấm biểu tượng ổ khoá cạnh địa chỉ trang › <b>Thông báo</b> › Cho phép.</li>
+      <li><b>iPhone</b>: Cài đặt › <b>Thông báo</b> › Mì Quảng BK › bật <b>Cho phép thông báo</b>.</li></ol>
+    <p class="muted">Xong thì tải lại trang và bấm Bật thông báo.</p>
+    <div class="col grow"><button class="btn" id="ok">Đã hiểu</button></div>`);
+  $('back').onclick=home; $('ok').onclick=home;
+}
+// Mở từ thông báo (?thach=id hoặc tin nhắn từ sw.js): hiện lời thách nếu còn hạn
+let pendingThach=null;
+async function openThach(id){
+  if(!id) return;
+  if(!user){pendingThach=id;return}
+  window.focus();
+  await soloPoll(false);
+  if(notices.has(+id)) return;
+  const {data}=await sb.from('thach_dau').select('id,trang_thai,het_han').eq('id',id).maybeSingle();
+  if(!data||data.trang_thai!=='cho'||new Date(data.het_han)<Date.now()) toast('Lời thách này đã hết hạn hoặc bị huỷ');
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user&&soloCh) soloPoll(false)});
+
 /* ================= Khởi động ================= */
 S={day:1,money:0,rep:5,upg:{},total:0};
 D={t:DAYLEN,earned:0,served:0,lost:0,slots:[null,null,null],spawnT:1,bowl:{items:new Set(['mi','tom','trung','rau']),broth:true},ev:EVENTS[0]};
@@ -1720,12 +1847,15 @@ renderAll();
 let recovering=/type=recovery/.test(location.hash), justConfirmed=/type=(signup|email_change)/.test(location.hash), linkError='';
 (function readLink(){
   const q=new URLSearchParams(location.hash.slice(1)+'&'+location.search.slice(1));
+  if(q.get('thach')) pendingThach=q.get('thach');
   if(q.get('error_description')) linkError=/expired|invalid/i.test(q.get('error_description'))
     ?'Link trong email đã hết hạn hoặc đã dùng rồi. Hãy đăng nhập, hoặc bấm Quên mật khẩu để nhận link mới.'
     :q.get('error_description').replace(/\+/g,' ');
 })();
 const cleanUrl=()=>{try{history.replaceState(null,'',BACK_URL)}catch(e){}};
 applyTheme(theme);
+swInit();
+if(pendingThach) cleanUrl();
 $('sndSlot').innerHTML=soundBtn(false);
 (async function boot(){
   if(!sb){ranked=false;home();return}

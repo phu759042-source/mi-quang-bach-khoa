@@ -10,6 +10,7 @@ Game web (điện thoại + laptop) cho sinh viên Đại học Bách Khoa Đà 
 ## Cấu trúc file
 
 - `index.html`: toàn bộ game trong một file (HTML + CSS + JS, ~1400 dòng). Supabase JS v2.45.4 qua jsDelivr. Số phiên bản hiện ở cuối màn chính (`Phiên bản x.y.z`). Mỗi lần sửa thì tăng số này và ghi vào commit.
+- `sw.js`: service worker chỉ để nhận Web Push lời thách (không cache). Bấm thông báo mở `?thach=<id>` hoặc gửi postMessage cho tab đang mở.
 - `manifest.webmanifest`, `icons/`: favicon, icon PWA, `ung-ho-qr.png` (mã VietQR ủng hộ).
 - `emails/xac-nhan-email.html`, `emails/dat-lai-mat-khau.html`: mẫu email (biến `{{ .ConfirmationURL }}`). Người dùng tự dán vào Supabase › Auth › Templates, repo không tự đồng bộ.
 - `README.md`, `docs/images/`: giới thiệu game để trình bày với nhà tuyển dụng, ảnh chụp bằng Playwright với dữ liệu minh hoạ (Supabase giả). Đổi giao diện hoặc luật chơi thì nhớ cập nhật README và chụp lại ảnh.
@@ -29,6 +30,7 @@ Game web (điện thoại + laptop) cho sinh viên Đại học Bách Khoa Đà 
 - Avatar (chỉ hiện ở bảng xếp hạng sinh viên): `avatarHTML`, `avatarEditor` (cắt/zoom), `chooseAvatar`, `readjustAvatar`, `removeAvatar`; bucket Storage `avatars`.
 - Màn khác: `home`, `showShop`/`drawShop`, `leaderboard`, `contactScreen` (`CONTACT`), `donateScreen`, `ruleText`.
 - Solo (bản 2.7.0, kiểu chess.com): `soloConnect` (Realtime postgres_changes trên `thach_dau` + presence `online`), `showNotice` (thông báo góc dưới phải, `sfx.challenge`, nháy tiêu đề tab), `challengeScreen` (chọn độ khó + luật `sinh_ton`/`diem`), `waitScreen`, `startSolo` (đếm ngược theo `bat_dau` của server), `soloPush` (gửi tiến độ, ping mỗi 4s), `soloShop` (cửa hàng 20s, không mua tim), `soloFinish`, `soloEnd` (Elo). Trận 3 ngày (`SOLO_NGAY`). Bảng xếp hạng có ô tìm kiếm (`searchPlayers`) và tab Solo; bấm tên để thách.
+- Thông báo đẩy (bản 2.8.0): `PUSH_PUB` (khoá VAPID công khai), `swInit`, `pushState` (on/off/denied/ios/unsupported), `pushCard` (thẻ mời bật trên màn chính, "Để sau" 7 ngày trong localStorage `mqbk-push-later`), `enablePush`/`disablePush`, `pushResync` (sau đăng nhập), `pushUnlink` (khi đăng xuất), `iosGuide`, `deniedGuide`, `openThach`. iPhone chỉ nhận khi đã thêm vào Màn hình chính.
 - Bộ đếm truy cập kiểu Facemash: `countVisit` (hiện lượt + người).
 - Giao diện: theme sáng/tối/tự động (`applyTheme`, `data-theme`, localStorage), phím tắt laptop (1–8, Space, Q/W/E/R, X), kéo để tải lại (tắt khi đang chơi).
 
@@ -41,6 +43,7 @@ Client chỉ đọc được (RLS). Mọi thao tác ghi đi qua RPC `SECURITY DE
 - View xếp hạng: `bxh_sinh_vien`, `bxh_lop`, `bxh_khoa`, `bxh_solo`.
 - RPC: `bat_dau_luot(p_do_kho)`, `nop_ket_qua(p_run_id, p_so_ngay, p_doanh_thu, p_tim_mat)` → json (delta, diem, hang, chuoi, chuoi_moi, chuoi_dai_nhat), `luu_ho_so(p_ten, p_khoa_id, p_lop)`, `luu_avatar(p_url, p_khung)`, `ghi_luot_truy_cap(p_khach)` → json (luot, nguoi, hom_nay, tong), `_xu_ly_bo_cuoc(p_uid)`, `he_so(p_do_kho)`.
 - RPC solo: `gui_thach_dau(p_b, p_do_kho, p_che_do)`, `tra_loi_thach_dau(p_id, p_dong_y)`, `huy_thach_dau`, `cap_nhat_solo(p_id, p_ngay, p_doanh_thu, p_tim_mat, p_xong)`, `kiem_tra_solo`, `bo_tran_solo`, `tim_nguoi_choi(p_q)`; nội bộ `_ket_thuc_solo` (Elo K=32), `_xu_ly_solo`, `_kiem_tra_roi_tran` (im lặng 25s = thua, trận quá 10 phút thì so điểm).
+- Push: bảng `push_sub(user_id, endpoint unique, p256dh, auth)`, RPC `luu_push`, `xoa_push`; trigger `thach_dau_bao` (after insert `thach_dau`) → `net.http_post` tới Edge Function `thong-bao-thach-dau` (verify_jwt tắt, tự kiểm header `x-hook-secret`). Khoá trong Vault: `vapid_public`, `vapid_private`, `push_hook_secret`, Edge Function đọc qua RPC `_push_cau_hinh` (chỉ service_role). Không bao giờ ghi khoá riêng vào repo hay migration.
 - Luật chống gian lận trên server: doanh thu tối đa 5000/ngày; số tim mất ≤ 5 + doanh_thu/500.
 - Điểm ĐBK của một lượt = doanh_thu·hs/10 − tim_mat·15·hs².
 
