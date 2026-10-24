@@ -13,7 +13,7 @@ Bán mì cho sinh viên các khoa, giữ uy tín quán, rồi đua điểm theo 
 
 </div>
 
-> **In English.** *Mì Quảng Bách Khoa* is a browser-based restaurant time-management game built for students of the University of Science and Technology, University of Da Nang. Players assemble bowls of mì Quảng (a central-Vietnamese noodle dish) against customer patience timers, upgrade their shop between days, and compete on student, class and faculty leaderboards. It is a single-file HTML/CSS/vanilla JS app (no build step, no framework) backed by Supabase (Postgres + Auth + Storage), with server-side score validation via `SECURITY DEFINER` RPCs and row-level security, offline-safe score submission, Duolingo-style daily streaks, and sound effects synthesised entirely with the Web Audio API.
+> **In English.** *Mì Quảng Bách Khoa* is a browser-based restaurant time-management game built for students of the University of Science and Technology, University of Da Nang. Players assemble bowls of mì Quảng (a central-Vietnamese noodle dish) against customer patience timers, upgrade their shop between days, and compete on student, class and faculty leaderboards. It is a single-file HTML/CSS/vanilla JS app (no build step, no framework) backed by Supabase (Postgres + Auth + Storage), with server-side score validation via `SECURITY DEFINER` RPCs and row-level security, offline-safe score submission, Duolingo-style daily streaks, and sound effects synthesised entirely with the Web Audio API. The concept, setting and product decisions are mine; the code was written by Claude (Anthropic's AI assistant) working from my ideas and direction — see section 11 for who did what.
 
 ---
 
@@ -29,11 +29,14 @@ Bán mì cho sinh viên các khoa, giữ uy tín quán, rồi đua điểm theo 
 8. [Những bài toán kỹ thuật đáng chú ý](#8-những-bài-toán-kỹ-thuật-đáng-chú-ý)
 9. [Cấu trúc thư mục](#9-cấu-trúc-thư-mục)
 10. [Chạy thử trên máy](#10-chạy-thử-trên-máy)
-11. [Tác giả](#11-tác-giả)
+11. [Cách mình làm dự án này](#11-cách-mình-làm-dự-án-này)
+12. [Tác giả](#12-tác-giả)
 
 ---
 
 ## 1. Ý tưởng
+
+Ý tưởng ban đầu đến khá tự phát: mình muốn có một game **đậm chất Bách Khoa Đà Nẵng**, giống cách sinh viên HUST có "Bánh mì Bách Khoa". Món được chọn là mì Quảng, đặc sản của miền Trung. Bối cảnh phải là một quán có thật, nơi sinh viên trường mình hay ăn.
 
 Game lấy cảm hứng từ **Mì Quảng Bích** (1-3 Đặng Dung, Hòa Khánh Bắc, Liên Chiểu), một quán quen của sinh viên Bách Khoa. Người chơi là chủ quán. Khách là sinh viên của 9 khoa: CNTT, Cơ khí, Điện, Xây dựng, Hóa, Điện tử viễn thông, Kiến trúc, Môi trường và Cơ khí giao thông. Câu thoại của khách lấy từ đời sống sinh viên, ví dụ "Chiều thi Giải tích 2, ăn cho tỉnh!" hay "Code xuyên đêm, đói quá chú ơi".
 
@@ -283,9 +286,26 @@ python3 -m http.server 8000
 
 Nếu không kết nối được Supabase, game tự chuyển sang **chế độ chơi thử** và vẫn chơi đầy đủ, chỉ không tính điểm. Muốn dùng backend riêng, hãy đổi `SB_URL` và `SB_KEY` ở đầu phần `<script>` trong `index.html`.
 
-## 11. Tác giả
+## 11. Cách mình làm dự án này
+
+Dự án được làm cùng **Claude**, trợ lý AI của Anthropic. Mình đóng vai người làm sản phẩm: đưa ra ý tưởng, chọn bối cảnh, quyết định tính năng, trình bày yêu cầu và duyệt kết quả. Claude làm phần kỹ thuật theo hướng mình đặt ra, và góp thêm một số ý tưởng về lối chơi. Phân công cụ thể:
+
+| Phần việc | Người phụ trách |
+|---|---|
+| Ý tưởng ban đầu: một game đậm chất Bách Khoa Đà Nẵng | Mình |
+| Bối cảnh thật: quán Mì Quảng Bích ở Đặng Dung, Hòa Khánh Bắc | Mình. Claude đề xuất món mì Quảng nhưng đặt quán ở trước cổng trường, nơi không có quán mì nào, nên mình sửa lại cho đúng thực tế |
+| Hệ thống độ khó và cách quản lý | Mình quyết định |
+| Hồ sơ người chơi, cách hiển thị dữ liệu, bảng xếp hạng | Mình quyết định |
+| Giao diện sáng/tối, ảnh đại diện | Mình quyết định |
+| Có hiệu ứng âm thanh | Mình quyết định. Claude đề xuất và thiết kế từng tiếng |
+| Topping, lối chơi lõi (ghép tô, kiên nhẫn của khách, giờ cao điểm) | Ý tưởng của Claude |
+| Toàn bộ code: giao diện, logic game, đồ hoạ SVG, âm thanh Web Audio | Claude viết |
+| Backend Supabase: bảng, RLS, RPC, chống gian lận, cân bằng bằng mô phỏng | Claude viết |
+
+Cách làm này giúp mình đưa một ý tưởng thành sản phẩm chạy thật, có tài khoản, có bảng xếp hạng toàn trường.
+## 12. Tác giả
 
 **Nguyễn Tấn Phú**, sinh viên lớp 26T_ATTT, khoa Công nghệ Thông tin, Đại học Bách Khoa Đà Nẵng.
 Email: phu759042@gmail.com
 
-Tự thiết kế và làm toàn bộ dự án: ý tưởng, cân bằng gameplay, đồ hoạ SVG, âm thanh, giao diện, cơ sở dữ liệu và bảo mật phía server.
+Người lên ý tưởng và định hướng sản phẩm. Phần kỹ thuật do Claude thực hiện, như mô tả ở mục 11.
