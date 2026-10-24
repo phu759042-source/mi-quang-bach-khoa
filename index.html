@@ -630,7 +630,7 @@ function ac(){
   if(!SFX.ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
     SFX.ctx=new C(); const comp=SFX.ctx.createDynamicsCompressor(); SFX.out=SFX.ctx.createGain(); SFX.out.gain.value=.55;
     SFX.out.connect(comp); comp.connect(SFX.ctx.destination)}
-  if(SFX.ctx.state==='suspended') SFX.ctx.resume();
+  if(SFX.ctx.state==='suspended'&&!SFX.offline) SFX.ctx.resume();
   return SFX.ctx;
 }
 // trình duyệt chỉ cho phát tiếng sau khi người dùng chạm/bấm lần đầu
@@ -655,8 +655,22 @@ const sfx={
           else {const i=TOPS.indexOf(k);tone(420+i*55,.09,{to:820+i*70,vol:.22});noise(.04,{f:3000,vol:.06})}},
   remove(){tone(700,.08,{to:380,vol:.14})},
   // chan nước lèo: tiếng nước rót + vài bong bóng
-  pour(){noise(.7,{f:1100,to:420,q:.9,vol:.32,attack:.06});noise(.5,{type:'lowpass',f:600,vol:.15,at:.05});
-         for(let i=0;i<5;i++) tone(260+Math.random()*320,.07,{to:520+Math.random()*400,vol:.09,at:.15+i*.1})},
+  // chan nước lèo: tiếng nước đổ = rất nhiều bong bóng nhỏ, mỗi cái "bloop" vút cao độ lên,
+  // cộng tiếng dòng nước êm và tiếng tô đầy dần (cao độ cộng hưởng tăng dần)
+  pour(){const D=.95;
+    noise(.1,{type:'lowpass',f:1200,vol:.1,attack:.004});                           // nước chạm đáy tô
+    noise(D,{type:'lowpass',f:380,q:.3,vol:.035,attack:.08});                       // dòng nước chảy êm
+    noise(D,{type:'bandpass',f:320,to:1050,q:22,vol:.3,attack:.1});                 // tô đầy dần, tiếng cao lên
+    for(let i=0;i<64;i++){const at=.03+Math.pow(Math.random(),.8)*(D-.12), f=480+Math.random()*1300;
+      tone(f,.025+Math.random()*.045,{to:f*(1.5+Math.random()*.7),vol:.035+Math.random()*.07,at,attack:.002})}},
+  // chốt sổ: bấm két "cạch", ngăn kéo trượt ra, tiền xu rơi leng keng, rồi hợp âm vui
+  close(){tone(150,.12,{to:70,vol:.35});noise(.04,{type:'highpass',f:2500,vol:.2});            // cạch
+    noise(.28,{type:'bandpass',f:900,to:300,q:2,vol:.16,at:.1,attack:.03});                    // ngăn kéo trượt
+    tone(110,.1,{to:60,vol:.25,at:.38});noise(.05,{type:'lowpass',f:1200,vol:.15,at:.38});      // ngăn kéo chạm
+    tone(1760,.5,{type:'triangle',vol:.2,at:.42});tone(2637,.45,{vol:.1,at:.42});              // chuông két
+    for(let i=0;i<16;i++){const at=.55+i*.045+Math.random()*.03, f=2600+Math.random()*2400;    // xu leng keng
+      tone(f,.12,{type:'triangle',vol:.06+Math.random()*.05,at});tone(f*1.47,.08,{vol:.03,at})}
+    [523,659,784,1046].forEach((f,i)=>tone(f,.7,{type:'triangle',vol:.14,at:1.35+i*.08}))},
   // bán thành công: tiếng két tiền "ka-ching" + leng keng đồng xu
   cash(big){tone(1318,.09,{type:'triangle',vol:.22});noise(.05,{type:'highpass',f:5000,vol:.12});
             tone(1760,.45,{type:'triangle',vol:.22,at:.08});tone(2637,.4,{vol:.12,at:.08});
@@ -1118,7 +1132,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.4</div>
+    <div class="muted">Phiên bản 2.5</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -1163,7 +1177,7 @@ function showShop(){
   $('next').onclick=()=>{S.day++;startDay()};
   let armed=false;
   $('cash').onclick=e=>{ if(!armed){armed=true;e.target.textContent='Bấm lần nữa để chốt '+(now>=0?'+':'')+now+' ĐBK';return}
-    finishRun('Bạn dừng đúng lúc, giữ lại thành quả.',true) };
+    sfx.close(); finishRun('Bạn dừng đúng lúc, giữ lại thành quả.',true) };
 }
 function drawShop(){
   $('shop').innerHTML=UPG.map(u=>{
