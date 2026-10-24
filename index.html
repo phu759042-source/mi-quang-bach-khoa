@@ -655,14 +655,11 @@ const sfx={
           else {const i=TOPS.indexOf(k);tone(420+i*55,.09,{to:820+i*70,vol:.22});noise(.04,{f:3000,vol:.06})}},
   remove(){tone(700,.08,{to:380,vol:.14})},
   // chan nước lèo: tiếng nước rót + vài bong bóng
-  // chan nước lèo: tiếng nước đổ = rất nhiều bong bóng nhỏ, mỗi cái "bloop" vút cao độ lên,
-  // cộng tiếng dòng nước êm và tiếng tô đầy dần (cao độ cộng hưởng tăng dần)
-  pour(){const D=.95;
-    noise(.1,{type:'lowpass',f:1200,vol:.1,attack:.004});                           // nước chạm đáy tô
-    noise(D,{type:'lowpass',f:380,q:.3,vol:.035,attack:.08});                       // dòng nước chảy êm
-    noise(D,{type:'bandpass',f:320,to:1050,q:22,vol:.3,attack:.1});                 // tô đầy dần, tiếng cao lên
-    for(let i=0;i<64;i++){const at=.03+Math.pow(Math.random(),.8)*(D-.12), f=480+Math.random()*1300;
-      tone(f,.025+Math.random()*.045,{to:f*(1.5+Math.random()*.7),vol:.035+Math.random()*.07,at,attack:.002})}},
+  // chan nước lèo: một tiếng "xèo" ngắn ~0,28 giây, không bong bóng.
+  // Tiếng xì cao như nước sôi + tiếng trầm khi nước chạm tô; bỏ dải tần trung (dải gây cảm giác cọ bìa)
+  pour(){noise(.28,{type:'bandpass',f:4200,q:.7,vol:.3,attack:.02});
+         noise(.2,{type:'highpass',f:7000,vol:.08,attack:.01});
+         noise(.16,{type:'lowpass',f:320,vol:.28,attack:.008})},
   // chốt sổ: bấm két "cạch", ngăn kéo trượt ra, tiền xu rơi leng keng, rồi hợp âm vui
   close(){tone(150,.12,{to:70,vol:.35});noise(.04,{type:'highpass',f:2500,vol:.2});            // cạch
     noise(.28,{type:'bandpass',f:900,to:300,q:2,vol:.16,at:.1,attack:.03});                    // ngăn kéo trượt
@@ -1132,7 +1129,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.5</div>
+    <div class="muted">Phiên bản 2.5.1</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
