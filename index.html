@@ -11,6 +11,8 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1B3A6B">
+<script>/* đặt giao diện trước khi vẽ trang để không bị nháy */
+try{var t=localStorage.getItem('mqbk-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <meta name="apple-mobile-web-app-title" content="Mì Quảng BK">
 <meta property="og:title" content="Mì Quảng Bách Khoa">
 <meta property="og:description" content="Game quán mì Quảng của sinh viên Bách Khoa Đà Nẵng. Đua điểm theo lớp, theo khoa.">
@@ -24,9 +26,23 @@
   --navy:#1B3A6B; --turmeric:#E8A317; --chili:#C8321E; --leaf:#2F6B3A;
   --paper:#FBF3E3; --ink:#2A2118; --muted:#7A6A55; --line:#E6D6B8; --card:#FFFDF8; --soft:#FFF4D6;
   --gold:#C99A1E; --silver:#8C96A3; --bronze:#A8663A;
+  --heading:#1B3A6B; --toast-bg:#2A2118; --toast-fg:#FFFFFF; --on-warm:#2A2118; --shade:#E6D6B8;
   --display:"Baloo 2","Be Vietnam Pro",system-ui,sans-serif;
   --body:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
+/* Giao diện tối: quán mì lúc đêm, nền xanh than */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  color-scheme: dark;
+  --navy:#2A5599; --turmeric:#F0B23A; --chili:#F26B55; --leaf:#62B373;
+  --paper:#11161F; --ink:#F2EADB; --muted:#A99C88; --line:#2B3443; --card:#1A212D; --soft:#2E2817;
+  --gold:#E2B54A; --silver:#A9B3C0; --bronze:#C98552;
+  --heading:#A9C4F5; --toast-bg:#F2EADB; --toast-fg:#11161F; --shade:#0A0E15}}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --navy:#2A5599; --turmeric:#F0B23A; --chili:#F26B55; --leaf:#62B373;
+  --paper:#11161F; --ink:#F2EADB; --muted:#A99C88; --line:#2B3443; --card:#1A212D; --soft:#2E2817;
+  --gold:#E2B54A; --silver:#A9B3C0; --bronze:#C98552;
+  --heading:#A9C4F5; --toast-bg:#F2EADB; --toast-fg:#11161F; --shade:#0A0E15}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0}
@@ -51,9 +67,9 @@ kbd{display:none;font:700 10px/1 var(--body);color:var(--muted);background:var(-
   .cust kbd.k-table{position:absolute;top:6px;right:6px}
   .btn kbd{margin-left:8px;vertical-align:2px;background:transparent;color:inherit;border-color:currentColor;opacity:.7}
   .ing:hover{border-color:var(--turmeric)}
-  .cust[data-i]:hover{border-color:var(--navy)}
+  .cust[data-i]:hover{border-color:var(--heading)}
 }
-.event{font-size:12px;font-weight:700;color:var(--navy);text-align:center;margin-top:-4px}
+.event{font-size:12px;font-weight:700;color:var(--heading);text-align:center;margin-top:-4px}
 .event{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 6px}
 .event .tag.rush{background:var(--chili);animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.6}}
@@ -65,7 +81,7 @@ kbd{display:none;font:700 10px/1 var(--body);color:var(--muted);background:var(-
 .cust{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:7px 6px 8px;display:flex;flex-direction:column;gap:5px;align-items:center;min-height:132px;cursor:pointer;position:relative;transition:transform .12s;min-width:0}
 .cust:active{transform:scale(.96)}
 .cust.empty{border-style:dashed;justify-content:center;color:var(--muted);font-size:12px;cursor:default;background:transparent}
-.cust.teacher{border-color:var(--navy);box-shadow:inset 0 0 0 1.5px var(--navy)}
+.cust.teacher{border-color:var(--heading);box-shadow:inset 0 0 0 1.5px var(--heading)}
 .ava{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-family:var(--display);font-size:12px;font-weight:800;line-height:1}
 .who{font-size:11px;font-weight:700;text-align:center;line-height:1.2}
 .order{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;background:var(--paper);border-radius:8px;padding:3px}
@@ -87,10 +103,11 @@ kbd{display:none;font:700 10px/1 var(--body);color:var(--muted);background:var(-
 .acts{display:grid;grid-template-columns:1fr 2fr;gap:8px}
 .btn{font:inherit;font-family:var(--display);font-weight:800;font-size:17px;border:0;border-radius:12px;padding:10px 14px;cursor:pointer;color:#fff;background:var(--navy);text-align:center}
 .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
-.btn.pour{background:var(--chili)}
-.btn.warm{background:var(--turmeric);color:var(--ink)}
+
+.btn.warm{background:var(--turmeric);color:var(--on-warm)}
+.btn.pour{background:#C8321E}
 .btn:disabled{opacity:.45;cursor:default}
-.link{font:inherit;background:none;border:0;color:var(--navy);font-weight:700;text-decoration:underline;cursor:pointer;padding:4px 0;text-align:left}
+.link{font:inherit;background:none;border:0;color:var(--heading);font-weight:700;text-decoration:underline;cursor:pointer;padding:4px 0;text-align:left}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--turmeric);outline-offset:2px}
 
 /* overlays */
@@ -99,9 +116,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .ov > *{flex-shrink:0}
 .ov .grow{margin-top:auto}
 .ov{padding-bottom:52px!important}
-.ov h1{font-family:var(--display);font-weight:800;font-size:42px;line-height:.95;margin:0;color:var(--navy);text-wrap:balance}
+.ov h1{font-family:var(--display);font-weight:800;font-size:42px;line-height:.95;margin:0;color:var(--heading);text-wrap:balance}
 .ov h1 em{font-style:normal;color:var(--turmeric);display:block}
-.ov h2{font-family:var(--display);font-size:28px;margin:0;line-height:1.05;color:var(--navy);text-wrap:balance}
+.ov h2{font-family:var(--display);font-size:28px;margin:0;line-height:1.05;color:var(--heading);text-wrap:balance}
 .ov p{margin:0;line-height:1.5;max-width:60ch}
 .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--chili)}
 .steps{margin:0;padding-left:20px;line-height:1.6;font-size:14px}
@@ -121,7 +138,7 @@ input,select{font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid va
 .me .pts small{display:block;font-family:var(--body);font-size:11px;opacity:.8;font-weight:600}
 
 .diffs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-.diff.d-bk .x{color:var(--navy)}
+.diff.d-bk .x{color:var(--heading)}
 .diff b{white-space:nowrap}
 @media (max-width:420px){.diff b{font-size:13px}.diff .x{font-size:19px}.diff small{font-size:10px}.diff{padding:9px 3px}}
 .diff{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 6px;cursor:pointer;display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center}
@@ -139,7 +156,7 @@ input,select{font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid va
 .up{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px}
 .up strong{font-size:14px}
 .up small{grid-column:1;color:var(--muted);font-size:12px}
-.up button{grid-row:1/3;grid-column:2;font:inherit;font-weight:700;font-size:13px;border:0;border-radius:10px;padding:8px 12px;background:var(--turmeric);color:var(--ink);cursor:pointer}
+.up button{grid-row:1/3;grid-column:2;font:inherit;font-weight:700;font-size:13px;border:0;border-radius:10px;padding:8px 12px;background:var(--turmeric);color:var(--on-warm);cursor:pointer}
 .up button:disabled{background:var(--line);color:var(--muted)}
 
 /* bảng xếp hạng */
@@ -166,6 +183,15 @@ input,select{font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid va
 .donate{display:grid;grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:14px;align-items:start}
 .donate img{width:100%;height:auto;border-radius:14px;border:1.5px solid var(--line);background:#fff}
 @media (max-width:620px){.donate{grid-template-columns:1fr;justify-items:center}.donate img{max-width:280px}.donate .list{width:100%}}
+.theme{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-weight:700}
+.theme span{margin-right:4px}
+.theme button{font:inherit;font-size:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.theme button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.heart-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 14px}
+.heart-row .lbl{font-weight:700}
+.hearts.big{color:var(--chili);display:inline-flex;gap:3px}.hearts.big svg{width:20px;height:20px}
+.plus{font:800 20px/1 var(--display);width:36px;height:36px;border-radius:50%;border:0;background:var(--chili);color:#fff;cursor:pointer;display:grid;place-items:center}
+.plus:disabled{background:var(--line);color:var(--muted);cursor:default}
 .rule{font-size:12px;color:var(--muted);line-height:1.5}
 table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 .tb th,.tb td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
@@ -173,7 +199,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 
 .ptr{position:absolute;left:50%;top:0;z-index:7;width:40px;height:40px;margin-left:-20px;border-radius:50%;
   background:var(--card);border:1.5px solid var(--line);box-shadow:0 2px 8px rgba(42,33,24,.15);display:grid;place-items:center;
-  color:var(--navy);transform:translateY(-48px);opacity:0;pointer-events:none}
+  color:var(--heading);transform:translateY(-48px);opacity:0;pointer-events:none}
 .ptr svg{width:20px;height:20px;transition:transform .15s}
 .ptr.ready svg{transform:rotate(180deg)}
 .ptr.spin svg{animation:ptrspin .8s linear infinite}
@@ -183,10 +209,10 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
   background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;color:var(--muted);
   font-variant-numeric:tabular-nums;pointer-events:none;line-height:1}
 .visits svg{width:15px;height:15px;flex:none}
-.visits b{color:var(--navy);font-size:13px}
+.visits b{color:var(--heading);font-size:13px}
 .float{position:absolute;font-family:var(--display);font-weight:800;font-size:20px;pointer-events:none;z-index:4;animation:up 1s ease-out forwards}
 @keyframes up{to{transform:translateY(-40px);opacity:0}}
-.toast{position:absolute;left:50%;top:42%;transform:translateX(-50%);background:var(--ink);color:#fff;font-weight:700;font-size:14px;padding:8px 14px;border-radius:999px;z-index:6;pointer-events:none;white-space:nowrap}
+.toast{position:absolute;left:50%;top:42%;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-fg);font-weight:700;font-size:14px;padding:8px 14px;border-radius:999px;z-index:6;pointer-events:none;white-space:nowrap}
 .shake{animation:sh .35s}
 @keyframes sh{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 @media (prefers-reduced-motion:reduce){.float,.shake{animation:none}.float{display:none}}
@@ -202,7 +228,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
   .station{grid-column:1;grid-row:4}
   .kitchen{grid-column:2;grid-row:1/5;display:flex;flex-direction:column;gap:12px;background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:18px;min-height:0}
   .k-head{display:flex!important;flex-direction:column;gap:2px}
-  .k-head b{font-family:var(--display);font-size:24px;line-height:1;color:var(--navy)}
+  .k-head b{font-family:var(--display);font-size:24px;line-height:1;color:var(--heading)}
   .k-head span{font-size:12px;color:var(--muted)}
   .kitchen .pad{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;flex:1;align-content:start}
   .ing{flex-direction:row;justify-content:flex-start;gap:10px;padding:10px 12px;background:var(--paper)}
@@ -323,7 +349,17 @@ const UPG=[
     {n:'Bảng đèn LED',d:'Giá +20%, khách đến nhanh hơn 12%',c:450}]},
   {id:'wifi',lv:[{n:'Wifi miễn phí',d:'Sinh viên ngồi lâu, tip nhiều hơn 50%',c:300}]},
   {id:'ban',lv:[{n:'Thêm bàn thứ 4',d:'Phục vụ 4 khách cùng lúc',c:400}]},
-  {id:'the',lv:[{n:'Thẻ tích điểm sinh viên',d:'Mỗi ngày giữ chân 1 khách sắp bỏ về, không mất tim',c:500}]}];
+  {id:'the',lv:[{n:'Thẻ tích điểm sinh viên',d:'Mỗi ngày giữ chân 1 khách sắp bỏ về, không mất tim',c:500}]},
+  {id:'ghe',lv:[
+    {n:'Ghế chờ có mái che',d:'Hàng chờ thêm 2 chỗ, khách xếp hàng kiên nhẫn hơn 25%',c:300},
+    {n:'Trà đá miễn phí cho hàng chờ',d:'Khách xếp hàng kiên nhẫn hơn 50%',c:550}]},
+  {id:'fanpage',lv:[
+    {n:'Fanpage quán',d:'Khách đến nhanh hơn 10%',c:250},
+    {n:'Video TikTok viral',d:'Khách đến nhanh hơn 20%, tip thêm 20%',c:600}]},
+  {id:'tv',lv:[{n:'TV chiếu LMHT, Valorant',d:'Giờ cao điểm khách kiên nhẫn hơn 30%',c:300}]},
+  {id:'combo',lv:[{n:'Thực đơn combo sinh viên',d:'Một nửa số khách gọi bớt 1 món, giá tô giảm 5k',c:350}]},
+  {id:'qr',lv:[{n:'Thanh toán QR',d:'Khách trả nhanh, mỗi tô thêm 3k',c:200}]},
+  {id:'chay',lv:[{n:'Nhân viên chạy bàn',d:'Chan nước lèo xong, tô tự bưng tới khách gọi đúng món',c:700}]}];
 const lv=id=>S.upg[id]||0;
 /* Độ khó: phải khớp hàm he_so() trên server */
 const DIFF={
@@ -363,7 +399,8 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 
 /* ================= Vòng chơi ================= */
 let midRun=false;
-function newGame(){midRun=true;S={day:1,money:0,rep:5,upg:{},total:0};startDay()}
+const GIA_TIM=500, TIM_MAX=5;
+function newGame(){midRun=true;S={day:1,money:0,rep:5,upg:{},total:0,lost:0,bought:0};startDay()}
 function startDay(){
   const n=lv('ban')?4:3;
   D={t:DAYLEN,earned:0,served:0,lost:0,slots:Array(n).fill(null),queue:[],rushSaid:false,spawnT:1.2,shield:lv('the'),
@@ -372,15 +409,16 @@ function startDay(){
 }
 function spawn(){
   const i=D.slots.findIndex(x=>!x);
-  if(i<0&&D.queue.length>=4) return;
+  if(i<0&&D.queue.length>=(lv('ghe')?6:4)) return;
   const df=DIFF[diff], kh=pick(KHACH), teacher=Math.random()<.08;
-  const nTop=Math.min(4,Math.max(1,Math.floor(rnd(1,2.6+S.day*.35+df.top))));
+  let nTop=Math.min(4,Math.max(1,Math.floor(rnd(1,2.6+S.day*.35+df.top))));
+  const combo=lv('combo')&&nTop>1&&Math.random()<.5; if(combo) nTop--;
   const tops=[...TOPS].sort(()=>Math.random()-.5).slice(0,nTop);
   const order=['mi',...TOPS.filter(t=>tops.includes(t)&&!(t==='rau'&&lv('rau')))];
   const cool=(1+.15*lv('quat'))*D.ev.pat*df.pat;
   const max=(Math.max(9,22-S.day)+nTop*2.5)*cool*(teacher?.8:1);
-  const qmax=Math.max(8,14-S.day*.5)*cool;
-  const price=(25+5*nTop)*(1+.1*lv('bang'))*(teacher?2:1);
+  const qmax=Math.max(8,14-S.day*.5)*cool*(1+.25*lv('ghe'));
+  const price=(25+5*nTop-(combo?5:0))*(1+.1*lv('bang'))*(teacher?2:1);
   const c={kh,teacher,order,max,p:max,qmax,q:qmax,price,line:teacher?'Thầy ghé ăn trưa, nhanh giúp thầy nhé':pick(LINES)};
   if(i>=0){D.slots[i]=c;renderTables()} else {D.queue.push(c);renderStats()}
 }
@@ -397,14 +435,15 @@ function loop(now){
     D.spawnT-=dt;
     if(inRush()&&!D.rushSaid){D.rushSaid=true;toast('Giờ cao điểm! Khách đến gấp đôi');renderStats()}
     if(!inRush()&&D.rushSaid&&D.t<=RUSH[0]&&!D.rushEnd){D.rushEnd=true;renderStats()}
-    if(D.spawnT<=0){spawn();const base=Math.max(2.2,5.4-S.day*.3)*(1-.06*lv('bang'))*DIFF[diff].spawn*(inRush()?.5:1);D.spawnT=rnd(base*.7,base*1.3)*D.ev.spawn}
+    if(D.spawnT<=0){spawn();const base=Math.max(2.2,5.4-S.day*.3)*(1-.06*lv('bang'))*(1-.1*lv('fanpage'))*DIFF[diff].spawn*(inRush()?.5:1);D.spawnT=rnd(base*.7,base*1.3)*D.ev.spawn}
   }
   seatQueue();
-  for(let k=D.queue.length-1;k>=0;k--){const c=D.queue[k];c.q-=dt;if(c.q<=0&&running){
+  const pdt=dt*(inRush()&&lv('tv')?.7:1); // TV: giờ cao điểm khách bớt sốt ruột
+  for(let k=D.queue.length-1;k>=0;k--){const c=D.queue[k];c.q-=pdt;if(c.q<=0&&running){
     if(D.shield>0){D.shield--;c.q=c.qmax*.5;toast('Thẻ tích điểm giữ chân khách');continue}
     D.queue.splice(k,1);loseHeart('Khách xếp hàng lâu quá nên bỏ về')}}
   if(!running) return;
-  D.slots.forEach((c,i)=>{if(!c)return;c.p-=dt;if(c.p<=0&&running){
+  D.slots.forEach((c,i)=>{if(!c)return;c.p-=pdt;if(c.p<=0&&running){
     if(D.shield>0){D.shield--;c.p=c.max*.5;toast('Thẻ tích điểm giữ chân khách');return}
     angry(i,'Khách bỏ đi vì chờ lâu')}});
   if(!running) return;
@@ -418,8 +457,39 @@ function angry(i,msg){
   renderTables(); loseHeart(msg);
 }
 function loseHeart(msg){
-  S.rep--; D.lost++; toast(msg); renderStats();
-  if(S.rep<=0){running=false;setTimeout(()=>finishRun('Mất hết uy tín, sinh viên rủ nhau sang quán khác.'),400)}
+  S.rep--; S.lost++; D.lost++; toast(msg); renderStats();
+  if(S.rep<=0){running=false;setTimeout(()=>S.money>=GIA_TIM?reviveScreen():finishRun('Mất hết uy tín, sinh viên rủ nhau sang quán khác.'),400)}
+}
+const heartsHTML=n=>Array.from({length:TIM_MAX},(_,i)=>`<svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21C5 15.5 1 12 1 7a5.5 5.5 0 0 1 11-1 5.5 5.5 0 0 1 11 1c0 5-4 8.5-11 14z" fill="${i<n?'currentColor':'none'}" stroke="currentColor" stroke-width="2"/></svg>`).join('');
+function buyHeart(){
+  if(S.rep>=TIM_MAX){toast('Uy tín đã đầy');return false}
+  if(S.money<GIA_TIM){toast(`Két chưa đủ ${GIA_TIM}k`);return false}
+  S.money-=GIA_TIM; S.rep++; S.bought++; toast('Đã mua 1 tim');
+  return true;
+}
+const heartRow=()=>`<div class="heart-row"><span class="lbl">Uy tín</span><span class="hearts big" aria-label="Còn ${S.rep} trên ${TIM_MAX} tim">${heartsHTML(S.rep)}</span>
+  <button type="button" class="plus" id="buyHeart" aria-label="Mua 1 tim với giá ${GIA_TIM}k" ${S.rep>=TIM_MAX||S.money<GIA_TIM?'disabled':''}>+</button>
+  <span class="muted">${GIA_TIM}k/tim · két còn <b id="ketH">${S.money}k</b></span></div>`;
+/* Hết tim giữa ngày: tạm dừng, cho mua tim để bán tiếp */
+function reviveScreen(){
+  const draw=()=>{
+    openOv(`<div class="eyebrow">Ngày ${S.day} · còn ${Math.ceil(D.t)} giây</div><h2>Hết uy tín rồi!</h2>
+    <p>Sinh viên đang rủ nhau sang quán khác. Bạn có thể bỏ tiền trong két ra mua lại uy tín để bán tiếp, hoặc đóng quán và chốt điểm.</p>
+    ${heartRow()}
+    <p class="rule">Mua tim không xoá điểm phạt: mỗi tim đã mất vẫn bị trừ ĐBK khi chốt sổ. Tiền mua tim lấy từ két, không làm giảm doanh thu tính điểm.</p>
+    <div class="col grow"><button class="btn" id="resume" ${S.rep>0?'':'disabled'}>Bán tiếp với ${S.rep} tim</button>
+    <button class="btn ghost" id="close">Đóng quán, chốt điểm</button></div>`);
+    $('buyHeart').onclick=()=>{if(buyHeart())draw()};
+    $('resume').onclick=resumeDay;
+    $('close').onclick=()=>finishRun('Mất hết uy tín, bạn đóng quán sớm.');
+  };
+  draw();
+}
+function resumeDay(){
+  if(S.rep<=0) return;
+  // khách đang chờ được nghỉ một nhịp sau khi quán lấy lại uy tín
+  D.slots.forEach(c=>{if(c)c.p=Math.max(c.p,c.max*.5)}); D.queue.forEach(c=>c.q=Math.max(c.q,c.qmax*.5));
+  showOv(false); renderAll(); running=true; last=performance.now(); requestAnimationFrame(loop);
 }
 function serve(i){
   const c=D.slots[i]; if(!c||!running) return;
@@ -427,17 +497,27 @@ function serve(i){
   if(!b.items.size){toast('Tô còn trống');return}
   if(!b.broth&&lv('noi')&&b.items.has('mi')) b.broth=true;
   if(!b.broth){toast('Chưa chan nước lèo');return}
-  const want=new Set(c.order), got=new Set(b.items);
-  if(lv('rau')) got.delete('rau');
-  const ok=want.size===got.size&&[...want].every(x=>got.has(x));
+  const ok=matches(c,b);
   const el=$('tables').children[i];
   resetBowl();
   if(!ok){angry(i,'Sai món rồi, khách không chịu');return}
-  const tip=Math.round(c.price*.3*(c.p/c.max)*D.ev.tip*(lv('wifi')?1.5:1));
-  const gain=Math.round(c.price)+tip;
+  const tip=Math.round(c.price*.3*(c.p/c.max)*D.ev.tip*(lv('wifi')?1.5:1)*(lv('fanpage')>=2?1.2:1));
+  const gain=Math.round(c.price)+tip+(lv('qr')?3:0);
   D.earned+=gain;S.money+=gain;S.total+=gain;D.served++;
-  floatText(el,`+${gain}k`,tip>0?'var(--leaf)':'var(--navy)');
+  floatText(el,`+${gain}k`,tip>0?'var(--leaf)':'var(--heading)');
   D.slots[i]=null; renderTables(); renderStats();
+}
+function matches(c,b){
+  const want=new Set(c.order), got=new Set(b.items);
+  if(lv('rau')) got.delete('rau');
+  return want.size===got.size&&[...want].every(x=>got.has(x));
+}
+/* Nhân viên chạy bàn: tô vừa chan nước lèo khớp món của khách nào thì bưng cho người sắp hết kiên nhẫn nhất */
+function autoServe(){
+  if(!lv('chay')||!running||!D.bowl.broth) return;
+  let best=-1;
+  D.slots.forEach((c,i)=>{if(c&&matches(c,D.bowl)&&(best<0||c.p/c.max<D.slots[best].p/D.slots[best].max))best=i});
+  if(best>=0) setTimeout(()=>{if(running&&D.slots[best]&&D.bowl.broth&&matches(D.slots[best],D.bowl))serve(best)},250);
 }
 function resetBowl(){D.bowl={items:new Set(lv('phubep')?['mi']:[]),broth:false};renderBowl();renderPad()}
 function endDay(){
@@ -482,7 +562,7 @@ async function flushPending(){
 /* ================= Kết thúc lượt & nộp điểm ================= */
 async function finishRun(why, cashOut=false){
   running=false; midRun=false;
-  const lost=Math.max(0,5-S.rep);
+  const lost=S.lost||0;
   const hs=DIFF[diff].hs;
   const est=Math.round(S.total*hs/10)-Math.round(lost*15*hs**2);
   const ov=$('ov'); showOv(true);
@@ -540,7 +620,7 @@ function renderAll(){renderStats();renderTables();renderBowl();renderPad()}
 function renderStats(){
   $('sDay').textContent=S.day; $('sEarn').textContent=`${D.earned}/${target(S.day)}k`;
   const hp=(on)=>`<svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21C5 15.5 1 12 1 7a5.5 5.5 0 0 1 11-1 5.5 5.5 0 0 1 11 1c0 5-4 8.5-11 14z" fill="${on?'currentColor':'none'}" stroke="currentColor" stroke-width="2"/></svg>`;
-  $('sRep').innerHTML=Array.from({length:5},(_,i)=>hp(i<S.rep)).join('');
+  $('sRep').innerHTML=Array.from({length:TIM_MAX},(_,i)=>hp(i<S.rep)).join('');
   $('sRep').setAttribute('aria-label',`Còn ${Math.max(0,S.rep)} trên 5 tim`);
   const q=D.queue||[];
   const rush=inRush()?`<span class="tag rush">Giờ cao điểm</span>`:'';
@@ -571,7 +651,7 @@ function updateBars(){
 function renderBowl(){
   const b=D.bowl;
   let s=`<defs><clipPath id="in"><ellipse cx="120" cy="52" rx="98" ry="29"/></clipPath></defs>
-  <ellipse cx="120" cy="143" rx="62" ry="6" fill="#E6D6B8"/>
+  <ellipse cx="120" cy="143" rx="62" ry="6" style="fill:var(--shade)"/>
   <path d="M18 52 Q26 138 120 138 Q214 138 222 52 Z" fill="#1B3A6B"/>
   <path d="M30 86 Q120 112 210 86" fill="none" stroke="#FBF3E3" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
   <path d="M40 106 Q120 128 200 106" fill="none" stroke="#5C7BB0" stroke-width="2"/>
@@ -622,6 +702,7 @@ function authScreen(mode='login'){
   <button class="link" id="sw">${mode==='login'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập'}</button>
   ${mode==='login'?'<button class="link" id="forgot">Quên mật khẩu?</button>':''}
   <button class="link" id="guest">Chơi thử, không tính điểm</button>
+  ${themeHTML()}
   <button class="link" id="contact">Liên hệ người làm game</button>
   </div></div>`);
   $('contact').onclick=()=>contactScreen(()=>authScreen(mode));
@@ -765,7 +846,8 @@ function home(){
     <div class="row">${ranked?`<button class="link" id="edit">Sửa hồ sơ</button><button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
-    <div class="muted">Phiên bản 2.1</div>
+    ${themeHTML()}
+    <div class="muted">Phiên bản 2.2</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -793,17 +875,20 @@ async function startRun(){
 
 /* ================= Cửa hàng cuối ngày ================= */
 function showShop(){
-  const ev=EVENTS[S.day%4], hs=DIFF[diff].hs, lost=5-S.rep;
+  const ev=EVENTS[S.day%4], hs=DIFF[diff].hs, lost=S.lost||0;
   const now=Math.round(S.total*hs/10)-Math.round(lost*15*hs**2);
   openOv(`<div class="eyebrow">Đóng quán · Ngày ${S.day} · ${DIFF[diff].n}</div><h2>Hết một ngày bán</h2>
   <div class="sum"><span>Doanh thu hôm nay</span><b>${D.earned}k</b><span>Mục tiêu</span><b>${target(S.day)}k</b>
   <span>Tô đã bán</span><b>${D.served}</b><span>Khách bỏ về</span><b>${D.lost}</b><span>Tiền trong két</span><b id="ket">${S.money}k</b>
   <span>Nếu chốt sổ bây giờ</span><b style="color:${now>=0?'var(--leaf)':'var(--chili)'}">${now>=0?'+':''}${now} ĐBK</b></div>
+  <div id="hrWrap">${heartRow()}</div>
   <div class="eyebrow">Nâng cấp quán</div><p class="muted" style="margin-top:-8px">Tiền mua nâng cấp lấy từ két, không làm giảm doanh thu tính điểm.</p><div class="col" id="shop"></div>
   <p class="muted">Ngày mai: <b>${ev.n}</b>. ${ev.d} Mục tiêu ${target(S.day+1)}k.</p>
   <div class="col grow"><button class="btn" id="next">Mở quán ngày ${S.day+1}</button>
   <button class="btn ghost" id="cash">Chốt sổ, nghỉ bán</button></div>`);
   drawShop();
+  const bindHeart=()=>{$('buyHeart').onclick=()=>{if(buyHeart()){$('hrWrap').innerHTML=heartRow();$('ket').textContent=S.money+'k';drawShop();bindHeart()}}};
+  bindHeart();
   $('next').onclick=()=>{S.day++;startDay()};
   let armed=false;
   $('cash').onclick=e=>{ if(!armed){armed=true;e.target.textContent='Bấm lần nữa để chốt '+(now>=0?'+':'')+now+' ĐBK';return}
@@ -818,7 +903,8 @@ function drawShop(){
       <button data-u="${u.id}" ${S.money<next.c?'disabled':''}>${next.c}k</button></div>`}).join('');
   $('shop').querySelectorAll('button[data-u]').forEach(b=>b.onclick=()=>{
     const u=UPG.find(x=>x.id===b.dataset.u), next=u.lv[lv(u.id)];
-    if(next&&S.money>=next.c){S.money-=next.c;S.upg[u.id]=lv(u.id)+1;$('ket').textContent=S.money+'k';toast('Đã mua '+next.n);drawShop()}});
+    if(next&&S.money>=next.c){S.money-=next.c;S.upg[u.id]=lv(u.id)+1;$('ket').textContent=S.money+'k';toast('Đã mua '+next.n);drawShop();
+      if($('hrWrap')){$('hrWrap').innerHTML=heartRow();$('buyHeart').onclick=()=>{if(buyHeart()){showShop()}}}}});
 }
 
 /* ================= Liên hệ ================= */
@@ -829,8 +915,8 @@ function contactScreen(back){
   <div class="me"><div class="nm">${CONTACT.ten}</div><div class="sub">Sinh viên ${CONTACT.lop}, Bách Khoa Đà Nẵng</div><div class="pts"></div></div>
   <p class="muted">Gặp lỗi, muốn góp ý món mới, hay muốn thêm khoa hoặc sự kiện cho lớp mình? Nhắn mình qua email hoặc số điện thoại dưới đây.</p>
   <div class="list">
-    <div class="li"><span class="rk">Mail</span><span class="nm"><a href="mailto:${CONTACT.email}" style="color:var(--navy)">${CONTACT.email}</a></span><button class="link" data-copy="${CONTACT.email}">Sao chép</button></div>
-    <div class="li"><span class="rk">SĐT</span><span class="nm"><a href="tel:${CONTACT.sdt}" style="color:var(--navy)">${CONTACT.sdt.replace(/(\d{4})(\d{3})(\d{3})/,'$1 $2 $3')}</a></span><button class="link" data-copy="${CONTACT.sdt}">Sao chép</button></div>
+    <div class="li"><span class="rk">Mail</span><span class="nm"><a href="mailto:${CONTACT.email}" style="color:var(--heading)">${CONTACT.email}</a></span><button class="link" data-copy="${CONTACT.email}">Sao chép</button></div>
+    <div class="li"><span class="rk">SĐT</span><span class="nm"><a href="tel:${CONTACT.sdt}" style="color:var(--heading)">${CONTACT.sdt.replace(/(\d{4})(\d{3})(\d{3})/,'$1 $2 $3')}</a></span><button class="link" data-copy="${CONTACT.sdt}">Sao chép</button></div>
   </div>
   <button class="btn warm" id="donate">Ủng hộ game</button>
   <p class="rule">Game lấy cảm hứng từ Mì Quảng Bích, 1-3-5 Đặng Dung, Hòa Khánh Bắc, Liên Chiểu, Đà Nẵng. Quán quen của sinh viên Bách Khoa.</p>`);
@@ -912,7 +998,7 @@ $('pad').addEventListener('click',e=>{const b=e.target.closest('.ing');if(!b||!r
   if(k!=='mi'&&!it.has('mi')){toast('Cho mì vào trước đã');return}
   if(it.has(k)){if(k==='mi'&&it.size>1){toast('Bỏ topping trước khi bỏ mì');return}it.delete(k)}else it.add(k);
   renderBowl();renderPad()});
-$('pour').onclick=()=>{if(!running||!D.bowl.items.has('mi'))return;D.bowl.broth=true;renderBowl()};
+$('pour').onclick=()=>{if(!running||!D.bowl.items.has('mi'))return;D.bowl.broth=true;renderBowl();autoServe()};
 $('trash').onclick=()=>{if(running)resetBowl()};
 $('tables').addEventListener('click',e=>{const c=e.target.closest('.cust[data-i]');if(c)serve(+c.dataset.i)});
 document.addEventListener('keydown',e=>{
@@ -949,6 +1035,21 @@ window.addEventListener('beforeunload',e=>{if(ranked&&runId&&!submitting){e.prev
   ov.addEventListener('touchcancel',reset);
 })();
 
+/* ================= Giao diện sáng / tối ================= */
+let theme='auto';
+try{theme=localStorage.getItem('mqbk-theme')||'auto'}catch(e){}
+function applyTheme(t){
+  theme=t; const r=document.documentElement;
+  if(t==='auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme',t);
+  try{localStorage.setItem('mqbk-theme',t)}catch(e){}
+  const dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);
+  document.querySelector('meta[name="theme-color"]').setAttribute('content',dark?'#11161F':'#1B3A6B');
+  document.querySelectorAll('.theme button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===theme));
+}
+const themeHTML=()=>`<div class="theme" role="group" aria-label="Giao diện"><span>Giao diện</span>${[['light','Sáng'],['dark','Tối'],['auto','Theo máy']].map(([k,n])=>`<button type="button" data-t="${k}" aria-pressed="${k===theme}">${n}</button>`).join('')}</div>`;
+document.addEventListener('click',e=>{const b=e.target.closest('.theme button');if(b)applyTheme(b.dataset.t)});
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(theme==='auto')applyTheme('auto')})}catch(e){}
+
 /* ================= Khởi động ================= */
 S={day:1,money:0,rep:5,upg:{},total:0};
 D={t:DAYLEN,earned:0,served:0,lost:0,slots:[null,null,null],spawnT:1,bowl:{items:new Set(['mi','tom','trung','rau']),broth:true},ev:EVENTS[0]};
@@ -961,6 +1062,7 @@ let recovering=/type=recovery/.test(location.hash), justConfirmed=/type=(signup|
     :q.get('error_description').replace(/\+/g,' ');
 })();
 const cleanUrl=()=>{try{history.replaceState(null,'',BACK_URL)}catch(e){}};
+applyTheme(theme);
 (async function boot(){
   if(!sb){ranked=false;home();return}
   sb.auth.onAuthStateChange((ev,session)=>{
