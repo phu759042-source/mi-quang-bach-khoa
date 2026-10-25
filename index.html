@@ -330,6 +330,31 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .push-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px}
 .push-row svg{width:22px;height:22px;color:var(--turmeric);flex:none}
 .push-row span{flex:1;min-width:160px;font-size:13px}
+/* ===== Màn hiệu ứng thắng / thua ===== */
+.fx{position:absolute;inset:0;z-index:20;display:grid;place-items:center;overflow:hidden;padding:24px;touch-action:none}
+.fx canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.fx .ttl{position:relative;text-align:center;font-family:var(--display);font-weight:800;font-size:64px;line-height:1;max-width:560px;text-wrap:balance}
+.fx .ttl small{display:block;font-family:var(--body);font-weight:700;font-size:16px;line-height:1.4;margin-top:12px}
+.fx.win{background:radial-gradient(circle at 50% 55%,rgba(255,214,102,.55),rgba(251,243,227,.35) 45%,transparent 75%)}
+.fx.win .ttl{color:var(--heading);animation:fxPop .7s cubic-bezier(.2,1.7,.4,1) both}
+.fx.win .ttl small{color:var(--ink)}
+.fx.lose{animation:fxDim .5s ease-out forwards}
+.fx.lose .ttl{color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.4);animation:fxDrop .8s cubic-bezier(.3,1.5,.5,1) .15s both}
+.fx.lose .ttl small{color:#E6DCCB}
+.fx.draw{background:rgba(251,243,227,.6)}
+.fx.draw .ttl{color:var(--heading);animation:fxPop .6s ease-out both}
+.fx.out{transition:opacity .45s;opacity:0}
+.fx.win.out{transition:opacity 1.6s ease-in;background:transparent}
+.fx.out .ttl{opacity:0;transition:opacity .2s;animation:none}
+#app.fx-lose > :not(.fx){filter:grayscale(1) brightness(.75);transition:filter .5s}
+#app.fx-lose{animation:sh .35s 2}
+#app.fx-win > :not(.fx),#app.fx-draw > :not(.fx){filter:saturate(.7) blur(1.5px);transition:filter .4s}
+.btn.locked,.link.locked{opacity:.35;transition:opacity .3s}
+@keyframes fxPop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes fxDrop{0%{transform:translateY(-60px);opacity:0}100%{transform:none;opacity:1}}
+@keyframes fxDim{from{background:rgba(17,22,31,0)}to{background:rgba(17,22,31,.62)}}
+@media (min-width:900px) and (min-height:560px){.fx .ttl{font-size:96px}.fx .ttl small{font-size:18px}}
+@media (prefers-reduced-motion:reduce){.fx .ttl{animation:none!important}#app.fx-lose{animation:none}}
 /* ======== Laptop / màn hình rộng ======== */
 @media (min-width:900px) and (min-height:560px){
   .desk{display:revert!important}
@@ -598,7 +623,7 @@ function reviveScreen(){
     $('resume').onclick=resumeDay;
     $('close').onclick=()=>finishRun('Mất hết uy tín, bạn đóng quán sớm.');
   };
-  draw();
+  draw(); lockButtons($('ov'),900);
 }
 function resumeDay(){
   if(S.rep<=0) return;
@@ -748,7 +773,16 @@ const sfx={
   num(){tone(880,.12,{to:1320,type:'triangle',vol:.18})},
   // có lời thách đấu: gõ bàn "cốc cốc" rồi chuông leng keng đi lên
   challenge(){noise(.06,{type:'bandpass',f:700,q:4,vol:.45,attack:.002});noise(.06,{type:'bandpass',f:640,q:4,vol:.45,at:.16,attack:.002});
-    tone(523,.6,{vol:.1,at:.36});[1046,1568,2093].forEach((f,i)=>tone(f,.34,{type:'triangle',vol:.2,at:.36+i*.11}))}
+    tone(523,.6,{vol:.1,at:.36});[1046,1568,2093].forEach((f,i)=>tone(f,.34,{type:'triangle',vol:.2,at:.36+i*.11}))},
+  // thắng: tiếng nổ pháo giấy + kèn đi lên + hợp âm sáng
+  win(){[0,.12,.22].forEach(t=>{noise(.12,{type:'highpass',f:1800,vol:.35,at:t,attack:.002});tone(180,.08,{to:60,vol:.25,at:t})});
+    [523,659,784,1046].forEach((f,i)=>tone(f,.18,{type:'triangle',vol:.2,at:.3+i*.1}));
+    [1046,1318,1568].forEach(f=>tone(f,.9,{type:'triangle',vol:.13,at:.72}));
+    for(let i=0;i<8;i++) tone(2600+Math.random()*2400,.12,{type:'triangle',vol:.05,at:.75+i*.07})},
+  // thua: kèn "wah wah wah waaah" đi xuống
+  lose(){[[392,370],[370,349],[349,330]].forEach(([a,b],i)=>tone(a,.32,{to:b,type:'sawtooth',vol:.07,at:i*.36,attack:.02}));
+    tone(330,1,{to:220,type:'sawtooth',vol:.08,at:1.08,attack:.02});tone(165,1,{to:110,type:'triangle',vol:.12,at:1.08})},
+  draw(){tone(660,.25,{type:'triangle',vol:.15});tone(660,.4,{type:'triangle',vol:.15,at:.28})}
 };
 function setSound(on){SFX.on=on;try{localStorage.setItem('mqbk-sound',on?'on':'off')}catch(e){}
   if(on){ac();tone(880,.08,{vol:.15})}
@@ -804,11 +838,18 @@ function streakScreen(oldN,newN,best,next){
   sfx.streak();
   setTimeout(()=>{const n=$('sNum');if(n){n.textContent=newN;n.classList.add('pop');sfx.num()}},reduce?0:900);
   $('sNext').onclick=next;
+  lockButtons($('ov'),1300);
 }
 
 /* ================= Kết thúc lượt & nộp điểm ================= */
 let midClose=false;
-async function finishRun(why, cashOut=false){
+async function finishRun(why, cashOut=false, sauFx=false){
+  if(!cashOut&&!sauFx){
+    running=false; midRun=false;
+    if(ranked&&runId&&user) savePending({uid:user.id,run:runId,so_ngay:S.day,doanh_thu:S.total,tim_mat:S.lost||0}); // giữ điểm nếu tắt trang giữa chừng
+    endFx('lose','Quán đóng cửa',why,()=>finishRun(why,false,true));
+    return;
+  }
   midClose=cashOut;
   running=false; midRun=false;
   const lost=S.lost||0;
@@ -827,7 +868,7 @@ async function finishRun(why, cashOut=false){
       <div class="col grow"><button class="btn" id="again">Chơi lại</button><button class="btn ghost" id="home">Về màn hình chính</button></div>`);
       $('again').onclick=()=>startRun(); $('home').onclick=home};
     const before=streakState().n, g=bumpGuestStreak();
-    const showG=()=>{showGuest();if(midClose){midClose=false;sfx.closeEnd()}};
+    const showG=()=>{const c=midClose;showGuest();lockButtons($('ov'),c?1200:900);if(c){midClose=false;sfx.closeEnd();if(est>=0)confetti()}};
     if(g.moi) streakScreen(before,g.chuoi,g.best,showG); else showG();
     return;
   }
@@ -861,6 +902,7 @@ async function finishRun(why, cashOut=false){
   trySubmit();
 }
 function showResult(head,why,summary,data){
+  const cash=midClose;
   if(midClose){midClose=false;sfx.closeEnd()}
   const ov=$('ov');
   if(profile) profile.diem=data.diem; myRank=data.hang;
@@ -873,6 +915,7 @@ function showResult(head,why,summary,data){
     <div class="col grow"><button class="btn" id="again">Chơi lượt mới</button>
       <button class="btn ghost" id="lb">Xem bảng xếp hạng</button><button class="link" id="home">Về màn hình chính</button></div>`;
   $('again').onclick=()=>startRun(); $('lb').onclick=()=>leaderboard('sv'); $('home').onclick=home;
+  lockButtons(ov,cash?1200:900); if(cash&&(d??0)>=0) confetti();
 }
 
 /* ================= Render game ================= */
@@ -1211,7 +1254,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.8.0</div>
+    <div class="muted">Phiên bản 2.9.0</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -1258,6 +1301,7 @@ function showShop(){
   let armed=false;
   $('cash').onclick=e=>{ if(!armed){armed=true;e.target.textContent='Bấm lần nữa để chốt '+(now>=0?'+':'')+now+' ĐBK';return}
     sfx.closeStart(); finishRun('Bạn dừng đúng lúc, giữ lại thành quả.',true) };
+  lockButtons($('ov'),800);
 }
 function drawShop(){
   $('shop').innerHTML=UPG.map(u=>{
@@ -1329,7 +1373,7 @@ async function leaderboard(tab,focus){
   $('rule').innerHTML=tab==='sv'?ruleText()+(hint?`<p style="margin-top:6px">${hint.trim()}</p>`:''):tab==='lop'
     ?'Điểm lớp = tổng ĐBK của 10 bạn cao nhất lớp, chia 10. Lớp chưa đủ 10 người chơi thì phần thiếu tính là 0.'
     :tab==='khoa'?'Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30.'
-    :'Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Solo không ảnh hưởng ĐBK.'+hint;
+    :'Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Ai chưa đấu trận nào đứng ở 1200. Solo không ảnh hưởng ĐBK.'+hint;
   if(!sb){$('lbBody').innerHTML='<div class="empty-state">Không kết nối được máy chủ bảng xếp hạng.</div>';return}
   $('lbBody').onclick=e=>{const el=e.target.closest('[data-uid]'); if(!el) return; const p=lbPeople.get(el.dataset.uid); if(p) challengeScreen(p,()=>leaderboard(tab))};
   const q=$('q');
@@ -1342,7 +1386,10 @@ async function loadBoard(tab,canSolo){
   if(tab==='sv'){({data:rows,error:err}=await sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,chuoi,avatar_url').order('diem',{ascending:false}).limit(50))}
   else if(tab==='lop'){({data:rows,error:err}=await sb.from('bxh_lop').select('lop,khoa_id,so_nguoi,diem,hang').order('hang').limit(50))}
   else if(tab==='khoa'){({data:rows,error:err}=await sb.from('bxh_khoa').select('khoa_id,khoa,so_nguoi,diem,hang').order('hang'))}
-  else {({data:rows,error:err}=await sb.from('bxh_solo').select('id,ten,lop,khoa,elo,solo_thang,solo_thua,solo_hoa,hang,avatar_url').order('hang').limit(50))}
+  else {({data:rows,error:err}=await sb.from('profiles').select('id,ten,lop,khoa_id,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url').order('elo',{ascending:false}).limit(300));
+    if(rows){const all=rows, tr=x=>x.solo_thang+x.solo_thua+x.solo_hoa;
+      all.sort((x,y)=>y.elo-x.elo||tr(y)-tr(x)||y.diem-x.diem);
+      rows=all.slice(0,50).map(x=>({...x,khoa:khoaTen(x.khoa_id),hang:1+all.filter(z=>z.elo>x.elo).length}))}}
   const body=$('lbBody'); if(!body||($('q')&&$('q').value.trim())) return;
   if(err){body.innerHTML=`<div class="empty-state">Không tải được: ${esc(err.message)}</div>`;return}
   rows=rows||[];
@@ -1350,7 +1397,7 @@ async function loadBoard(tab,canSolo){
     ?{rk:r.hang,nm:r.ten,sb:`${r.lop} · ${r.khoa}${r.chuoi>0?` · ${r.chuoi} ngày liên tiếp`:''}`,pt:r.diem,mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url}}
     :tab==='lop'?{rk:r.hang,nm:r.lop,sb:`${khoaTen(r.khoa_id)} · ${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.lop===profile.lop}
     :tab==='khoa'?{rk:r.hang,nm:r.khoa,sb:`${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.khoa_id===profile.khoa_id}
-    :{rk:r.hang,nm:r.ten,sb:`${r.lop} · ${r.solo_thang} thắng ${r.solo_thua} thua${r.solo_hoa?` ${r.solo_hoa} hoà`:''}`,pt:r.elo,mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url,elo:r.elo}});
+    :{rk:r.hang,nm:r.ten,sb:r.solo_thang+r.solo_thua+r.solo_hoa?`${r.lop} · ${r.solo_thang} thắng ${r.solo_thua} thua${r.solo_hoa?` ${r.solo_hoa} hoà`:''}`:`${r.lop} · chưa đấu trận nào`,pt:r.elo,mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url,elo:r.elo}});
   norm.forEach(r=>{if(r.p)lbPeople.set(r.uid,r.p)});
   if(!norm.length){body.innerHTML=tab==='solo'
     ?`<div class="empty-state">Chưa có trận solo nào.${canSolo?' Tìm một bạn ở ô phía trên và thách đấu để mở màn.':' Đăng nhập để thách đấu bạn bè.'}</div>`
@@ -1693,7 +1740,8 @@ function soloEnd(r){
     roi_tran:win?`${ten} đã rời trận quá lâu nên bị xử thua.`:'Bạn mất kết nối quá lâu nên bị xử thua.',
     bo_cuoc:win?`${ten} đã bỏ trận.`:'Bạn đã bỏ trận.', ca_hai_roi:'Cả hai đều mất kết nối.'}[r.ly_do]||'';
   const cell=(k,x)=>`<td>${x}</td>`, dm=diemSolo(s.dk,r[me+'_doanh_thu'],r[me+'_tim_mat']), dt=diemSolo(s.dk,r[o+'_doanh_thu'],r[o+'_tim_mat']);
-  openOv(`<div class="eyebrow">Solo · ${DIFF[s.dk].n} · ${CHE_DO[s.md].n}</div>
+  const show=()=>{
+    openOv(`<div class="eyebrow">Solo · ${DIFF[s.dk].n} · ${CHE_DO[s.md].n}</div>
     <h2>${draw?'Hoà!':win?'Bạn thắng!':'Bạn thua rồi'}</h2><p>${esc(why)}</p>
     <div><div class="eyebrow">Elo solo</div>
       <div class="big pop-in" style="color:${d>0?'var(--leaf)':d<0?'var(--chili)':'var(--heading)'}">${d>0?'+':d<0?'−':'±'}${Math.abs(d)}</div>
@@ -1704,10 +1752,11 @@ function soloEnd(r){
       <tr><td>Tim đã mất</td>${cell(0,r[me+'_tim_mat'])}${cell(0,r[o+'_tim_mat'])}</tr>
       <tr><td>ĐBK</td>${cell(0,'<b>'+dm+'</b>')}${cell(0,'<b>'+dt+'</b>')}</tr></table></div>
     <div class="col grow"><button class="btn" id="re">Tái đấu</button><button class="btn ghost" id="lbs">Bảng xếp hạng Solo</button><button class="link" id="home">Về màn hình chính</button></div>`);
-  if(win) sfx.closeEnd(); else if(draw) sfx.heart(); else sfx.closeFail();
-  $('re').onclick=()=>challengeScreen({...s.opp,id:r[o]},null,{dk:s.dk,md:s.md});
-  $('lbs').onclick=()=>leaderboard('solo'); $('home').onclick=home;
-  refreshNotices();
+    $('re').onclick=()=>challengeScreen({...s.opp,id:r[o]},null,{dk:s.dk,md:s.md});
+    $('lbs').onclick=()=>leaderboard('solo'); $('home').onclick=home;
+    refreshNotices();
+  };
+  endFx(draw?'draw':win?'win':'lose', draw?'Hoà!':win?'Bạn thắng!':'Bạn thua rồi', why, show);
 }
 
 /* ---- tìm người chơi ---- */
@@ -1839,6 +1888,82 @@ async function openThach(id){
   if(!data||data.trang_thai!=='cho'||new Date(data.het_han)<Date.now()) toast('Lời thách này đã hết hạn hoặc bị huỷ');
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user&&soloCh) soloPoll(false)});
+
+/* ================= Hiệu ứng kết thúc + khoá nút chống bấm nhầm =================
+   Khi thắng/thua: dừng màn hình ~2 giây, chặn mọi lần chạm, chạy hiệu ứng
+   (thắng: pháo giấy bắn từ dưới lên; thua: màn xám, mưa rơi, rung nhẹ), rồi mới hiện kết quả.
+   Nút trên màn kết quả bị khoá thêm một lúc để ngón tay đang bấm liên tục không bấm trúng. */
+function lockButtons(root,ms=900){
+  if(!root) return;
+  const bs=[...root.querySelectorAll('button')];
+  bs.forEach(b=>{b.dataset.lk=b.disabled?'1':'0';b.disabled=true;b.classList.add('locked')});
+  setTimeout(()=>bs.forEach(b=>{if(b.dataset.lk==='0')b.disabled=false;b.classList.remove('locked');delete b.dataset.lk}),ms);
+}
+function particles(cv,kind){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches||kind==='draw'||!cv.getContext) return ()=>{};
+  const r=cv.getBoundingClientRect(), W=r.width, H=r.height, dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=W*dpr; cv.height=H*dpr; const g=cv.getContext('2d'); g.scale(dpr,dpr);
+  const ps=[]; let raf=0, last=performance.now(), alive=true;
+  if(kind==='win'){
+    const cols=['#FFFFFF','#FFFDF8','#FFF4D6','#E8A317','#C8321E','#2F6B3A','#1B3A6B','#F59A2A'];
+    const burst=(x,n,spread)=>{for(let i=0;i<n;i++){const a=-Math.PI/2+(Math.random()-.5)*spread, v=H*(1.15+Math.random()*.65);
+      ps.push({x:x+(Math.random()-.5)*30,y:H+12,vx:Math.cos(a)*v,vy:Math.sin(a)*v,w:7+Math.random()*7,h:10+Math.random()*9,
+        rot:Math.random()*6,vr:(Math.random()-.5)*12,f:Math.random()*6,vf:6+Math.random()*8,c:cols[(Math.random()*cols.length)|0]})}};
+    burst(W*.12,60,.8); burst(W*.88,60,.8);
+    setTimeout(()=>alive&&burst(W*.5,80,1.3),240); setTimeout(()=>alive&&(burst(W*.3,30,.7),burst(W*.7,30,.7)),520);
+  } else {
+    for(let i=0;i<Math.max(40,W/7);i++) ps.push({x:Math.random()*W*1.2,y:-Math.random()*H,vy:H*(1+Math.random()*.6),l:12+Math.random()*18});
+  }
+  const step=now=>{
+    const dt=Math.min(.05,(now-last)/1000); last=now; g.clearRect(0,0,W,H);
+    if(kind==='win'){
+      for(const p of ps){
+        p.vy+=H*1.5*dt; if(p.vy>H*.22) p.vy=H*.22;              // giấy rơi chậm như bay
+        p.vx*=1-1.6*dt; p.f+=p.vf*dt; p.rot+=p.vr*dt;
+        p.x+=(p.vx+Math.sin(p.f)*40)*dt; p.y+=p.vy*dt;
+        g.save(); g.translate(p.x,p.y); g.rotate(p.rot); g.scale(1,Math.cos(p.f));
+        g.fillStyle=p.c; g.strokeStyle='rgba(42,33,24,.18)'; g.lineWidth=1;
+        g.fillRect(-p.w/2,-p.h/2,p.w,p.h); g.strokeRect(-p.w/2,-p.h/2,p.w,p.h); g.restore();
+      }
+    } else {
+      g.strokeStyle='rgba(205,215,230,.55)'; g.lineWidth=1.6; g.beginPath();
+      for(const p of ps){p.y+=p.vy*dt; p.x-=p.vy*.18*dt; if(p.y>H+20){p.y=-20;p.x=Math.random()*W*1.2}
+        g.moveTo(p.x,p.y); g.lineTo(p.x+p.l*.18,p.y-p.l)}
+      g.stroke();
+    }
+    if(alive) raf=requestAnimationFrame(step);
+  };
+  raf=requestAnimationFrame(step);
+  return ()=>{alive=false;cancelAnimationFrame(raf)};
+}
+// kind: win | lose | draw. next() vẽ màn kết quả.
+function endFx(kind,title,sub,next,ms){
+  const app=$('app'); document.querySelectorAll('.fx,.toast').forEach(x=>x.remove());
+  if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+  const fx=document.createElement('div'); fx.className='fx '+kind;
+  fx.setAttribute('role','status'); fx.setAttribute('aria-live','assertive');
+  fx.innerHTML=`<canvas aria-hidden="true"></canvas><div class="ttl">${esc(title)}${sub?`<small>${esc(sub)}</small>`:''}</div>`;
+  const eat=e=>{e.preventDefault();e.stopPropagation()};
+  ['pointerdown','pointerup','click','touchstart','touchend','mousedown'].forEach(ev=>fx.addEventListener(ev,eat,{passive:false}));
+  app.appendChild(fx); app.classList.add('fx-'+kind);
+  const stop=particles(fx.querySelector('canvas'),kind);
+  (kind==='win'?sfx.win:kind==='lose'?sfx.lose:sfx.draw).call(sfx);
+  try{navigator.vibrate&&navigator.vibrate(kind==='win'?[60,50,60,50,140]:kind==='lose'?[350]:[80])}catch(e){}
+  setTimeout(()=>{
+    app.classList.remove('fx-win','fx-lose','fx-draw');
+    if(next) next();
+    lockButtons($('ov'),900);
+    fx.classList.add('out'); fx.style.pointerEvents='none';
+    setTimeout(()=>{stop();fx.remove()},kind==='win'?1800:450);
+  },ms||(kind==='win'?2100:1800));
+}
+// Pháo giấy nhẹ không chặn màn (chốt sổ có lời ở chế độ thường)
+function confetti(){
+  const app=$('app'), fx=document.createElement('div'); fx.className='fx win pass'; fx.innerHTML='<canvas aria-hidden="true"></canvas>';
+  fx.style.pointerEvents='none'; app.appendChild(fx);
+  const stop=particles(fx.querySelector('canvas'),'win');
+  setTimeout(()=>fx.classList.add('out'),1900); setTimeout(()=>{stop();fx.remove()},2600);
+}
 
 /* ================= Khởi động ================= */
 S={day:1,money:0,rep:5,upg:{},total:0};

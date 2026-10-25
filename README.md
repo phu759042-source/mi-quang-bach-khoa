@@ -175,7 +175,7 @@ Chế độ đấu trực tiếp hai người, lấy cảm hứng từ chess.com
    - *Điểm cao*: hết 3 ngày, ai nhiều ĐBK hơn thì thắng.
 3. Người được thách nhận **thông báo ở góc dưới bên phải**, kèm âm thanh, có nút **Đồng ý / Từ chối** và 60 giây để trả lời. Nếu bạn ấy không mở game, điện thoại hoặc laptop vẫn hiện **thông báo hệ thống** (Web Push); bấm vào là mở game đúng lời thách. Trên iPhone cần thêm game vào Màn hình chính trước, và game có hướng dẫn từng bước.
 4. Đồng ý xong, hai bên đếm ngược rồi cùng bán 3 ngày. Trong lúc bán, mỗi người thấy **ngày, doanh thu và số tim của đối thủ** cập nhật trực tiếp. Giữa các ngày vẫn có cửa hàng nâng cấp, nhưng không mua lại tim được.
-5. Kết quả tính bằng **Elo** như cờ vua (bắt đầu 1200, K = 32): thắng người Elo cao hơn thì được cộng nhiều, thua người Elo thấp hơn thì bị trừ nhiều. Solo không cộng trừ ĐBK, và có bảng xếp hạng Solo riêng.
+5. Kết quả tính bằng **Elo** như cờ vua (bắt đầu 1200, K = 32): thắng người Elo cao hơn thì được cộng nhiều, thua người Elo thấp hơn thì bị trừ nhiều. Solo không cộng trừ ĐBK. Tab **Solo** trong bảng xếp hạng liệt kê mọi người chơi theo Elo; ai chưa đấu trận nào đứng ở mức 1200.
 
 Rời trận quá 25 giây hoặc bấm bỏ trận đều bị tính thua.
 
@@ -189,6 +189,7 @@ Rời trận quá 25 giây hoặc bấm bỏ trận đều bị tính thua.
 - **Theme sáng, tối và theo máy**. Giao diện được đặt trước khi trang vẽ, nên không bị nháy trắng khi mở ở chế độ tối.
 - **Âm thanh tự tổng hợp bằng Web Audio API**, không dùng file âm thanh nào: tiếng cho topping (mỗi món một cao độ), tiếng chan nước lèo, tiếng tiền, tiếng khách bỏ về, tiếng chốt sổ và đếm tiền.
 - **Cài như ứng dụng (PWA)**, có icon riêng cho iOS và Android.
+- **Chống bấm nhầm khi kết thúc lượt**: lúc thắng hoặc thua, màn hình dừng khoảng 2 giây và chặn mọi lần chạm. Thắng thì pháo giấy bắn từ dưới lên kèm tiếng kèn, thua thì màn hình xám lại, mưa rơi và rung nhẹ. Sau đó mới hiện kết quả, và các nút còn bị khoá thêm khoảng 1 giây. Cửa hàng cuối ngày và màn hết tim cũng khoá nút một nhịp ngắn. Nhờ vậy, người đang bấm liên tục ở cuối trận không lỡ tay bấm qua màn kết quả.
 - **Kéo xuống để tải lại** trên điện thoại. Tính năng này tự tắt khi đang chơi để tránh lỡ tay.
 - **Tiếp cận**: có nhãn `aria`, điều khiển được bằng bàn phím, và tôn trọng cài đặt giảm chuyển động (`prefers-reduced-motion`).
 
