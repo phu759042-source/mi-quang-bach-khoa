@@ -1254,7 +1254,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.9.0</div>
+    <div class="muted">Phiên bản 2.9.1</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -1526,10 +1526,13 @@ async function soloPoll(boot){
   const {data}=await sb.from('thach_dau').select('*').or(`a.eq.${user.id},b.eq.${user.id}`)
     .in('trang_thai',['cho','dang_dau']).order('id',{ascending:false}).limit(10);
   (data||[]).forEach(r=>{
-    if(r.trang_thai==='cho'){ if(r.b===user.id&&new Date(r.het_han)>Date.now()) soloRow(r); else if(boot&&r.a===user.id) sb.rpc('huy_thach_dau',{p_id:r.id}); return }
+    if(r.trang_thai==='cho'){
+      if(new Date(r.het_han)<=Date.now()) return;
+      if(r.b===user.id) soloRow(r);
+      else if(boot&&r.a===user.id) soloResume(r);          // tải lại trang lúc đang chờ: quay lại màn chờ
+      return }
     const mine=(solo&&solo.id===r.id)||(soloWait&&soloWait.id===r.id)||soloAccepting===r.id;
-    if(!mine&&new Date(r.bat_dau)<Date.now()-10000)
-      sb.rpc('bo_tran_solo',{p_id:r.id}).then(()=>toast('Trận solo trước bị tính thua vì bạn rời trận'));
+    if(!mine) soloResume(r);                               // trận đang đấu mà máy này không giữ: cho vào lại
   });
 }
 function soloRow(r){
@@ -1541,7 +1544,8 @@ function soloRow(r){
     if(r.trang_thai==='dang_dau') return startSolo(r,soloWait.opp);
     if(['tu_choi','het_han','huy'].includes(r.trang_thai)) return waitEnded(r);
   }
-  if(solo&&solo.id===r.id) soloUpdate(r);
+  if(solo&&solo.id===r.id) return soloUpdate(r);
+  if(r.trang_thai==='dang_dau'&&!solo&&!soloWait&&soloAccepting!==r.id) soloResume(r);
 }
 
 /* ---- thông báo thách đấu ở góc dưới bên phải ---- */
@@ -1621,16 +1625,18 @@ async function challengeScreen(p,back,opt={}){
   $('send').onclick=async()=>{
     const msg=$('msg'); msg.className='msg ok'; msg.textContent='Đang gửi…'; $('send').disabled=true;
     const {data,error}=await sb.rpc('gui_thach_dau',{p_b:p.id,p_do_kho:dk,p_che_do:md});
-    if(error){msg.className='msg';msg.textContent=error.message;$('send').disabled=false;return}
+    if(error){msg.className='msg';msg.textContent=error.message;$('send').disabled=false;
+      if(/đang trong một trận|đang chờ một lời thách/i.test(error.message)){msg.textContent+='. Đang tìm lại…';soloPoll(true)}
+      return}
     waitScreen({id:data,opp:p,dk,md});
   };
 }
 function waitScreen(w){
-  soloWait=w; refreshNotices(); const end=Date.now()+60000;
+  soloWait=w; refreshNotices(); const end=w.end||Date.now()+60000;
   openOv(`<div class="eyebrow">Solo · ${DIFF[w.dk].n} · ${CHE_DO[w.md].n}</div><h2>Đang chờ ${esc(tenNgan(w.opp.ten))} trả lời</h2>
     ${vsHTML(w.opp)}
     <p class="muted">Lời thách hiện ở góc màn hình của ${esc(w.opp.ten)}, kèm âm thanh.${onlineSet.has(w.opp.id)?'':' Bạn ấy có vẻ không mở game lúc này nên có thể không thấy.'}</p>
-    <div class="submitting"><span class="coin" aria-hidden="true"></span>Còn <span id="wLeft">60</span> giây</div>
+    <div class="submitting"><span class="coin" aria-hidden="true"></span>Còn <span id="wLeft">${Math.max(0,Math.ceil((end-Date.now())/1000))}</span> giây</div>
     <div class="col grow"><button class="btn ghost" id="cancel">Huỷ lời thách</button></div>`);
   $('cancel').onclick=async()=>{if(soloWait!==w)return;soloWait=null;clearInterval(w.t);refreshNotices();await sb.rpc('huy_thach_dau',{p_id:w.id});home()};
   w.t=setInterval(async()=>{
@@ -1757,6 +1763,45 @@ function soloEnd(r){
     refreshNotices();
   };
   endFx(draw?'draw':win?'win':'lose', draw?'Hoà!':win?'Bạn thắng!':'Bạn thua rồi', why, show);
+}
+
+/* ---- vào lại trận sau khi tải lại trang ---- */
+let resuming=null;
+async function soloResume(r){
+  if(!user||solo||soloWait||midRun||resuming===r.id) return;
+  resuming=r.id;
+  try{
+    const me=r.a===user.id?'a':'b', o=me==='a'?'b':'a';
+    const {data:opp0}=await sb.from('profiles').select('id,ten,lop,elo,avatar_url').eq('id',r[o]).maybeSingle();
+    if(solo||soloWait||midRun) return;
+    const opp=opp0||{id:r[o],ten:'Đối thủ',elo:null};
+    if(r.trang_thai==='cho'){ waitScreen({id:r.id,opp,dk:r.do_kho,md:r.che_do,end:new Date(r.het_han).getTime()}); toast('Lời thách của bạn vẫn đang chờ'); return }
+    if(new Date(r.bat_dau)>Date.now()-1500){ startSolo(r,opp); return }   // vừa được đồng ý, còn đang đếm ngược
+    // Khôi phục tiến độ đã lưu trên server, báo về ngay để không bị xử thua vì rời trận
+    const ngay=Math.max(1,r[me+'_ngay']||1), dt=r[me+'_doanh_thu']||0, tm=Math.min(5,r[me+'_tim_mat']||0);
+    solo={id:r.id,me,op:o,row:r,opp,dk:r.do_kho,md:r.che_do,prevDiff:diff,sent:'',last:0};
+    diff=r.do_kho; midRun=true; refreshNotices();
+    S={day:ngay,money:dt,rep:5-tm,upg:{},total:dt,lost:tm,bought:0};
+    const {data:fresh}=await sb.rpc('cap_nhat_solo',{p_id:r.id,p_ngay:ngay,p_doanh_thu:dt,p_tim_mat:tm,p_xong:false});
+    if(!solo||solo.id!==r.id) return;
+    if(fresh){ solo.row=fresh; if(fresh.trang_thai==='xong') return soloEnd(fresh) }
+    solo.ping=setInterval(()=>soloPush(true),4000);
+    solo.chk=setInterval(async()=>{if(!solo)return;const id=solo.id;const {data}=await sb.rpc('kiem_tra_solo',{p_id:id});if(data&&solo&&solo.id===id)soloUpdate(data)},10000);
+    const xong=solo.row[me+'_xong'];
+    sfx.challenge();
+    openOv(`<div class="eyebrow">Solo · ${DIFF[solo.dk].n} · ${CHE_DO[solo.md].n}</div>
+      <h2>Bạn đang có một trận solo</h2>
+      ${vsHTML(opp)}
+      <div class="sum"><span>Ngày của bạn</span><b>${ngay}/${SOLO_NGAY}</b><span>Doanh thu đã có</span><b>${dt}k</b><span>Tim đã mất</span><b>${tm}</b><span>ĐBK hiện tại</span><b>${diemSolo(solo.dk,dt,tm)}</b></div>
+      <p class="muted" id="oppNow">${oppLine()}</p>
+      <p class="muted">${xong?'Bạn đã bán xong, chỉ còn chờ đối thủ.':`Trang vừa tải lại nên ngày đang bán dở được mở lại từ đầu, giữ nguyên doanh thu và số tim. Nâng cấp đã mua bị mất, tiền trong két được trả lại đủ ${dt}k để mua lại.`}</p>
+      <div class="col grow"><button class="btn" id="rejoin">${xong?'Xem trận':'Vào lại trận'}</button>
+        <button class="btn ghost" id="quit">Bỏ trận (tính thua)</button></div>`);
+    $('rejoin').onclick=()=>{ if(!solo) return; if(solo.row[solo.me+'_xong']) soloFinish('Bạn đã bán xong.'); else {sfx.cash(true); startDay()} };
+    let armed=false;
+    $('quit').onclick=async e=>{ if(!armed){armed=true;e.target.textContent='Bấm lần nữa để bỏ trận';return}
+      e.target.disabled=true; const {data}=await sb.rpc('bo_tran_solo',{p_id:r.id}); if(data) soloUpdate(data) };
+  } finally { resuming=null }
 }
 
 /* ---- tìm người chơi ---- */
