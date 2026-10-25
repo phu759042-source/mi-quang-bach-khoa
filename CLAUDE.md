@@ -13,6 +13,8 @@ Game web (điện thoại + laptop) cho sinh viên Đại học Bách Khoa Đà 
 - `sw.js`: service worker chỉ để nhận Web Push lời thách (không cache). Bấm thông báo mở `?thach=<id>` hoặc gửi postMessage cho tab đang mở.
 - `manifest.webmanifest`, `icons/`: favicon, icon PWA, `ung-ho-qr.png` (mã VietQR ủng hộ).
 - `emails/xac-nhan-email.html`, `emails/dat-lai-mat-khau.html`: mẫu email (biến `{{ .ConfirmationURL }}`). Người dùng tự dán vào Supabase › Auth › Templates, repo không tự đồng bộ.
+- `supabase/schema.sql`: toàn bộ cấu trúc database (xuất 26/10/2026, đã đối chiếu mã băm với server). `supabase/functions/thong-bao-thach-dau/index.ts`: mã Edge Function. `supabase/README.md`: cách dựng lại. **Sửa database trên Supabase thì sửa luôn schema.sql.**
+- `tests/`: `kiem_tra_cu_phap.sh`, `kiem_tra_schema.sh` (Postgres trống + `supabase_gia.sql` giả lập auth/vault/net/storage, rồi `kiem_tra_schema.sql`), `test_tro_choi.py` (Playwright 2 trình duyệt, lớp `Fake` giả lập server cùng luật với schema.sql; ngày 8s, cửa hàng solo 3s). GitHub Actions `.github/workflows/kiem-tra.yml` chạy cả ba khi push.
 - `README.md`, `docs/images/`: giới thiệu game để trình bày với nhà tuyển dụng, ảnh chụp bằng Playwright với dữ liệu minh hoạ (Supabase giả). Đổi giao diện hoặc luật chơi thì nhớ cập nhật README và chụp lại ảnh.
 
 ## Các phần chính trong `index.html` (tìm theo tên)
@@ -52,6 +54,7 @@ Client chỉ đọc được (RLS). Mọi thao tác ghi đi qua RPC `SECURITY DE
 
 ## Cách làm việc
 
-- Kiểm tra cú pháp: tách phần `<script>` ra rồi chạy `node --check`. Test giao diện bằng Playwright (Python), chặn mạng ra ngoài.
+- Trước khi push chạy: `bash tests/kiem_tra_cu_phap.sh`, `bash tests/kiem_tra_schema.sh` (nếu đụng database), `python3 tests/test_tro_choi.py` (nếu đụng giao diện/solo). Thêm tính năng thì thêm bước kiểm tra vào test; đổi luật server thì sửa cả `schema.sql`, `kiem_tra_schema.sql` và lớp `Fake`.
+- Thay đổi DDL qua công cụ MCP hay bị huỷ (người dùng duyệt trên điện thoại): soạn file SQL để người dùng dán vào SQL Editor, rồi kiểm tra lại bằng truy vấn đọc.
 - Sửa xong thì tăng phiên bản, commit tiếng Việt kiểu "Mô tả thay đổi (bản x.y.z)", push lên `main`.
 - Reset streak để test: `update profiles set chuoi=0, chuoi_dai_nhat=0, ngay_chuoi=null where chuoi>0 or chuoi_dai_nhat>0 or ngay_chuoi is not null;`

@@ -1,0 +1,44 @@
+name: Kiểm tra
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  kiem-tra:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cú pháp JavaScript
+        run: bash tests/kiem_tra_cu_phap.sh
+
+      - name: Database dựng lại được từ schema.sql và luật server đúng
+        run: bash tests/kiem_tra_schema.sh
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cài Playwright
+        run: |
+          pip install playwright==1.63.0
+          python -m playwright install --with-deps chromium
+
+      - name: Chơi thử bằng 2 trình duyệt
+        run: python tests/test_tro_choi.py
+
+      - name: Lưu ảnh chụp từng bước
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: anh-chup-kiem-thu
+          path: tests/output/
+          if-no-files-found: ignore

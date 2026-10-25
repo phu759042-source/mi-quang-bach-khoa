@@ -281,6 +281,12 @@ mi-quang-bach-khoa/
 ├── emails/
 │   ├── xac-nhan-email.html  # Mẫu email xác nhận tài khoản
 │   └── dat-lai-mat-khau.html# Mẫu email đặt lại mật khẩu
+├── supabase/
+│   ├── schema.sql           # Toàn bộ cấu trúc database: bảng, RLS, view, 23 hàm RPC, trigger
+│   ├── functions/           # Edge Function gửi thông báo đẩy
+│   └── README.md            # Cách dựng lại backend trên project mới
+├── tests/                   # Kiểm thử tự động (xem tests/README.md)
+├── .github/workflows/       # GitHub Actions chạy kiểm thử mỗi lần push
 ├── docs/images/             # Ảnh minh hoạ cho README
 └── CLAUDE.md                # Ghi chú kỹ thuật cho người phát triển
 ```
@@ -313,6 +319,15 @@ python3 -m http.server 8000
 ```
 
 Nếu không kết nối được Supabase, game tự chuyển sang **chế độ chơi thử** và vẫn chơi đầy đủ, chỉ không tính điểm. Muốn dùng backend riêng, hãy đổi `SB_URL` và `SB_KEY` ở đầu phần `<script>` trong `index.html`.
+
+### Kiểm thử tự động
+
+Mỗi lần push lên `main`, GitHub Actions chạy ba bài kiểm tra:
+- cú pháp JavaScript;
+- **dựng lại database từ `supabase/schema.sql`** trên một Postgres trống, rồi thử các luật server (chống gian lận khi nộp điểm, quyền đọc trận solo, Elo, trigger thông báo);
+- **chơi thật bằng hai trình duyệt** (điện thoại và laptop) với server giả lập cùng luật: thách đấu, thông báo, Sinh tồn, Điểm cao, hiệu ứng thắng/thua, tải lại trang giữa trận.
+
+Cách chạy trên máy ở [tests/README.md](tests/README.md). Cách dựng lại backend trên project Supabase mới ở [supabase/README.md](supabase/README.md).
 
 ## 11. Cách mình làm dự án này
 

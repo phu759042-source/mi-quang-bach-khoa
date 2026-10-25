@@ -1,0 +1,372 @@
+"""Kiểm thử giao diện Mì Quảng Bách Khoa bằng 2 trình duyệt thật (Playwright + Chromium).
+
+Chạy:   python3 tests/test_tro_choi.py            (ảnh chụp lưu ở tests/output/)
+Cần:    pip install playwright && python3 -m playwright install chromium
+
+- Không gọi Supabase thật. Lớp `Fake` bên dưới giả lập server với luật GIỐNG supabase/schema.sql
+  (gửi/đồng ý/từ chối thách đấu, chống gian lận tiến độ, hết tim, xử thua khi rời trận, Elo K=32).
+  Sửa luật trên server thì sửa cả ở đây.
+- Mạng ra ngoài (font Google, thư viện CDN) bị chặn có chủ đích; game được thay `window.supabase` giả.
+- Ngày bán rút còn 8 giây, cửa hàng solo 3 giây để chạy nhanh (khoảng 2–3 phút cả bài).
+- Thoát với mã 1 nếu có kiểm tra hỏng hoặc lỗi JavaScript.
+
+Các bước: tab Solo trước khi có trận, hiệu ứng thua + khoá nút ở chế độ thường, tìm bạn, chọn luật,
+thông báo góc dưới phải có âm thanh, đếm ngược, thanh đối thủ, Sinh tồn, từ chối, Điểm cao 3 ngày,
+bảng xếp hạng Solo, tải lại trang lúc đang chờ và giữa trận."""
+import sys, os, json, time, itertools, subprocess, threading
+from datetime import datetime, timezone, timedelta
+from playwright.sync_api import sync_playwright
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(HERE)
+OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'output')
+os.makedirs(OUT, exist_ok=True)
+HS = {'thuong': 1, 'kho': 1.5, 'dianguc': 2.2, 'bk': 3}
+now = lambda: datetime.now(timezone.utc)
+iso = lambda d: d.isoformat()
+lock = threading.Lock()
+
+class Fake:
+    def __init__(s):
+        s.khoa = [{'id': 'cntt', 'ten': 'Công nghệ Thông tin'}, {'id': 'dtvt', 'ten': 'Điện tử Viễn thông'}]
+        base = dict(diem=0, so_luot=3, ngay_xa_nhat=4, chuoi=0, ngay_chuoi=None, chuoi_dai_nhat=0, avatar_url=None,
+                    avatar_khung=None, elo=1200, solo_thang=0, solo_thua=0, solo_hoa=0)
+        s.prof = {'A': dict(base, id='A', ten='Nguyễn Tấn Phú', khoa_id='cntt', lop='26T_ATTT', diem=1420),
+                  'B': dict(base, id='B', ten='Phạm Gia Huy', khoa_id='dtvt', lop='24DT2', diem=1300),
+                  'C': dict(base, id='C', ten='Lê Minh Anh', khoa_id='cntt', lop='23T_DT1', diem=900)}
+        s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': []}
+        s.calls = []
+
+    def emit(s, r):
+        for u in (r['a'], r['b']):
+            s.q[u].append(dict(r))
+
+    def score(s, dk, dt, tm):
+        return round(dt * HS[dk] / 10) - round(tm * 15 * HS[dk] ** 2)
+
+    def expire(s):
+        for r in s.rows.values():
+            if r['trang_thai'] == 'cho' and datetime.fromisoformat(r['het_han']) < now():
+                r['trang_thai'] = 'het_han'; s.emit(r)
+
+    def end(s, r, thang, why):
+        if r['trang_thai'] != 'dang_dau': return
+        pa, pb = s.prof[r['a']], s.prof[r['b']]
+        ea = 1 / (1 + 10 ** ((pb['elo'] - pa['elo']) / 400))
+        sa = 0.5 if thang is None else (1 if thang == r['a'] else 0)
+        da = round(32 * (sa - ea))
+        r.update(elo_a=pa['elo'], elo_b=pb['elo'], doi_a=da, doi_b=-da, trang_thai='xong', thang=thang, ly_do=why, ket_thuc=iso(now()))
+        pa['elo'] += da; pb['elo'] -= da
+        k = {1: ('solo_thang', 'solo_thua'), 0: ('solo_thua', 'solo_thang'), 0.5: ('solo_hoa', 'solo_hoa')}[sa]
+        pa[k[0]] += 1; pb[k[1]] += 1
+
+    def decide(s, r):
+        if r['trang_thai'] != 'dang_dau': return
+        sa, sb = (s.score(r['do_kho'], r[x + '_doanh_thu'], r[x + '_tim_mat']) for x in 'ab')
+        ah, bh = r['a_het_tim_luc'], r['b_het_tim_luc']
+        if r['che_do'] == 'sinh_ton' and (ah or bh):
+            if ah and bh: s.end(r, r['b'] if ah < bh else r['a'] if bh < ah else None, 'het_tim')
+            elif ah: s.end(r, r['b'], 'het_tim')
+            else: s.end(r, r['a'], 'het_tim')
+        elif r['a_xong'] and r['b_xong']:
+            s.end(r, r['a'] if sa > sb else r['b'] if sb > sa else None, 'diem')
+
+    def roi(s, r):
+        if r['trang_thai'] != 'dang_dau' or now() < datetime.fromisoformat(r['bat_dau']): return
+        t = time.time()
+        ar = not r['a_xong'] and r['a_ping'] < t - 25
+        br = not r['b_xong'] and r['b_ping'] < t - 25
+        if ar and br: s.end(r, None, 'ca_hai_roi')
+        elif ar: s.end(r, r['b'], 'roi_tran')
+        elif br: s.end(r, r['a'], 'roi_tran')
+
+    def rpc(s, u, fn, a):
+        s.calls.append((u, fn))
+        def err(m): return {'data': None, 'error': {'message': m}}
+        if fn == 'ghi_luot_truy_cap': return {'data': {'luot': 321, 'nguoi': 45, 'hom_nay': 12, 'tong': 321}}
+        if fn == 'tim_nguoi_choi':
+            q = a['p_q'].lower()
+            res = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=next(k['ten'] for k in s.khoa if k['id'] == p['khoa_id']),
+                        diem=p['diem'], elo=p['elo'], avatar_url=None)
+                   for p in s.prof.values() if p['id'] != u and (q in p['ten'].lower() or q in p['lop'].lower())]
+            return {'data': res}
+        if fn == 'bat_dau_luot': return {'data': 77}
+        if fn == 'nop_ket_qua':
+            hs = 1; d = round(a['p_doanh_thu'] * hs / 10) - round(a['p_tim_mat'] * 15 * hs ** 2)
+            return {'data': {'delta': d, 'diem': s.prof[u]['diem'] + d, 'hang': 2, 'chuoi': 1, 'chuoi_moi': False, 'chuoi_dai_nhat': 1}}
+        s.expire()
+        if fn == 'gui_thach_dau':
+            b = a['p_b']
+            if b == u: return err('Không thể tự thách đấu chính mình')
+            if any(r['trang_thai'] == 'dang_dau' and b in (r['a'], r['b']) for r in s.rows.values()): return err('Người này đang solo với người khác')
+            if any(r['a'] == u and r['trang_thai'] == 'cho' for r in s.rows.values()): return err('Bạn đang chờ một lời thách khác')
+            i = next(s.seq)
+            r = dict(id=i, a=u, b=b, do_kho=a['p_do_kho'], che_do=a['p_che_do'], trang_thai='cho', tao_luc=iso(now()),
+                     het_han=iso(now() + timedelta(seconds=60)), bat_dau=None, ket_thuc=None, thang=None, ly_do=None,
+                     elo_a=None, elo_b=None, doi_a=None, doi_b=None)
+            for x in 'ab': r.update({x + '_ngay': 0, x + '_doanh_thu': 0, x + '_tim_mat': 0, x + '_xong': False, x + '_ping': 0, x + '_het_tim_luc': None})
+            s.rows[i] = r; s.emit(r); return {'data': i}
+        r = s.rows.get(a.get('p_id'))
+        if fn == 'tra_loi_thach_dau':
+            if not r or r['b'] != u: return err('Không tìm thấy lời thách')
+            if r['trang_thai'] != 'cho': return err('Lời thách đã hết hạn hoặc bị huỷ')
+            if not a['p_dong_y']: r['trang_thai'] = 'tu_choi'
+            else: r.update(trang_thai='dang_dau', bat_dau=iso(now() + timedelta(seconds=4)), a_ping=time.time() + 4, b_ping=time.time() + 4)
+            s.emit(r); return {'data': dict(r)}
+        if fn == 'huy_thach_dau':
+            if r and r['a'] == u and r['trang_thai'] == 'cho': r['trang_thai'] = 'huy'; s.emit(r)
+            return {'data': None}
+        if not r or u not in (r['a'], r['b']): return err('Không tìm thấy trận')
+        x = 'a' if u == r['a'] else 'b'
+        if fn == 'cap_nhat_solo' and r['trang_thai'] == 'dang_dau':
+            if not r[x + '_xong']:
+                ng, dt, tm, xg = a['p_ngay'], a['p_doanh_thu'], a['p_tim_mat'], a['p_xong']
+                if not (1 <= ng <= 3 and 0 <= tm <= 5 and 0 <= dt <= ng * 5000) or dt < r[x + '_doanh_thu'] or tm < r[x + '_tim_mat']:
+                    return err('Tiến độ không hợp lệ')
+                r.update({x + '_ngay': ng, x + '_doanh_thu': dt, x + '_tim_mat': tm, x + '_xong': xg or tm >= 5})
+                if tm >= 5 and not r[x + '_het_tim_luc']: r[x + '_het_tim_luc'] = time.time()
+            r[x + '_ping'] = time.time()
+            s.decide(r); s.roi(r); s.emit(r)
+        elif fn == 'kiem_tra_solo':
+            s.roi(r); s.emit(r)
+        elif fn == 'bo_tran_solo':
+            s.end(r, r['b'] if x == 'a' else r['a'], 'bo_cuoc'); s.emit(r)
+        return {'data': dict(r, **{k: None for k in ('a_ping', 'b_ping')}) | {'a_ping': None, 'b_ping': None}}
+
+    def select(s, u, q):
+        t, f = q['table'], q['filters']
+        if t == 'khoa': return {'data': s.khoa}
+        if t == 'profiles':
+            uid = next((v for k, op, v in f if k == 'id'), None)
+            if uid is None: return {'data': [dict(p) for p in s.prof.values()]}
+            p = s.prof.get(uid)
+            return {'data': dict(p) if p else None}
+        if t == 'thach_dau':
+            st = next((v for k, op, v in f if op == 'in'), ['cho', 'dang_dau'])
+            rows = [dict(r, a_ping=None, b_ping=None) for r in s.rows.values() if u in (r['a'], r['b']) and r['trang_thai'] in st]
+            return {'data': sorted(rows, key=lambda r: -r['id'])}
+        if t == 'bxh_sinh_vien':
+            if q.get('single'): return {'data': {'hang': 2}}
+            ps = sorted(s.prof.values(), key=lambda p: -p['diem'])
+            return {'data': [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=next(k['ten'] for k in s.khoa if k['id'] == p['khoa_id']),
+                                  diem=p['diem'], hang=i + 1, chuoi=0, avatar_url=None) for i, p in enumerate(ps)]}
+        if t == 'bxh_solo':
+            ps = sorted([p for p in s.prof.values() if p['solo_thang'] + p['solo_thua'] + p['solo_hoa']], key=lambda p: -p['elo'])
+            return {'data': [dict(p, khoa=next(k['ten'] for k in s.khoa if k['id'] == p['khoa_id']), hang=i + 1) for i, p in enumerate(ps)]}
+        return {'data': []}
+
+
+F = Fake()
+
+STUB = r"""
+(() => {
+  const call = (kind, payload) => window.__sb(kind, JSON.stringify(payload)).then(r => JSON.parse(r));
+  function q(table){
+    const st={table,filters:[],single:false};
+    const b={select(){return b},order(){return b},limit(){return b},
+      eq(k,v){st.filters.push([k,'eq',v]);return b},in(k,v){st.filters.push([k,'in',v]);return b},or(x){st.filters.push(['_or','or',x]);return b},
+      maybeSingle(){st.single=true;return b},
+      then(ok,no){return call('select',st).then(ok,no)}};
+    return b;
+  }
+  const subs=[];
+  setInterval(async()=>{const evs=await call('events',{});evs.forEach(r=>subs.forEach(cb=>cb({new:r})))},150);
+  window.__chal=0;
+  window.supabase={createClient:()=>({
+    from:q, rpc:(fn,args)=>call('rpc',{fn,args:args||{}}),
+    channel(name){const ch={on(type,filt,cb){if(type==='postgres_changes')subs.push(cb);else ch.sync=cb;return ch},
+      subscribe(cb){cb&&setTimeout(()=>{cb('SUBSCRIBED');ch.sync&&ch.sync()},50);return ch},
+      presenceState(){return {A:[{}],B:[{}]}},track(){}};return ch},
+    removeChannel(){},
+    auth:{onAuthStateChange(){},getSession:async()=>({data:{session:{user:{id:window.__uid}}}}),signOut:async()=>({})},
+    storage:{from:()=>({upload:async()=>({}),remove:async()=>({})})}
+  })};
+})();
+"""
+
+srv = subprocess.Popen([sys.executable, '-m', 'http.server', '8766', '-d', REPO], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(1)
+errors = []
+
+
+def make(b, uid, w, h, scheme='light'):
+    ctx = b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=2, color_scheme=scheme, locale='vi-VN',
+                        timezone_id='Asia/Ho_Chi_Minh', has_touch=w < 600, is_mobile=w < 600)
+
+    def route(r):
+        u = r.request.url
+        if u.startswith('http://localhost:8766/index.html'):
+            body = open(os.path.join(REPO, 'index.html'), encoding='utf-8').read()
+            body = body.replace('const DAYLEN=75;', 'const DAYLEN=8;').replace('SOLO_SHOP=20', 'SOLO_SHOP=3')
+            return r.fulfill(status=200, content_type='text/html; charset=utf-8', body=body)
+        if u.startswith('http://localhost:8766/'): return r.continue_()
+        return r.abort()
+    ctx.route('**/*', route)
+
+    def handler(source, kind, payload):
+        a = json.loads(payload)
+        with lock:
+            if kind == 'events':
+                ev, F.q[uid] = F.q[uid], []
+                return json.dumps(ev)
+            if kind == 'rpc': return json.dumps(F.rpc(uid, a['fn'], a['args']))
+            return json.dumps(F.select(uid, a))
+    ctx.expose_binding('__sb', handler)
+    ctx.add_init_script(STUB + f"window.__uid='{uid}';")
+    p = ctx.new_page()
+    p.on('pageerror', lambda e: errors.append(f'{uid}: {e}'))
+    p.on('console', lambda m: m.type == 'error' and 'net::ERR_FAILED' not in m.text and errors.append(f'{uid} console: {m.text}'))
+    p.goto('http://localhost:8766/index.html')
+    p.add_style_tag(content=":root{--display:'Inter',system-ui,sans-serif!important;--body:'Inter',system-ui,sans-serif!important}")
+    p.evaluate("()=>{const o=sfx.challenge;sfx.challenge=()=>{window.__chal++;o.call(sfx)}}")
+    p.wait_for_timeout(700)
+    return p
+
+
+def shot(p, name): p.wait_for_timeout(250); p.screenshot(path=f'{OUT}/{name}.png'); print('  ảnh', name)
+def check(cond, msg): print(('  OK   ' if cond else '  LỖI  ') + msg); cond or errors.append('kiểm tra: ' + msg)
+
+with sync_playwright() as pw:
+    b = pw.chromium.launch()
+    A = make(b, 'A', 390, 844)        # Phú trên điện thoại
+    A.wait_for_selector('.push-card', timeout=3000); A.click('#pushLater'); A.wait_for_timeout(200)
+    print('0. Tab Solo trước khi có trận nào: hiện mọi người ở 1200')
+    A.click('#lb'); A.wait_for_timeout(300); A.click('[data-t="solo"]'); A.wait_for_timeout(600)
+    check(A.locator('.pod').count() == 3 and 'chưa đấu trận nào' in A.inner_text('#lbBody'), 'hiện 3 người, ghi "chưa đấu trận nào"')
+    shot(A, 'fx-00-bxh-solo-moi'); A.click('#back'); A.wait_for_timeout(200)
+    print('0b. Chế độ thường: hết tim → hiệu ứng thua, chặn bấm, rồi mới hiện kết quả')
+    A.click('#go'); A.wait_for_function('running===true', timeout=5000)
+    A.evaluate("()=>{S.money=0;S.rep=1;loseHeart('Khách bỏ đi vì chờ lâu')}")
+    A.wait_for_selector('.fx.lose', timeout=3000); A.wait_for_timeout(700)
+    check(A.locator('.fx.lose .ttl').inner_text().startswith('Quán đóng cửa'), 'hiện chữ "Quán đóng cửa"')
+    shot(A, 'fx-01-thua-thuong')
+    A.mouse.click(195, 780); A.mouse.click(195, 760)                     # bấm liên tục như đang chơi
+    check(A.locator('#again').count() == 0, 'bấm trong lúc hiệu ứng không làm gì')
+    A.wait_for_selector('#ov #again', timeout=8000)
+    check(A.locator('#again').is_disabled(), 'nút "Chơi lại/Chơi lượt mới" bị khoá ngay khi hiện')
+    A.wait_for_timeout(1000)
+    check(A.locator('#again').is_enabled(), 'nút mở lại sau khoảng 1 giây')
+    shot(A, 'fx-02-ket-qua-thuong'); A.click('#home'); A.wait_for_timeout(300)
+    B = make(b, 'B', 1280, 800)       # Huy trên laptop
+    print('1. Màn chính có nút Solo và Elo')
+    check(A.locator('#solo').count() == 1, 'nút Solo hiện trên màn chính')
+    check('Elo 1200' in A.inner_text('.me'), 'thẻ người chơi hiện Elo')
+    shot(A, 'solo-01-home')
+
+    print('2. A tìm B bằng thanh tìm kiếm')
+    A.click('#solo'); A.wait_for_timeout(300)
+    A.fill('#q', 'huy'); A.wait_for_timeout(700)
+    check(A.locator('.li .act').count() == 1, 'tìm "huy" ra đúng 1 người')
+    shot(A, 'solo-02-tim-kiem')
+    A.click('.li .act'); A.wait_for_timeout(300)
+    A.click('.diff.d-kho'); A.click('.mode[data-m="sinh_ton"]')
+    check('+16' in A.inner_text('#ov'), 'hiện Elo dự kiến +16 khi hai bên cùng 1200')
+    shot(A, 'solo-03-chon-luat')
+    A.click('#send'); A.wait_for_timeout(500)
+    shot(A, 'solo-04-cho-tra-loi')
+
+    print('3. B nhận thông báo ở góc dưới bên phải')
+    B.wait_for_selector('.notice', timeout=3000)
+    box = B.locator('.notice').bounding_box()
+    check(box['x'] + box['width'] > 1280 - 40 and box['y'] + box['height'] > 800 - 120, f'thông báo nằm góc dưới phải ({int(box["x"])},{int(box["y"])})')
+    check(B.evaluate('window.__chal') == 1, 'phát âm thanh thách đấu đúng 1 lần')
+    check('Nguyễn Tấn Phú' in B.inner_text('.notice') and 'Khó' in B.inner_text('.notice'), 'thông báo ghi tên, độ khó')
+    shot(B, 'solo-05-thong-bao-laptop')
+
+    print('4. B đồng ý → hai bên đếm ngược')
+    B.click('.notice [data-yes]')
+    A.wait_for_selector('#cd', timeout=3000); B.wait_for_selector('#cd', timeout=3000)
+    check(True, 'cả hai thấy màn đếm ngược')
+    shot(A, 'solo-06-dem-nguoc')
+    A.wait_for_function('running===true', timeout=8000); B.wait_for_function('running===true', timeout=8000)
+    check(True, 'cả hai vào trận cùng lúc')
+
+    print('5. Đang đấu: thanh đối thủ cập nhật')
+    A.evaluate("()=>{S.total+=420;S.money+=420;D.earned+=420;renderStats()}")
+    B.evaluate("()=>{S.total+=180;S.money+=180;D.earned+=180;loseHeart('Khách bỏ đi vì chờ lâu')}")
+    A.wait_for_timeout(1800); B.wait_for_timeout(300)
+    hudA = A.inner_text('.opp'); hudB = B.inner_text('.opp')
+    check('180k' in hudA, f'A thấy doanh thu của Huy: {hudA!r}')
+    check('420k' in hudB, f'B thấy doanh thu của Phú: {hudB!r}')
+    shot(A, 'solo-07-dang-dau-dien-thoai'); shot(B, 'solo-08-dang-dau-laptop')
+
+    print('6. Sinh tồn: B hết tim → A thắng')
+    B.evaluate("()=>{for(let i=0;i<4;i++)loseHeart('Sai món')}")
+    A.wait_for_selector('.fx.win', timeout=5000); B.wait_for_selector('.fx.lose', timeout=5000)
+    A.wait_for_timeout(650); B.wait_for_timeout(100)
+    check(A.locator('#re').count() == 0 and B.locator('#re').count() == 0, 'đang hiệu ứng: chưa có nút nào trên màn')
+    shot(A, 'fx-03-thang-solo'); shot(B, 'fx-04-thua-solo-laptop')
+    A.mouse.click(195, 1500); A.mouse.click(195, 1450)
+    A.wait_for_selector('#ov >> text=Bạn thắng!', timeout=5000); B.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=5000)
+    check(A.locator('#re').is_disabled() and A.locator('#lbs').is_disabled(), 'nút Tái đấu / Bảng xếp hạng bị khoá lúc mới hiện')
+    shot(A, 'fx-05-ket-qua-solo-co-phao-giay')
+    check('+16' in A.inner_text('#ov') and '16' in B.inner_text('#ov'), 'A +16 Elo, B −16 Elo')
+    check(F.prof['A']['elo'] == 1216 and F.prof['B']['elo'] == 1184, 'Elo trên server: 1216 / 1184')
+    check(A.evaluate('running')==False and A.evaluate('solo')==None, 'A dừng trận, dọn trạng thái')
+    shot(A, 'solo-09-thang'); shot(B, 'solo-10-thua')
+
+    print('7. Từ chối lời thách')
+    B.click('#home'); A.click('#home'); A.wait_for_timeout(200)
+    A.click('#solo'); A.fill('#q', 'Phạm'); A.wait_for_timeout(700); A.click('.li .act'); A.wait_for_timeout(300)
+    A.click('.mode[data-m="diem"]'); A.click('#send')
+    B.wait_for_selector('.notice', timeout=3000)
+    B.click('.notice [data-no]')
+    A.wait_for_selector('text=đã từ chối', timeout=5000)
+    check(B.locator('.notice').count() == 0 or B.locator('.notice.out').count() == 1, 'thông báo bên B biến mất')
+    shot(A, 'solo-11-tu-choi')
+
+    print('8. Điểm cao: chơi đủ 3 ngày (8 giây/ngày), so ĐBK')
+    A.click('#again'); A.wait_for_timeout(300); A.click('#send')
+    B.wait_for_selector('.notice [data-yes]', timeout=3000); B.wait_for_timeout(300); B.click('.notice [data-yes]')
+    A.wait_for_function('running===true', timeout=8000)
+    A.evaluate("()=>{S.total+=900;S.money+=900;D.earned+=900;renderStats()}")
+    B.evaluate("()=>{S.total+=600;S.money+=600;D.earned+=600;renderStats()}")
+    A.wait_for_selector('#oppShop', timeout=12000)
+    check(A.locator('#buyHeart').is_hidden() and 'Bỏ trận' in A.inner_text('#cash'), 'cửa hàng solo: không mua tim, có nút bỏ trận')
+    shot(A, 'solo-12-cua-hang')
+    A.wait_for_selector('#ov >> text=Bạn thắng!', timeout=45000); B.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=8000)
+    r = list(F.rows.values())[-1]
+    check(r['ly_do'] == 'diem' and r['a_ngay'] == 3 and r['b_ngay'] == 3, f"thắng theo điểm sau 3 ngày ({r['a_doanh_thu']}k vs {r['b_doanh_thu']}k)")
+    check(A.evaluate('diff') == 'thuong', 'độ khó của A trả về như cũ sau trận')
+
+    print('9. Bảng xếp hạng Solo')
+    A.click('#lbs'); A.wait_for_timeout(600)
+    check('Elo' in A.inner_text('#rule') and A.locator('.pod').count() >= 2, 'tab Solo hiện 2 người theo Elo')
+    shot(A, 'solo-13-bxh-solo')
+
+    def reload(P):
+        P.reload(); P.add_style_tag(content=":root{--display:'Inter',system-ui,sans-serif!important;--body:'Inter',system-ui,sans-serif!important}")
+    print('10. Gửi lời thách rồi lỡ tải lại trang')
+    A.click('#back'); A.wait_for_timeout(300); B.click('#home'); B.wait_for_timeout(300)
+    A.click('#solo'); A.fill('#q', 'huy'); A.wait_for_timeout(700); A.click('.li .act'); A.wait_for_timeout(300)
+    A.click('.mode[data-m="sinh_ton"]'); A.click('#send'); A.wait_for_selector('#wLeft', timeout=3000)
+    reload(A)
+    A.wait_for_selector('#wLeft', timeout=6000)
+    check('Đang chờ' in A.inner_text('#ov'), 'sau khi tải lại, A quay về màn "Đang chờ Huy trả lời"')
+    check(list(F.rows.values())[-1]['trang_thai'] == 'cho', 'lời thách không bị huỷ khi tải lại')
+    shot(A, 'resume-01-cho-sau-tai-lai')
+    B.wait_for_selector('.notice [data-yes]', timeout=4000); B.wait_for_timeout(300); B.click('.notice [data-yes]')
+    A.wait_for_function('running===true', timeout=9000); B.wait_for_function('running===true', timeout=9000)
+    check(True, 'B đồng ý → A vào trận bình thường')
+
+    print('11. Tải lại trang giữa trận → vào lại trận')
+    A.evaluate("()=>{S.total+=300;S.money+=300;D.earned+=300;renderStats()}"); A.wait_for_timeout(1500)
+    reload(A)
+    A.wait_for_selector('#rejoin', timeout=6000)
+    t = A.inner_text('#ov')
+    check('Bạn đang có một trận solo' in t and '300k' in t, 'hiện màn "Bạn đang có một trận solo" với 300k đã bán')
+    r = list(F.rows.values())[-1]
+    check(r['trang_thai'] == 'dang_dau', 'trận không bị xử thua sau khi tải lại')
+    shot(A, 'resume-02-vao-lai-tran')
+    A.click('#rejoin'); A.wait_for_function('running===true', timeout=4000)
+    check(A.evaluate('S.total') == 300 and A.evaluate('!!solo'), 'vào lại trận, giữ nguyên 300k')
+    A.evaluate("()=>{S.total+=50;S.money+=50;D.earned+=50;renderStats()}"); A.wait_for_timeout(1500)
+    check(r['a_doanh_thu'] == 350, f"server nhận tiếp tiến độ sau khi vào lại ({r['a_doanh_thu']}k)")
+    B.evaluate("()=>{for(let i=0;i<5;i++)loseHeart('Sai món')}")
+    A.wait_for_selector('#ov >> text=Bạn thắng!', timeout=8000)
+    check(True, 'trận kết thúc bình thường, A thắng')
+    B.close(); A.close(); b.close()
+srv.terminate()
+print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))
+for e in errors: print(' -', e)
+sys.exit(1 if errors else 0)
