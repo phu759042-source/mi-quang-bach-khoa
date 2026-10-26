@@ -174,6 +174,8 @@ class Fake:
         if t == 'khoa': return {'data': s.khoa}
         if t == 'profiles':
             uid = next((v for k, op, v in f if k == 'id'), None)
+            gt = next((v for k, op, v in f if op == 'gt'), None)
+            if gt is not None: return {'data': [dict(p) for p in s.prof.values() if p['elo'] > gt]}
             if uid is None: return {'data': [dict(p) for p in s.prof.values()]}
             if isinstance(uid, list): return {'data': [dict(s.prof[x]) for x in uid if x in s.prof]}
             p = s.prof.get(uid)
@@ -221,7 +223,7 @@ STUB = r"""
   function q(table){
     const st={table,filters:[],single:false};
     const b={select(){return b},order(k,o){if(o&&o.ascending)st.asc=true;return b},limit(){return b},range(){return b},neq(k,v){st.filters.push([k,'neq',v]);return b},
-      eq(k,v){st.filters.push([k,'eq',v]);return b},in(k,v){st.filters.push([k,'in',v]);return b},or(x){st.filters.push(['_or','or',x]);return b},
+      eq(k,v){st.filters.push([k,'eq',v]);return b},gt(k,v){st.filters.push([k,'gt',v]);return b},in(k,v){st.filters.push([k,'in',v]);return b},or(x){st.filters.push(['_or','or',x]);return b},
       maybeSingle(){st.single=true;return b},
       then(ok,no){return call('select',st).then(ok,no)}};
     return b;
@@ -604,6 +606,9 @@ with sync_playwright() as pw:
 
     print('22. Hồ sơ người khác: thống kê, ván solo, lượt bán, xem lại')
     C.click('#xHoSo'); C.wait_for_selector('#hsBody .card-s', timeout=5000); C.wait_for_timeout(400)
+    eA = F.prof['A']['elo']; hE = 1 + sum(1 for p in F.prof.values() if p['elo'] > eA)
+    hd = C.inner_text('.me')
+    check(f"{F.prof['A']['diem']}" in hd and 'hạng #2' in hd and f'{eA}' in hd and f'Elo · hạng #{hE}' in hd, f'đầu hồ sơ có ĐBK + hạng và Elo + hạng ({hd!r})')
     nA = sum(1 for r in F.rows.values() if r['trang_thai'] == 'xong' and 'A' in (r['a'], r['b']))
     check(f'Số trận\n{nA}' in C.inner_text('#hsBody'), f'thống kê đúng số trận solo của Phú ({nA})')
     shot(C, 'ho-so-nguoi-khac-01-thong-ke')
@@ -615,6 +620,16 @@ with sync_playwright() as pw:
     C.click('[data-t="runs"]'); C.wait_for_selector('#rList .li.game', timeout=4000)
     check(C.locator('#rList .li.game').count() >= 2, 'tab Lượt bán của Phú')
     shot(C, 'ho-so-nguoi-khac-02-luot-ban')
+
+    print('23. Màn chính: bấm thẻ tên/avatar để sửa hồ sơ')
+    A.click('#home'); A.wait_for_selector('#edit', timeout=4000)
+    check(A.locator('text=Sửa hồ sơ').count() == 0, 'không còn dòng "Sửa hồ sơ" ở cuối màn chính')
+    check(A.locator('#edit .me-pen').count() == 1, 'avatar có biểu tượng bút chì')
+    shot(A, 'sua-ho-so-01-man-chinh')
+    A.click('#edit .me-av-w'); A.wait_for_selector('#f #ten', timeout=3000)
+    check(A.input_value('#ten') == 'Nguyễn Tấn Phú' and A.locator('#pClose').count() == 1, 'bấm avatar mở màn Sửa hồ sơ, có nút Đóng')
+    A.click('#pClose'); A.wait_for_selector('#edit', timeout=3000)
+    check(True, 'Đóng quay về màn chính')
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

@@ -256,12 +256,14 @@ async function hoSoScreen(tab = 'stats', uid = null, back = null){
   const w = HS.who;
   openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Hồ sơ${self ? ' của bạn' : ''}</div><button class="link" id="back">Đóng</button></div>
     <div class="me has-av">${avatarHTML(w.avatar_url, w.ten, 48, 'me-av')}<div class="nm">${self ? '' : `<span class="dot" data-online="${w.id}" ${onlineSet.has(w.id) ? '' : 'hidden'}></span>`}${esc(w.ten)}${self ? '' : ' ' + stBadge(w.id)}</div>
-      <div class="sub">${esc(w.lop)} · ${esc(khoaTen(w.khoa_id))}</div><div class="pts">${w.elo ?? 1200}<small>Elo solo</small></div></div>
+      <div class="sub">${esc(w.lop)} · ${esc(khoaTen(w.khoa_id))}</div>
+      <div class="pts2"><div><b>${w.diem ?? 0}</b><small id="hsRkD">ĐBK${self && myRank ? ` · #${myRank}` : ''}</small></div><div><b>${w.elo ?? 1200}</b><small id="hsRkE">Elo solo</small></div></div></div>
     ${self ? '' : `<div class="row hs-act"><button type="button" class="btn" id="hsThach" data-thach="${w.id}">Thách đấu</button>
       <button type="button" class="btn ghost live-btn" id="hsXem" data-xem="${w.id}" hidden><i class="live-dot" aria-hidden="true"></i>Xem trực tiếp</button></div>`}
     <div class="tabs" role="tablist">${[['stats','Thống kê'],['games','Ván solo'],['runs','Lượt bán']].map(([k, n]) => `<button role="tab" data-t="${k}" aria-selected="${k === tab}">${n}</button>`).join('')}</div>
     <div class="col" id="hsBody"><div class="empty-state">Đang tải…</div></div>`);
   $('back').onclick = HS.back;
+  hoSoHang(HS);
   const me = () => hoSoScreen(tab, uid);
   if(!self){
     $('hsThach').onclick = () => { if(onlineSt.get(uid) === 'solo') return watchScreen(uid, me); challengeScreen(w, me) };
@@ -273,6 +275,14 @@ async function hoSoScreen(tab = 'stats', uid = null, back = null){
   if(tab === 'games') return gamesTab(body, 0);
   if(tab === 'runs') return runsTab(body);
   return statsTab(body);
+}
+// Hạng ĐBK (bảng sinh viên) và hạng Elo solo (1 + số người Elo cao hơn, giống tab Solo của bảng xếp hạng)
+async function hoSoHang(h){
+  const w = h.who, gan = (id, t) => { const el = $(id); if(el && HS === h) el.textContent = t };
+  if(!h.hangD) h.hangD = (h.self && myRank) || (await sb.from('bxh_sinh_vien').select('hang').eq('id', h.uid).maybeSingle()).data?.hang || null;
+  if(h.hangD) gan('hsRkD', `ĐBK · hạng #${h.hangD}`);
+  if(!h.hangE){ const {data} = await sb.from('profiles').select('id').gt('elo', w.elo ?? 1200).limit(1000); if(data) h.hangE = data.length + 1 }
+  if(h.hangE) gan('hsRkE', `Elo · hạng #${h.hangE}`);
 }
 const back2 = tab => { const uid = HS.uid; return () => hoSoScreen(tab, uid) };
 const tenHS = () => HS.self ? 'Bạn' : tenNgan(HS.who.ten);
