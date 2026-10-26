@@ -294,7 +294,19 @@ def make(b, uid, w, h, scheme='light'):
 
 
 def shot(p, name): p.wait_for_timeout(250); p.screenshot(path=f'{OUT}/{name}.png'); print('  ảnh', name)
-def check(cond, msg): print(('  OK   ' if cond else '  LỖI  ') + msg); cond or errors.append('kiểm tra: ' + msg)
+def check(cond, msg): print(('  OK   ' if cond else '  LỖI  ') + msg); cond or errors.append(f'kiểm tra (bước {buoc[0].split(".")[0]}): ' + msg)
+
+CI = bool(os.environ.get('GITHUB_ACTIONS'))
+buoc = ['']
+_print = print
+def print(*a, **k):                                   # ghi lại bước đang chạy để báo lỗi trên GitHub Actions
+    if a and isinstance(a[0], str) and __import__('re').match(r'\d+b?\. ', a[0]): buoc[0] = a[0]
+    _print(*a, **k)
+def _hook(t, v, tb):
+    import traceback; traceback.print_exception(t, v, tb)
+    if CI: _print(f"::error::{buoc[0]} → {t.__name__}: {str(v).splitlines()[0] if str(v) else ''}")
+    srv.terminate()
+sys.excepthook = _hook
 
 with sync_playwright() as pw:
     b = pw.chromium.launch()
@@ -598,5 +610,5 @@ with sync_playwright() as pw:
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))
-for e in errors: print(' -', e)
+for e in errors: print(' -', e); CI and _print(f'::error::{e}')
 sys.exit(1 if errors else 0)
