@@ -35,6 +35,7 @@ class Fake:
                   'B': dict(base, id='B', ten='Phạm Gia Huy', khoa_id='dtvt', lop='24DT2', diem=1300),
                   'C': dict(base, id='C', ten='Lê Minh Anh', khoa_id='cntt', lop='23T_DT1', diem=900)}
         s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': []}
+        s.runs, s.run_seq, s.nop = {}, itertools.count(77), []
         s.calls = []
 
     def emit(s, r):
@@ -90,8 +91,14 @@ class Fake:
                         diem=p['diem'], elo=p['elo'], avatar_url=None)
                    for p in s.prof.values() if p['id'] != u and (q in p['ten'].lower() or q in p['lop'].lower())]
             return {'data': res}
-        if fn == 'bat_dau_luot': return {'data': 77}
+        if fn == 'bat_dau_luot':
+            for k, v in s.runs.items():                       # giống _xu_ly_bo_cuoc: lượt cũ còn dở bị tính bỏ cuộc
+                if v == 'dang_choi': s.runs[k] = 'bo_cuoc'
+            i = next(s.run_seq); s.runs[i] = 'dang_choi'; return {'data': i}
         if fn == 'nop_ket_qua':
+            if s.runs.get(a['p_run_id']) != 'dang_choi': return {'data': None, 'error': {'message': 'Lượt chơi không tồn tại hoặc đã nộp'}}
+            if a['p_tim_mat'] > 5 + a['p_doanh_thu'] // 500: return {'data': None, 'error': {'message': 'Kết quả không hợp lệ'}}
+            s.runs[a['p_run_id']] = 'xong'; s.nop.append(dict(a))
             hs = 1; d = round(a['p_doanh_thu'] * hs / 10) - round(a['p_tim_mat'] * 15 * hs ** 2)
             return {'data': {'delta': d, 'diem': s.prof[u]['diem'] + d, 'hang': 2, 'chuoi': 1, 'chuoi_moi': False, 'chuoi_dai_nhat': 1}}
         s.expire()
@@ -104,7 +111,8 @@ class Fake:
             r = dict(id=i, a=u, b=b, do_kho=a['p_do_kho'], che_do=a['p_che_do'], trang_thai='cho', tao_luc=iso(now()),
                      het_han=iso(now() + timedelta(seconds=60)), bat_dau=None, ket_thuc=None, thang=None, ly_do=None,
                      elo_a=None, elo_b=None, doi_a=None, doi_b=None)
-            for x in 'ab': r.update({x + '_ngay': 0, x + '_doanh_thu': 0, x + '_tim_mat': 0, x + '_xong': False, x + '_ping': 0, x + '_het_tim_luc': None})
+            for x in 'ab': r.update({x + '_ngay': 0, x + '_doanh_thu': 0, x + '_tim_mat': 0, x + '_xong': False, x + '_ping': 0, x + '_het_tim_luc': None, x + '_xin_hoa': 0})
+            r.update(xin_hoa_boi=None, xin_hoa_luc=None, xh_t=0)
             s.rows[i] = r; s.emit(r); return {'data': i}
         r = s.rows.get(a.get('p_id'))
         if fn == 'tra_loi_thach_dau':
@@ -131,6 +139,20 @@ class Fake:
             s.roi(r); s.emit(r)
         elif fn == 'bo_tran_solo':
             s.end(r, r['b'] if x == 'a' else r['a'], 'bo_cuoc'); s.emit(r)
+        elif fn in ('xin_hoa', 'tra_loi_hoa'):                    # giống public.xin_hoa / public.tra_loi_hoa
+            if r['trang_thai'] != 'dang_dau':
+                if fn == 'xin_hoa': return err('Trận đã kết thúc')
+            elif fn == 'xin_hoa':
+                con = r['xin_hoa_boi'] and r['xh_t'] > time.time() - 20
+                if con and r['xin_hoa_boi'] != u: s.end(r, None, 'hoa_thoa_thuan')
+                elif con: return err('Bạn vừa xin hoà, chờ đối thủ trả lời')
+                elif r[x + '_xin_hoa'] >= 3: return err('Mỗi trận chỉ được xin hoà 3 lần')
+                else: r.update(xin_hoa_boi=u, xin_hoa_luc=iso(now()), xh_t=time.time()); r[x + '_xin_hoa'] += 1
+            else:
+                if not r['xin_hoa_boi'] or r['xin_hoa_boi'] == u or r['xh_t'] < time.time() - 20: return err('Lời xin hoà đã hết hạn')
+                if a['p_dong_y']: s.end(r, None, 'hoa_thoa_thuan')
+                else: r.update(xin_hoa_boi=None, xin_hoa_luc=None)
+            s.emit(r)
         return {'data': dict(r, **{k: None for k in ('a_ping', 'b_ping')}) | {'a_ping': None, 'b_ping': None}}
 
     def select(s, u, q):
@@ -141,7 +163,14 @@ class Fake:
             if uid is None: return {'data': [dict(p) for p in s.prof.values()]}
             p = s.prof.get(uid)
             return {'data': dict(p) if p else None}
+        if t == 'runs':
+            rid = next((v for k, op, v in f if k == 'id'), None)
+            return {'data': {'id': rid, 'trang_thai': s.runs[rid]} if rid in s.runs else None}
         if t == 'thach_dau':
+            rid = next((v for k, op, v in f if k == 'id'), None)
+            if rid is not None:
+                r = s.rows.get(int(rid))
+                return {'data': dict(r, a_ping=None, b_ping=None) if r and u in (r['a'], r['b']) else None}
             st = next((v for k, op, v in f if op == 'in'), ['cho', 'dang_dau'])
             rows = [dict(r, a_ping=None, b_ping=None) for r in s.rows.values() if u in (r['a'], r['b']) and r['trang_thai'] in st]
             return {'data': sorted(rows, key=lambda r: -r['id'])}
@@ -354,17 +383,78 @@ with sync_playwright() as pw:
     reload(A)
     A.wait_for_selector('#rejoin', timeout=6000)
     t = A.inner_text('#ov')
-    check('Bạn đang có một trận solo' in t and '300k' in t, 'hiện màn "Bạn đang có một trận solo" với 300k đã bán')
+    check('Đang vào lại trận solo' in t and '300k' in t, 'hiện màn "Đang vào lại trận solo" với 300k đã bán')
     r = list(F.rows.values())[-1]
     check(r['trang_thai'] == 'dang_dau', 'trận không bị xử thua sau khi tải lại')
     shot(A, 'resume-02-vao-lai-tran')
-    A.click('#rejoin'); A.wait_for_function('running===true', timeout=4000)
+    A.wait_for_function('running===true', timeout=6000)
     check(A.evaluate('S.total') == 300 and A.evaluate('!!solo'), 'vào lại trận, giữ nguyên 300k')
     A.evaluate("()=>{S.total+=50;S.money+=50;D.earned+=50;renderStats()}"); A.wait_for_timeout(1500)
     check(r['a_doanh_thu'] == 350, f"server nhận tiếp tiến độ sau khi vào lại ({r['a_doanh_thu']}k)")
     B.evaluate("()=>{for(let i=0;i<5;i++)loseHeart('Sai món')}")
     A.wait_for_selector('#ov >> text=Bạn thắng!', timeout=8000)
     check(True, 'trận kết thúc bình thường, A thắng')
+
+    print('12. Chế độ thường: tải lại trang giữa ngày → tự quay lại quán')
+    A.click('#home'); A.wait_for_timeout(300); B.click('#home'); B.wait_for_timeout(300)
+    A.click('#go'); A.wait_for_function('running===true', timeout=5000)
+    run1 = A.evaluate('runId')
+    A.evaluate("()=>{S.total+=200;S.money+=200;D.earned+=200;S.upg={quat:1};renderStats()}"); A.wait_for_timeout(1300)
+    reload(A)
+    A.wait_for_selector('text=Quán đang mở dở', timeout=6000)
+    shot(A, 'giu-quan-01-sau-tai-lai')
+    A.wait_for_function('running===true', timeout=5000)
+    check(A.evaluate('S.total') == 200 and A.evaluate('S.upg.quat') == 1 and A.evaluate('runId') == run1,
+          'tự bán tiếp sau 3 giây, giữ 200k, nâng cấp và đúng lượt chơi cũ')
+    check(F.runs[run1] == 'dang_choi', 'lượt chơi không bị tính bỏ cuộc')
+
+    print('13. Tạm dừng → Đóng quán: tim còn lại bị tính là mất')
+    A.click('#pauseBtn'); A.wait_for_selector('text=Quán đang tạm nghỉ', timeout=3000)
+    check(A.evaluate('running') is False, 'tạm dừng thì đồng hồ dừng')
+    check(A.evaluate('SFX.on') is True, 'bấm Tạm dừng không làm tắt âm thanh')
+    A.click('#close'); A.wait_for_selector('#ok', timeout=3000)
+    t = A.inner_text('#ov')
+    check('5 tim còn lại sẽ bị tính là mất hết' in t, 'màn xác nhận báo rõ 5 tim còn lại bị mất')
+    shot(A, 'giu-quan-02-xac-nhan-dong-quan')
+    A.click('#ok'); A.wait_for_selector('#ov #again', timeout=10000)
+    n = F.nop[-1]
+    check(n['p_tim_mat'] == 5 and n['p_doanh_thu'] == 200 and n['p_run_id'] == run1, f"nộp điểm với 5 tim mất, 200k ({n})")
+    check(A.evaluate("localStorage.getItem('mqbk-run')") is None, 'xoá bản lưu sau khi đóng quán')
+
+    def vao_tran(md='diem'):
+        A.click('#home'); A.wait_for_timeout(300)
+        A.click('#solo'); A.fill('#q', 'huy'); A.wait_for_timeout(700); A.click('.li .act'); A.wait_for_timeout(300)
+        A.click(f'.mode[data-m="{md}"]'); A.click('#send')
+        B.wait_for_selector('.notice [data-yes]', timeout=4000); B.wait_for_timeout(300); B.click('.notice [data-yes]')
+        A.wait_for_function('running===true', timeout=9000); B.wait_for_function('running===true', timeout=9000)
+
+    print('14. Solo: xin hoà, bên kia đồng ý')
+    vao_tran()
+    A.click('#pauseBtn'); A.wait_for_selector('#smDraw', timeout=2000)
+    check(A.evaluate('running') is True, 'mở bảng bỏ cuộc/hoà không dừng trận')
+    check(A.evaluate('SFX.on') is True and 'Bỏ cuộc' in A.inner_text('#pauseBtn'), 'nút vẫn ghi "Bỏ cuộc · Hoà", âm thanh vẫn bật')
+    shot(A, 'solo-hoa-01-bang')
+    A.click('#smDraw')
+    B.wait_for_selector('#drawOffer', timeout=4000)
+    shot(B, 'solo-hoa-02-loi-xin-hoa-laptop')
+    B.click('#drawOffer [data-yes]')
+    A.wait_for_selector('#ov >> text=Hoà!', timeout=8000); B.wait_for_selector('#ov >> text=Hoà!', timeout=8000)
+    check('Hai bạn đồng ý hoà' in A.inner_text('#ov'), 'cả hai thấy "Hoà!" với lý do đồng ý hoà')
+
+    print('15. Solo: tải lại giữa trận → tự vào lại, giữ nâng cấp')
+    B.click('#home'); B.wait_for_timeout(300)
+    vao_tran('sinh_ton')
+    A.evaluate("()=>{S.total+=150;S.money+=150;D.earned+=150;S.upg={phubep:1};renderStats()}"); A.wait_for_timeout(1500)
+    reload(A)
+    A.wait_for_selector('text=Đang vào lại trận solo', timeout=6000)
+    shot(A, 'solo-vao-lai-giu-nang-cap')
+    A.wait_for_function('running===true', timeout=6000)
+    check(A.evaluate('S.total') == 150 and A.evaluate('S.upg.phubep') == 1, 'tự vào lại trận sau 3 giây, giữ 150k và nâng cấp')
+
+    print('16. Solo: bỏ cuộc')
+    A.click('#pauseBtn'); A.click('#smQuit'); A.wait_for_timeout(450); A.click('#smQuit')
+    A.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=8000); B.wait_for_selector('#ov >> text=Bạn thắng!', timeout=8000)
+    check('Bạn đã bỏ cuộc' in A.inner_text('#ov'), 'bỏ cuộc: A thua, B thắng')
     B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

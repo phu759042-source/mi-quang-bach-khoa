@@ -72,6 +72,32 @@ begin
     raise exception 'HONG: Elo sau trận sai'; end if;
   raise notice 'OK solo: trigger gọi hàm gửi thông báo, người ngoài không xem được trận, chặn tiến độ vô lý, B hết tim → A thắng, Elo 1216 / 1184';
 
+  -- Xin hoà: tự đồng ý mình thì không được, bên kia từ chối, rồi đồng ý → hoà, Elo như ván hoà
+  perform pg_temp.dang_xuat(); update public.profiles set elo = 1200 where id in (A, C);
+  perform pg_temp.dang_nhap(A); v_id := public.gui_thach_dau(C, 'kho', 'diem');
+  perform pg_temp.dang_nhap(C); perform public.tra_loi_thach_dau(v_id, true);
+  perform pg_temp.dang_xuat(); update public.thach_dau set bat_dau = now() - interval '10 seconds' where id = v_id;
+  perform pg_temp.dang_nhap(A); j := public.xin_hoa(v_id);
+  if (j->>'xin_hoa_boi')::uuid <> A then raise exception 'HONG: xin hoà không ghi nhận'; end if;
+  begin perform public.tra_loi_hoa(v_id, true); raise exception 'HONG: tự đồng ý lời xin hoà của mình';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform pg_temp.dang_nhap(C); j := public.tra_loi_hoa(v_id, false);
+  if j->>'trang_thai' <> 'dang_dau' or j->>'xin_hoa_boi' is not null then raise exception 'HONG: từ chối hoà sai'; end if;
+  perform pg_temp.dang_nhap(A); perform public.xin_hoa(v_id);
+  perform pg_temp.dang_nhap(C); j := public.tra_loi_hoa(v_id, true);
+  if j->>'trang_thai' <> 'xong' or j->>'thang' is not null or j->>'ly_do' <> 'hoa_thoa_thuan' or (j->>'doi_a')::int <> 0 then
+    raise exception 'HONG: đồng ý hoà sai: %', j; end if;
+  perform pg_temp.dang_xuat();
+  if (select solo_hoa from public.profiles where id = A) <> 1 then raise exception 'HONG: không cộng số trận hoà'; end if;
+  raise notice 'OK xin hoà: không tự đồng ý được, từ chối thì trận tiếp tục, đồng ý thì hoà, Elo ±0 khi bằng điểm Elo';
+
+  -- Bỏ cuộc giữa trận: bên kia thắng
+  perform pg_temp.dang_nhap(A); v_id := public.gui_thach_dau(C, 'thuong', 'sinh_ton');
+  perform pg_temp.dang_nhap(C); perform public.tra_loi_thach_dau(v_id, true);
+  perform pg_temp.dang_nhap(A); j := public.bo_tran_solo(v_id);
+  if (j->>'thang')::uuid <> C or j->>'ly_do' <> 'bo_cuoc' then raise exception 'HONG: bỏ cuộc sai: %', j; end if;
+  raise notice 'OK bỏ cuộc: người kia thắng';
+
   -- Xếp hạng
   if (select hang from public.bxh_sinh_vien where id = A) <> 1 then raise exception 'HONG: bảng xếp hạng sinh viên sai'; end if;
   if (select count(*) from public.bxh_khoa) <> 14 then raise exception 'HONG: bảng khoa không đủ 14 khoa'; end if;

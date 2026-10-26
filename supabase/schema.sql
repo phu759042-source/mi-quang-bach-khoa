@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Mì Quảng Bách Khoa · Cấu trúc database (Supabase / Postgres)
--- Xuất từ project fvacenxojembebqqxgfp ngày 2026-10-26, sau bản 2.9.1.
+-- Xuất từ project fvacenxojembebqqxgfp ngày 2026-10-26, sau bản 2.9.1; thêm xin hoà ở bản 2.10.0.
 --
 -- Dựng lại database trống: Supabase › SQL Editor › dán cả file › Run.
 -- Chạy trên project MỚI (chưa có bảng). File KHÔNG chứa dữ liệu người chơi
@@ -93,6 +93,8 @@ create table public.thach_dau (
   b_xong boolean not null default false, b_ping timestamptz, b_het_tim_luc timestamptz,
   thang uuid, ly_do text,
   elo_a integer, elo_b integer, doi_a integer, doi_b integer,
+  xin_hoa_boi uuid, xin_hoa_luc timestamptz,                         -- lời xin hoà đang chờ (20 giây)
+  a_xin_hoa integer not null default 0, b_xin_hoa integer not null default 0,  -- tối đa 3 lần mỗi người
   check (a <> b)
 );
 create index thach_dau_a_idx on public.thach_dau (a, trang_thai);
@@ -554,6 +556,50 @@ language sql stable security definer set search_path = '' as $$
   order by p.elo desc, p.diem desc limit 20
 $$;
 
+-- 4b'. Solo: xin hoà (bản 2.10.0). Bên kia đồng ý trong 20 giây thì hoà, Elo tính như ván hoà cờ vua
+create or replace function public.xin_hoa(p_id bigint)
+returns json language plpgsql security definer set search_path = '' as $$
+declare v_uid uuid := auth.uid(); t record; v_a boolean;
+begin
+  if v_uid is null then raise exception 'Chưa đăng nhập'; end if;
+  select * into t from public.thach_dau where id = p_id and v_uid in (a, b) for update;
+  if not found then raise exception 'Không tìm thấy trận'; end if;
+  if t.trang_thai <> 'dang_dau' then raise exception 'Trận đã kết thúc'; end if;
+  if now() < t.bat_dau then raise exception 'Trận chưa bắt đầu'; end if;
+  if t.xin_hoa_boi is not null and t.xin_hoa_luc > now() - interval '20 seconds' then
+    if t.xin_hoa_boi <> v_uid then          -- đối thủ vừa xin hoà: coi như đồng ý luôn
+      perform public._ket_thuc_solo(p_id, null, 'hoa_thoa_thuan');
+      return (select row_to_json(x) from public.thach_dau x where id = p_id);
+    end if;
+    raise exception 'Bạn vừa xin hoà, chờ đối thủ trả lời';
+  end if;
+  v_a := (v_uid = t.a);
+  if (case when v_a then t.a_xin_hoa else t.b_xin_hoa end) >= 3 then
+    raise exception 'Mỗi trận chỉ được xin hoà 3 lần'; end if;
+  update public.thach_dau set xin_hoa_boi = v_uid, xin_hoa_luc = now(),
+    a_xin_hoa = a_xin_hoa + (v_a)::int, b_xin_hoa = b_xin_hoa + (not v_a)::int
+    where id = p_id;
+  return (select row_to_json(x) from public.thach_dau x where id = p_id);
+end $$;
+
+create or replace function public.tra_loi_hoa(p_id bigint, p_dong_y boolean)
+returns json language plpgsql security definer set search_path = '' as $$
+declare v_uid uuid := auth.uid(); t record;
+begin
+  if v_uid is null then raise exception 'Chưa đăng nhập'; end if;
+  select * into t from public.thach_dau where id = p_id and v_uid in (a, b) for update;
+  if not found then raise exception 'Không tìm thấy trận'; end if;
+  if t.trang_thai <> 'dang_dau' then return (select row_to_json(x) from public.thach_dau x where id = p_id); end if;
+  if t.xin_hoa_boi is null or t.xin_hoa_boi = v_uid or t.xin_hoa_luc < now() - interval '20 seconds' then
+    raise exception 'Lời xin hoà đã hết hạn'; end if;
+  if p_dong_y then
+    perform public._ket_thuc_solo(p_id, null, 'hoa_thoa_thuan');
+  else
+    update public.thach_dau set xin_hoa_boi = null, xin_hoa_luc = null where id = p_id;
+  end if;
+  return (select row_to_json(x) from public.thach_dau x where id = p_id);
+end $$;
+
 -- 4c. Thông báo đẩy. Khoá đọc từ Vault: vapid_public, vapid_private, push_hook_secret
 create or replace function public.luu_push(p_endpoint text, p_p256dh text, p_auth text)
 returns void language plpgsql security definer set search_path = '' as $$
@@ -619,6 +665,7 @@ grant execute on function
   public.gui_thach_dau(uuid, text, text), public.tra_loi_thach_dau(bigint, boolean), public.huy_thach_dau(bigint),
   public.cap_nhat_solo(bigint, integer, integer, integer, boolean), public.kiem_tra_solo(bigint),
   public.bo_tran_solo(bigint), public.tim_nguoi_choi(text),
+  public.xin_hoa(bigint), public.tra_loi_hoa(bigint, boolean),
   public.luu_push(text, text, text), public.xoa_push(text)
   to authenticated;
 -- nội bộ (_xu_ly_bo_cuoc, _diem_solo, _het_han_thach_dau, _ket_thuc_solo, _xu_ly_solo,
