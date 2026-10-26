@@ -35,7 +35,7 @@ class Fake:
                   'B': dict(base, id='B', ten='Phạm Gia Huy', khoa_id='dtvt', lop='24DT2', diem=1300),
                   'C': dict(base, id='C', ten='Lê Minh Anh', khoa_id='cntt', lop='23T_DT1', diem=900)}
         s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': []}
-        s.runs, s.run_seq, s.nop, s.bg = {}, itertools.count(77), [], []
+        s.runs, s.run_seq, s.nop, s.bg, s.pres = {}, itertools.count(77), [], [], {}
         s.calls = []
 
     def emit(s, r):
@@ -220,14 +220,15 @@ STUB = r"""
       then(ok,no){return call('select',st).then(ok,no)}};
     return b;
   }
-  const subs=[];
-  setInterval(async()=>{const evs=await call('events',{});evs.forEach(r=>subs.forEach(cb=>cb({new:r})))},150);
+  const subs=[], syncs=[]; window.__pres={}; let presKey='';
+  setInterval(async()=>{const evs=await call('events',{});evs.forEach(r=>subs.forEach(cb=>cb({new:r})));
+    const pr=await call('presence',{}), k=JSON.stringify(pr); if(k!==presKey){presKey=k;window.__pres=pr;syncs.forEach(f=>f())}},150);
   window.__chal=0;
   window.supabase={createClient:()=>({
     from:q, rpc:(fn,args)=>call('rpc',{fn,args:args||{}}),
-    channel(name){const ch={on(type,filt,cb){if(type==='postgres_changes')subs.push(cb);else ch.sync=cb;return ch},
+    channel(name){const ch={on(type,filt,cb){if(type==='postgres_changes')subs.push(cb);else{ch.sync=cb;syncs.push(cb)}return ch},
       subscribe(cb){cb&&setTimeout(()=>{cb('SUBSCRIBED');ch.sync&&ch.sync()},50);return ch},
-      presenceState(){return {A:[{}],B:[{}]}},track(){}};return ch},
+      presenceState(){return Object.fromEntries(Object.entries(window.__pres).map(([k,v])=>[k,[v]]))},track(p){call('track',p)}};return ch},
     removeChannel(){},
     auth:{onAuthStateChange(){},getSession:async()=>({data:{session:{user:{id:window.__uid}}}}),signOut:async()=>({})},
     storage:{from:()=>({upload:async()=>({}),remove:async()=>({})})}
@@ -260,6 +261,8 @@ def make(b, uid, w, h, scheme='light'):
             if kind == 'events':
                 ev, F.q[uid] = F.q[uid], []
                 return json.dumps(ev)
+            if kind == 'track': F.pres[uid] = a; return json.dumps(None)       # giả lập Supabase presence
+            if kind == 'presence': return json.dumps(F.pres)
             if kind == 'rpc': return json.dumps(F.rpc(uid, a['fn'], a['args']))
             return json.dumps(F.select(uid, a))
     ctx.expose_binding('__sb', handler)
@@ -518,7 +521,28 @@ with sync_playwright() as pw:
     A.click('[data-t="runs"]'); A.wait_for_selector('#rList .li.game', timeout=4000)
     check(A.locator('#rList .li.game').count() >= 2, 'tab Lượt bán liệt kê các lượt')
     shot(A, 'ho-so-03-luot-ban')
-    B.close(); A.close(); b.close()
+
+    print('20. Trạng thái "Đang solo" / "Đang bán" khi tìm người để thách')
+    C = make(b, 'C', 390, 844)
+    A.click('#back'); A.wait_for_timeout(300); B.click('#back'); B.wait_for_timeout(400); B.click('#back'); B.wait_for_timeout(300)
+    A.click('#solo'); A.fill('#q', 'huy'); A.wait_for_timeout(700); A.click('.li .act'); A.wait_for_timeout(300); A.click('#send')
+    B.wait_for_selector('.notice [data-yes]', timeout=4000); B.wait_for_timeout(300); B.click('.notice [data-yes]')
+    A.wait_for_function('running===true', timeout=9000)
+    C.click('#solo'); C.fill('#q', 'huy'); C.wait_for_timeout(900)
+    btn = C.locator('.li .act[data-uid="B"]')
+    check(C.locator('[data-st="B"]').inner_text() == 'Đang solo' and C.locator('[data-st="B"]').is_visible() and btn.is_disabled() and 'Đang trong trận' in btn.inner_text(),
+          'C thấy Huy "Đang solo", nút thách bị khoá')
+    shot(C, 'trang-thai-01-dang-solo')
+    A.click('#pauseBtn'); A.click('#smQuit'); A.wait_for_timeout(450); A.click('#smQuit')
+    A.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=8000); C.wait_for_timeout(900)
+    check(btn.is_enabled() and C.locator('[data-st="B"]').is_hidden(), 'trận xong: Huy hết "Đang solo", nút thách mở lại')
+    A.click('#home'); A.wait_for_timeout(300); A.click('#go'); A.wait_for_function('running===true', timeout=5000); C.wait_for_timeout(900)
+    C.fill('#q', 'phú'); C.wait_for_timeout(900)
+    check(C.locator('[data-st="A"]').inner_text() == 'Đang bán', 'C thấy Phú "Đang bán" khi Phú mở quán thường')
+    C.click('.li .act[data-uid="A"]'); C.wait_for_selector('#busyNote', timeout=3000); C.wait_for_timeout(300)
+    check('đang bán ở chế độ thường' in C.inner_text('#busyNote') and C.locator('#send').is_enabled(), 'màn thách báo trước Phú đang bán, vẫn cho gửi')
+    shot(C, 'trang-thai-02-dang-ban')
+    C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))
 for e in errors: print(' -', e)

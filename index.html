@@ -432,6 +432,10 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 @media (max-width:340px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:699px){.rp-view{padding:8px;gap:4px}.rp-c{min-height:52px;padding:4px}.rp-c .ava{width:20px;height:20px;font-size:8px}.rp-c .order svg{width:13px;height:13px}
   .rp-log{min-height:34px}.rp-log span:nth-child(n+3){display:none}.rp-bowl{min-height:20px}.rp-b svg{width:18px;height:18px}.rp-q{min-height:0}}
+.st-badge{display:inline-block;font:700 10px/1.4 var(--body);color:var(--on-warm);background:var(--turmeric);border-radius:999px;padding:0 7px;vertical-align:2px;white-space:nowrap}
+.pod .st-badge{margin:2px auto 0}
+.li .act:disabled{background:var(--line);color:var(--muted);cursor:default}
+.msg.warn{color:var(--heading)}
 /* ======== Laptop / màn hình rộng ======== */
 @media (min-width:900px) and (min-height:560px){
   .desk{display:revert!important}
@@ -523,7 +527,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="ban-ghi.js?v=2.11.0"></script>
+<script src="ban-ghi.js?v=2.11.1"></script>
 <script>
 /* ================= Cấu hình ================= */
 const SB_URL = 'https://fvacenxojembebqqxgfp.supabase.co';
@@ -621,6 +625,7 @@ let midRun=false;
 const GIA_TIM=500, TIM_MAX=5;
 function newGame(){midRun=true;S={day:1,money:0,rep:5,upg:{},total:0,lost:0,bought:0};recStart('run');startDay()}
 function startDay(){
+  setTimeout(syncPresence,0);
   const n=lv('ban')?4:3;
   D={t:DAYLEN,earned:0,served:0,lost:0,slots:Array(n).fill(null),queue:[],rushSaid:false,spawnT:1.2,shield:lv('the'),
      bowl:{items:new Set(lv('phubep')?['mi']:[]),broth:false},ev:EVENTS[(S.day-1)%4]};
@@ -708,6 +713,7 @@ function reviveScreen(){
   draw(); lockButtons($('ov'),900); saveRun('revive');
 }
 function resumeDay(){
+  setTimeout(syncPresence,0);
   if(S.rep<=0) return;
   // khách đang chờ được nghỉ một nhịp sau khi quán lấy lại uy tín
   D.slots.forEach(c=>{if(c)c.p=Math.max(c.p,c.max*.5)}); D.queue.forEach(c=>c.q=Math.max(c.q,c.qmax*.5));
@@ -928,6 +934,7 @@ function streakScreen(oldN,newN,best,next){
 /* ================= Kết thúc lượt & nộp điểm ================= */
 let midClose=false, lastRunRec=null;
 async function finishRun(why, cashOut=false, sauFx=false){
+  setTimeout(syncPresence,0);
   clearRun();
   if(REC&&!REC.xong){rec('O',S.day,S.total,S.lost||0);REC.xong=1}
   if(!cashOut&&!sauFx){
@@ -1313,6 +1320,7 @@ async function removeAvatar(){
 
 /* ================= Màn hình chính ================= */
 function home(){
+  setTimeout(syncPresence,0);
   setTimeout(refreshNotices,0); setTimeout(pushCard,0);
   const p=profile;
   const meCard=ranked&&p
@@ -1345,7 +1353,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.11.0</div>
+    <div class="muted">Phiên bản 2.11.1</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -1466,7 +1474,9 @@ async function leaderboard(tab,focus){
     :tab==='khoa'?'Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30.'
     :'Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Ai chưa đấu trận nào đứng ở 1200. Solo không ảnh hưởng ĐBK.'+hint;
   if(!sb){$('lbBody').innerHTML='<div class="empty-state">Không kết nối được máy chủ bảng xếp hạng.</div>';return}
-  $('lbBody').onclick=e=>{const el=e.target.closest('[data-uid]'); if(!el) return; const p=lbPeople.get(el.dataset.uid); if(p) challengeScreen(p,()=>leaderboard(tab))};
+  $('lbBody').onclick=e=>{const el=e.target.closest('[data-uid]'); if(!el||el.disabled) return; const p=lbPeople.get(el.dataset.uid); if(!p) return;
+    if(onlineSt.get(p.id)==='solo'){toast(`${tenNgan(p.ten)} đang trong trận solo khác`);return}
+    challengeScreen(p,()=>leaderboard(tab))};
   const q=$('q');
   if(q){ if(focus) setTimeout(()=>q.focus(),60);
     let t; q.oninput=()=>{clearTimeout(t); const v=q.value.trim(); t=setTimeout(()=>v?searchPlayers(v):loadBoard(tab,canSolo),300)} }
@@ -1495,10 +1505,11 @@ async function loadBoard(tab,canSolo){
     :`<div class="empty-state">Chưa có ai trên bảng. Chơi một lượt để ghi tên ${tab==='lop'?'lớp bạn':'mình'} đầu tiên.</div>`;return}
   const tap=r=>canSolo&&r.uid&&!r.mine?` data-uid="${r.uid}" role="button" tabindex="0" aria-label="Thách đấu ${esc(r.nm)}"`:'';
   const dot=r=>r.uid?`<span class="dot" data-online="${r.uid}" ${onlineSet.has(r.uid)?'':'hidden'}></span>`:'';
+  const stb=r=>r.uid&&!r.mine?stBadge(r.uid):'';
   const top=norm.slice(0,3), rest=norm.slice(3);
-  const pod=(r,i)=>r?`<div class="pod r${i+1}${r.mine?' mine':''}"${tap(r)}>${r.hasAv?avatarHTML(r.av,r.nm,i===0?60:46,'pod-av'):''}<div class="rk">${r.rk}</div><div class="nm">${dot(r)}${esc(r.nm)}</div><div class="sb">${esc(r.sb)}</div><div class="pt">${r.pt}</div></div>`:'<div></div>';
+  const pod=(r,i)=>r?`<div class="pod r${i+1}${r.mine?' mine':''}"${tap(r)}>${r.hasAv?avatarHTML(r.av,r.nm,i===0?60:46,'pod-av'):''}<div class="rk">${r.rk}</div><div class="nm">${dot(r)}${esc(r.nm)}</div>${stb(r)}<div class="sb">${esc(r.sb)}</div><div class="pt">${r.pt}</div></div>`:'<div></div>';
   let html=`<div class="podium">${pod(top[1],1)}${pod(top[0],0)}${pod(top[2],2)}</div>`;
-  if(rest.length) html+=`<div class="list">${rest.map(r=>`<div class="li${r.mine?' mine':''}"${tap(r)}><span class="rk">#${r.rk}</span><span class="nm${r.hasAv?' with-av':''}">${r.hasAv?avatarHTML(r.av,r.nm,34):''}<span>${dot(r)}${esc(r.nm)}<span class="sb">${esc(r.sb)}</span></span></span><span class="pt">${r.pt}</span></div>`).join('')}</div>`;
+  if(rest.length) html+=`<div class="list">${rest.map(r=>`<div class="li${r.mine?' mine':''}"${tap(r)}><span class="rk">#${r.rk}</span><span class="nm${r.hasAv?' with-av':''}">${r.hasAv?avatarHTML(r.av,r.nm,34):''}<span>${dot(r)}${esc(r.nm)} ${stb(r)}<span class="sb">${esc(r.sb)}</span></span></span><span class="pt">${r.pt}</span></div>`).join('')}</div>`;
   if(tab==='sv'&&profile&&myRank&&!norm.some(r=>r.mine)) html+=`<div class="list"><div class="li mine"><span class="rk">#${myRank}</span><span class="nm with-av">${avatarHTML(profile.avatar_url,profile.ten,34)}<span>${esc(profile.ten)}<span class="sb">Bạn</span></span></span><span class="pt">${profile.diem}</span></div></div>`;
   body.innerHTML=html;
   body.querySelectorAll('[data-uid][role=button]').forEach(el=>el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click()}});
@@ -1585,7 +1596,21 @@ const CHE_DO={
 let solo=null;            // trận đang đấu
 let soloWait=null;        // lời thách mình đã gửi, đang chờ trả lời
 let soloAccepting=null;   // id lời thách mình vừa bấm đồng ý
-let soloCh=null, onlineCh=null, onlineSet=new Set();
+let soloCh=null, onlineCh=null, onlineSet=new Set(), onlineSt=new Map(), myPresence='';
+// Trạng thái gửi kèm tín hiệu "đang mở game": rảnh, đang bán (chế độ thường) hay đang solo
+const presenceNow=()=>solo?'solo':midRun?'ban':'ranh';
+function syncPresence(force){
+  const st=presenceNow(); if(!onlineCh||(!force&&st===myPresence)) return;
+  myPresence=st; try{onlineCh.track({at:Date.now(),st})}catch(e){}
+}
+const ST_TEN={solo:'Đang solo',ban:'Đang bán'};
+const stBadge=id=>`<span class="st-badge" data-st="${id}" ${ST_TEN[onlineSt.get(id)]?'':'hidden'}>${ST_TEN[onlineSt.get(id)]||''}</span>`;
+function applyPresence(){
+  document.querySelectorAll('[data-online]').forEach(el=>el.hidden=!onlineSet.has(el.dataset.online));
+  document.querySelectorAll('[data-st]').forEach(el=>{const t=ST_TEN[onlineSt.get(el.dataset.st)];el.hidden=!t;el.textContent=t||''});
+  document.querySelectorAll('.act[data-uid]').forEach(b=>{const kin=onlineSt.get(b.dataset.uid)==='solo';b.disabled=kin;b.textContent=kin?'Đang trong trận':'Thách đấu'});
+  const cb=$('busyNote'); if(cb) cb.dispatchEvent(new Event('presence'));
+}
 const notices=new Map();  // id lời thách → {el,row,p,timer}
 const diemSolo=(dk,dt,tm)=>Math.round(dt*DIFF[dk].hs/10)-Math.round(tm*15*DIFF[dk].hs**2);
 const eloDoi=(ra,rb,s)=>Math.round(32*(s-1/(1+10**((rb-ra)/400))));
@@ -1601,9 +1626,11 @@ function soloConnect(){
     .subscribe();
   onlineCh=sb.channel('online',{config:{presence:{key:user.id}}});
   onlineCh.on('presence',{event:'sync'},()=>{
-      onlineSet=new Set(Object.keys(onlineCh.presenceState()));
-      document.querySelectorAll('[data-online]').forEach(el=>el.hidden=!onlineSet.has(el.dataset.online))})
-    .subscribe(s=>{if(s==='SUBSCRIBED') onlineCh.track({at:Date.now()})});
+      const ps=onlineCh.presenceState();
+      onlineSet=new Set(Object.keys(ps));
+      onlineSt=new Map(Object.entries(ps).map(([k,ms])=>{const m=[...(ms||[])].sort((a,b)=>(b.at||0)-(a.at||0))[0]||{};return [k,m.st||'ranh']}));
+      applyPresence()})
+    .subscribe(s=>{if(s==='SUBSCRIBED') syncPresence(true)});
   soloPoll(true); clearInterval(soloConnect.t); soloConnect.t=setInterval(()=>soloPoll(false),15000);
 }
 function soloDisconnect(){
@@ -1709,14 +1736,22 @@ async function challengeScreen(p,back,opt={}){
     <div class="col"><div class="eyebrow">Luật thắng</div><div class="modes" id="sModes">${Object.entries(CHE_DO).map(([k,v])=>`<button type="button" class="mode" data-m="${k}" aria-pressed="${k===md}"><b>${v.n}</b><small>${v.d}</small></button>`).join('')}</div></div>
     <p class="muted">Mỗi người bán 3 ngày cùng lúc, có cửa hàng giữa các ngày, không mua lại tim. Thắng <b>+${win}</b> Elo, thua <b>${lose}</b> Elo. Solo không cộng trừ ĐBK.</p>
     <div class="msg" id="msg"></div>
+    <div class="msg" id="busyNote" role="status"></div>
     <div class="col grow"><button class="btn" id="send">Gửi lời thách</button></div>`);
+  const busy=()=>{const st=onlineSt.get(p.id), n=$('busyNote'), b=$('send'); if(!n||!b) return;
+    n.className='msg'+(st==='ban'?' warn':'');
+    n.textContent=st==='solo'?`${tenNgan(p.ten)} đang trong một trận solo khác. Chờ trận đó xong rồi thách lại nhé.`
+      :st==='ban'?`${tenNgan(p.ten)} đang bán ở chế độ thường, phải chốt sổ xong mới nhận được lời thách.`
+      :onlineSet.has(p.id)?'':`${tenNgan(p.ten)} có vẻ không mở game lúc này.`;
+    if(!b.dataset.sending) b.disabled=st==='solo'};
+  busy(); $('busyNote').addEventListener('presence',busy);
   $('back').onclick=back||home;
   $('sDiffs').onclick=e=>{const b=e.target.closest('.diff');if(!b)return;dk=b.dataset.d;$('sDiffs').querySelectorAll('.diff').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===dk))};
   $('sModes').onclick=e=>{const b=e.target.closest('.mode');if(!b)return;md=b.dataset.m;$('sModes').querySelectorAll('.mode').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===md))};
   $('send').onclick=async()=>{
-    const msg=$('msg'); msg.className='msg ok'; msg.textContent='Đang gửi…'; $('send').disabled=true;
+    const msg=$('msg'); msg.className='msg ok'; msg.textContent='Đang gửi…'; $('send').disabled=true; $('send').dataset.sending=1;
     const {data,error}=await sb.rpc('gui_thach_dau',{p_b:p.id,p_do_kho:dk,p_che_do:md});
-    if(error){msg.className='msg';msg.textContent=error.message;$('send').disabled=false;
+    if(error){msg.className='msg';msg.textContent=error.message;$('send').disabled=false;delete $('send').dataset.sending;
       if(/đang trong một trận|đang chờ một lời thách/i.test(error.message)){msg.textContent+='. Đang tìm lại…';soloPoll(true)}
       return}
     waitScreen({id:data,opp:p,dk,md});
@@ -1826,6 +1861,7 @@ function soloFinish(why){
     <p class="muted" id="oppNow">${oppLine()}</p>`);
 }
 function soloEnd(r){
+  setTimeout(syncPresence,0);
   if(!solo) return;
   const s=solo; solo=null; document.querySelectorAll('.toast,#soloMenu').forEach(t=>t.remove()); hideDrawOffer(); clearRun();
   running=false; midRun=false; clearInterval(s.ping); clearInterval(s.chk); clearTimeout(s.tt);
@@ -1929,9 +1965,10 @@ async function searchPlayers(q){
   const rows=[...data].sort((a,b)=>onlineSet.has(b.id)-onlineSet.has(a.id));
   rows.forEach(p=>lbPeople.set(p.id,p));
   body.innerHTML=`<div class="list">${rows.map(p=>`<div class="li"><span>${avatarHTML(p.avatar_url,p.ten,34)}</span>
-    <span class="nm"><span class="dot" data-online="${p.id}" ${onlineSet.has(p.id)?'':'hidden'}></span>${esc(p.ten)}<span class="sb">${esc(p.lop)} · ${esc(p.khoa)} · Elo ${p.elo}</span></span>
+    <span class="nm"><span class="dot" data-online="${p.id}" ${onlineSet.has(p.id)?'':'hidden'}></span>${esc(p.ten)} ${stBadge(p.id)}<span class="sb">${esc(p.lop)} · ${esc(p.khoa)} · Elo ${p.elo}</span></span>
     <button type="button" class="act" data-uid="${p.id}">Thách đấu</button></div>`).join('')}</div>
-    <p class="muted"><span class="dot"></span>đang mở game</p>`;
+    <p class="muted"><span class="dot"></span>đang mở game · <span class="st-badge">Đang solo</span> thì chưa thách được</p>`;
+  applyPresence();
 }
 
 /* ================= Thông báo đẩy khi có lời thách (Web Push) =================
