@@ -435,6 +435,8 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .rp-ctl{position:sticky;bottom:-52px;z-index:2;background:var(--paper);display:flex;flex-direction:column;gap:6px;padding:8px 0}
 .rp-btns{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .rp-play{min-width:96px;padding:8px 16px}
+.rp-ic{display:inline-grid;place-items:center;padding-inline:10px}.rp-ic svg{width:16px;height:16px}
+@media (max-width:420px){.rp-btns{gap:6px}.rp-play{min-width:76px;padding:8px 12px}}
 .rp-speed{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden;margin-left:auto}
 .rp-speed button{font:inherit;font-size:12px;font-weight:700;border:0;background:var(--card);color:var(--muted);padding:6px 9px;cursor:pointer}
 .rp-speed button[aria-pressed="true"]{background:var(--navy);color:#fff}
@@ -552,7 +554,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="ban-ghi.js?v=2.12.2"></script>
+<script src="ban-ghi.js?v=2.12.3"></script>
 <script>
 /* ================= Cấu hình ================= */
 const SB_URL = 'https://fvacenxojembebqqxgfp.supabase.co';
@@ -1378,7 +1380,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.12.2</div>
+    <div class="muted">Phiên bản 2.12.3</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'

@@ -134,9 +134,11 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, firs
     <div class="rp-ket" id="rpKet" role="status" hidden></div>
     <div class="rp-ctl">
       <div class="rp-btns">
+        <button type="button" class="pz rp-ic" id="rpDau" aria-label="Về đầu trận" title="Về đầu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h2.5v16H5zM20 4v16L8.5 12z" fill="currentColor"/></svg></button>
         <button type="button" class="pz" id="rpBack10" aria-label="Lùi 10 giây">−10s</button>
         <button type="button" class="btn rp-play" id="rpPlay" aria-label="Phát">Phát</button>
         <button type="button" class="pz" id="rpFwd10" aria-label="Tiến 10 giây">+10s</button>
+        <button type="button" class="pz rp-ic" id="rpCuoi" aria-label="Đến cuối trận, xem kết quả" title="Đến cuối"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 4H19v16h-2.5zM4 4v16l11.5-8z" fill="currentColor"/></svg></button>
         <span class="rp-speed" role="group" aria-label="Tốc độ">${[1,2,4,8].map(s => `<button type="button" data-s="${s}" aria-pressed="${s === 1}">${s}×</button>`).join('')}</span>
       </div>
       <div class="rp-bar"><input type="range" id="rpSeek" min="0" max="${dur}" step="100" value="0" aria-label="Thời điểm trong trận">
@@ -150,6 +152,8 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, firs
   $('rpPlay').onclick = () => { RP.playing ? rpPause() : rpPlay() };
   $('rpBack10').onclick = () => rpSeek(RP.T - 10000);
   $('rpFwd10').onclick = () => rpSeek(RP.T + 10000);
+  $('rpDau').onclick = () => { rpPause(); rpSeek(0) };
+  $('rpCuoi').onclick = () => { rpPause(); rpSeek(RP.dur); const k = $('rpKet'); if(k && !k.hidden) k.scrollIntoView({block:'nearest', behavior:'smooth'}) };
   $('rpSeek').oninput = e => rpSeek(+e.target.value);
   $('ov').querySelector('.rp-speed').onclick = e => { const b = e.target.closest('[data-s]'); if(!b) return; RP.speed = +b.dataset.s;
     $('ov').querySelectorAll('.rp-speed button').forEach(x => x.setAttribute('aria-pressed', x === b)) };
