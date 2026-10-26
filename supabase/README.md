@@ -16,7 +16,7 @@ Thư mục này giữ **toàn bộ phần server** của game, để nếu proje
 1. Tạo project mới trên supabase.com.
 2. **Sửa địa chỉ project cũ** (`fvacenxojembebqqxgfp`) thành địa chỉ project mới ở 4 chỗ:
    - `supabase/schema.sql`: hàm `luu_avatar` (đường dẫn ảnh) và hàm `_bao_thach_dau` (địa chỉ Edge Function).
-   - `index.html`: `SB_URL` và `SB_KEY` (lấy ở Project Settings › API, dùng **publishable key**, không dùng secret key).
+   - `js/cau-hinh.js`: `SB_URL` và `SB_KEY` (lấy ở Project Settings › API, dùng **publishable key**, không dùng secret key).
 3. **SQL Editor** › dán toàn bộ `schema.sql` › Run.
 4. **Edge Function**: tạo hàm tên `thong-bao-thach-dau` với nội dung `functions/thong-bao-thach-dau/index.ts`, **tắt** "Verify JWT" (hàm tự kiểm tra mã bí mật).
 5. **Khoá thông báo đẩy**: tạo cặp khoá VAPID mới (`npx web-push generate-vapid-keys`) và một chuỗi ngẫu nhiên làm mã cho trigger, rồi lưu vào Vault bằng SQL Editor:
@@ -25,7 +25,7 @@ Thư mục này giữ **toàn bộ phần server** của game, để nếu proje
    select vault.create_secret('<khoá private>', 'vapid_private');
    select vault.create_secret('<chuỗi ngẫu nhiên>', 'push_hook_secret');
    ```
-   Sau đó sửa `PUSH_PUB` trong `index.html` thành khoá public mới. **Không** commit khoá private hay chuỗi ngẫu nhiên vào repo.
+   Sau đó sửa `PUSH_PUB` trong `js/thong-bao.js` thành khoá public mới. **Không** commit khoá private hay chuỗi ngẫu nhiên vào repo.
 6. **Authentication**:
    - URL Configuration: Site URL và Redirect URL là địa chỉ trang game.
    - SMTP: dùng Resend (`smtp.resend.com`, cổng 465, user `resend`, mật khẩu là API key Resend).

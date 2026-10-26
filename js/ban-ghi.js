@@ -97,6 +97,7 @@ let RP = null;   // {players:[{ten, av, ev, st}], T, dur, speed, playing, raf, l
 function rpStop(){ if(RP){ RP.playing = false; cancelAnimationFrame(RP.raf); clearInterval(RP.tick) } RP = null }
 async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, first: id người hiện bên trái}
   rpStop(); xemStop();
+  nhoMan('xemlai', o.thach_dau ? 'td' : 'run', o.thach_dau || o.run, o.first || null, o.title || '', o.sub || '');
   openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Xem lại</div><button class="link" id="back">Đóng</button></div>
     <h2>${esc(o.title || 'Xem lại')}</h2><div class="empty-state">Đang tải bản ghi…</div>`);
   $('back').onclick = () => { rpStop(); (o.back || home)() };
@@ -247,6 +248,7 @@ async function hoSoScreen(tab = 'stats', uid = null, back = null){
   if(!ranked || !sb){ toast('Đăng nhập để xem hồ sơ'); return }
   rpStop(); xemStop();
   const self = !uid || uid === user.id; uid = self ? user.id : uid;
+  nhoMan('hoso', tab, self ? null : uid);
   if(back || !HS || HS.uid !== uid) HS = {uid, self, back: back || home, who: self ? profile : null};
   if(self) HS.who = profile;
   if(!HS.who){
@@ -438,7 +440,7 @@ function xemHello(p){ try{ p.ch.send({type:'broadcast', event:'hello', payload:{
 async function watchScreen(uid, back){
   if(!ranked || !sb || !user){ toast('Đăng nhập để xem trực tiếp'); return }
   if(uid === user.id) return;
-  rpStop(); xemStop();
+  rpStop(); xemStop(); nhoMan('xem', uid);
   const x = XEM = {uid, back: back || home, ps: new Map(), order: [], idle: false, endShown: false};
   openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow"><span class="live-tag"><i class="live-dot" aria-hidden="true"></i>Trực tiếp</span> <span id="xEye"></span></div><button class="link" id="back">Đóng</button></div>
     <h2 id="xTitle">Đang kết nối…</h2><p class="muted" id="xSub">Đang chờ quán của bạn ấy gửi tình hình.</p>

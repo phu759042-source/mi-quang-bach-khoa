@@ -219,7 +219,7 @@ Giống mục Games và Stats của chess.com:
 
 ```mermaid
 flowchart TB
-    subgraph Client["Trình duyệt · index.html (HTML + CSS + JS thuần)"]
+    subgraph Client["Trình duyệt · index.html + css/ + js/ (HTML, CSS, JS thuần)"]
         G[Vòng lặp game<br/>requestAnimationFrame]
         UI[Giao diện các màn<br/>render bằng template string]
         A[Âm thanh<br/>Web Audio API]
@@ -295,8 +295,24 @@ flowchart TB
 
 ```
 mi-quang-bach-khoa/
-├── index.html               # Game: HTML + CSS + JS
-├── ban-ghi.js               # Ghi thao tác, xem lại, hồ sơ (ván đấu, thống kê, biểu đồ), xem trực tiếp
+├── index.html               # Khung trang: HTML của màn chơi, nạp CSS và các file JS theo thứ tự
+├── css/giao-dien.css        # Toàn bộ giao diện, biến màu cho chế độ sáng/tối
+├── js/                      # Mã game, mỗi file một phần (script thường, dùng chung biến toàn cục)
+│   ├── cau-hinh.js          # Cấu hình Supabase, phiên bản, dữ liệu game, biến trạng thái
+│   ├── vong-choi.js         # Vòng chơi: khách, làm tô, bưng, hết ngày, mất tim
+│   ├── hien-thi.js          # Vẽ màn chơi
+│   ├── am-thanh.js          # Âm thanh tổng hợp bằng Web Audio
+│   ├── mang.js              # Gọi RPC có thử lại
+│   ├── nop-diem.js          # Streak, kết thúc lượt, nộp điểm
+│   ├── tai-khoan.js         # Đăng nhập, sửa hồ sơ, avatar
+│   ├── man-hinh.js          # Màn chính, cửa hàng, bảng xếp hạng, liên hệ, ủng hộ, giao diện
+│   ├── solo.js              # Solo: thách đấu, realtime, Elo
+│   ├── thong-bao.js         # Thông báo đẩy
+│   ├── hieu-ung.js          # Hiệu ứng thắng/thua, khoá nút chống bấm nhầm
+│   ├── giu-quan.js          # Giữ quán khi tải lại, tạm dừng, đóng quán
+│   ├── ban-ghi.js           # Ghi thao tác, xem lại, hồ sơ, biểu đồ, xem trực tiếp
+│   ├── dieu-huong.js        # Nhớ màn đang mở để tải lại trang vẫn ở đúng chỗ
+│   └── khoi-dong.js         # Khởi động: đăng nhập, vào lại lượt/trận đang dở
 ├── sw.js                    # Service worker nhận thông báo thách đấu
 ├── manifest.webmanifest     # Cấu hình PWA
 ├── icons/                   # Favicon, icon PWA, mã QR ủng hộ
@@ -313,7 +329,7 @@ mi-quang-bach-khoa/
 └── CLAUDE.md                # Ghi chú kỹ thuật cho người phát triển
 ```
 
-Các phần chính trong `index.html`, tìm theo tên:
+Các phần chính trong `js/`, tìm theo tên:
 
 | Phần | Tên trong code |
 |---|---|
@@ -327,8 +343,8 @@ Các phần chính trong `index.html`, tìm theo tên:
 | Bảng xếp hạng, tìm người chơi | `leaderboard`, `loadBoard`, `searchPlayers`, `ruleText` |
 | Solo | `soloConnect`, `showNotice`, `challengeScreen`, `startSolo`, `soloPush`, `soloEnd` |
 | Thông báo đẩy | `swInit`, `pushCard`, `enablePush`, `pushResync`, `openThach` (và `sw.js`) |
-| Ghi và xem lại, hồ sơ, xem trực tiếp (`ban-ghi.js`) | `recStart`, `rec`, `recUpload`, `replayScreen`, `rpApply`, `hoSoScreen`, `statsTab`, `gamesTab`, `liveOpen`, `liveTick`, `watchScreen`, `lineChart`, `barChart` |
-| Giao diện | `applyTheme`, `home` |
+| Ghi và xem lại, hồ sơ, xem trực tiếp (`js/ban-ghi.js`) | `recStart`, `rec`, `recUpload`, `replayScreen`, `rpApply`, `hoSoScreen`, `statsTab`, `gamesTab`, `liveOpen`, `liveTick`, `watchScreen`, `lineChart`, `barChart` |
+| Giao diện, điều hướng | `applyTheme`, `home`, `nhoMan`, `moLaiMan` (`js/dieu-huong.js`) |
 
 ## 10. Chạy thử trên máy
 
@@ -341,7 +357,7 @@ python3 -m http.server 8000
 # mở http://localhost:8000
 ```
 
-Nếu không kết nối được Supabase, game tự chuyển sang **chế độ chơi thử** và vẫn chơi đầy đủ, chỉ không tính điểm. Muốn dùng backend riêng, hãy đổi `SB_URL` và `SB_KEY` ở đầu phần `<script>` trong `index.html`.
+Nếu không kết nối được Supabase, game tự chuyển sang **chế độ chơi thử** và vẫn chơi đầy đủ, chỉ không tính điểm. Muốn dùng backend riêng, hãy đổi `SB_URL` và `SB_KEY` trong `js/cau-hinh.js`.
 
 ### Kiểm thử tự động
 

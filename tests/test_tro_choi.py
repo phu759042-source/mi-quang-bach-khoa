@@ -257,10 +257,12 @@ def make(b, uid, w, h, scheme='light'):
 
     def route(r):
         u = r.request.url
-        if u.startswith('http://localhost:8766/index.html'):
-            body = open(os.path.join(REPO, 'index.html'), encoding='utf-8').read()
+        if u.startswith('http://localhost:8766/js/cau-hinh.js') or u.startswith('http://localhost:8766/js/solo.js'):
+            f = u.split('8766/')[1].split('?')[0]                              # rút ngắn ngày bán / cửa hàng solo
+            body = open(os.path.join(REPO, f), encoding='utf-8').read()
             body = body.replace('const DAYLEN=75;', 'const DAYLEN=8;').replace('SOLO_SHOP=20', 'SOLO_SHOP=3')
-            return r.fulfill(status=200, content_type='text/html; charset=utf-8', body=body)
+            assert 'DAYLEN=8' in body or 'SOLO_SHOP=3' in body, 'không rút ngắn được thời gian'
+            return r.fulfill(status=200, content_type='application/javascript; charset=utf-8', body=body)
         if u.startswith('http://localhost:8766/'): return r.continue_()
         return r.abort()
     ctx.route('**/*', route)
@@ -624,6 +626,22 @@ with sync_playwright() as pw:
     C.click('[data-t="runs"]'); C.wait_for_selector('#rList .li.game', timeout=4000)
     check(C.locator('#rList .li.game').count() >= 2, 'tab Lượt bán của Phú')
     shot(C, 'ho-so-nguoi-khac-02-luot-ban')
+
+    print('22b. Tải lại trang vẫn ở đúng màn: hồ sơ người khác, xem lại, bảng xếp hạng')
+    C.click('[data-t="games"]'); C.wait_for_selector('#gList .li.game', timeout=4000)
+    reload(C); C.wait_for_selector('#gList .li.game', timeout=8000)
+    check('Nguyễn Tấn Phú' in C.inner_text('.me') and C.locator('[data-t="games"][aria-selected="true"]').count() == 1, 'tải lại: vẫn ở tab Ván solo trong hồ sơ Phú')
+    C.click('#gList .li.game'); C.wait_for_selector('#rpStage .rp-view', timeout=5000)
+    reload(C); C.wait_for_selector('#rpStage .rp-view', timeout=8000)
+    check(C.locator('#rpStage .rp-view').count() == 2, 'tải lại: vẫn ở màn xem lại trận')
+    C.click('#back'); C.wait_for_selector('#gList', timeout=5000)
+    check('Nguyễn Tấn Phú' in C.inner_text('.me'), 'Đóng màn xem lại (sau khi tải lại) về hồ sơ Phú')
+    C.click('#back'); C.wait_for_selector('#lbBody', timeout=5000); C.click('[data-t="khoa"]'); C.wait_for_timeout(500)
+    reload(C); C.wait_for_selector('#lbBody', timeout=8000)
+    check(C.locator('[data-t="khoa"][aria-selected="true"]').count() == 1, 'tải lại: vẫn ở bảng xếp hạng tab Khoa')
+    C.click('#back'); C.wait_for_selector('#go', timeout=4000)
+    reload(C); C.wait_for_selector('#go', timeout=8000)
+    check(C.locator('#lbBody').count() == 0, 'về màn chính rồi tải lại thì ở màn chính')
 
     print('23. Màn chính: bấm thẻ tên/avatar để sửa hồ sơ')
     A.click('#home'); A.wait_for_selector('#edit', timeout=4000)
