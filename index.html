@@ -403,6 +403,14 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .rp-view{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .rp-head{display:flex;align-items:center;gap:8px}.rp-head b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rp-head .hearts{color:var(--chili);display:inline-flex;gap:1px}.rp-head .hearts svg{width:12px;height:12px}
+.rp-kq{font:800 11px/1.5 var(--body);color:#fff;border-radius:999px;padding:0 8px;white-space:nowrap}
+.rp-kq.win{background:var(--win)}.rp-kq.loss{background:var(--loss)}.rp-kq.even{background:var(--even)}
+.rp-ket{background:var(--card);border:1.5px solid var(--line);border-left:6px solid var(--even);border-radius:14px;padding:10px 14px;display:flex;flex-direction:column;gap:4px;animation:rpKetIn .35s ease-out}
+.rp-ket.win{border-left-color:var(--win)}.rp-ket.loss{border-left-color:var(--loss)}
+.rp-ket-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:17px}.rp-ket-t small{color:var(--muted);font-size:13px}
+.rp-ket-s{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:13px}.rp-ket-s b{color:var(--ink)}
+@keyframes rpKetIn{from{opacity:0;transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.rp-ket{animation:none}}
 .rp-stats{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.rp-stats b{color:var(--ink)}
 .rp-stats .tag,.rp-bowl .tag{border-radius:999px;color:#fff;padding:0 7px;font-size:11px;font-weight:700}.rp-stats .tag.rush{background:var(--chili)}.rp-bowl .tag.broth{background:var(--turmeric);color:var(--on-warm)}
 .rp-tables{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:6px}
@@ -535,7 +543,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="ban-ghi.js?v=2.12.0"></script>
+<script src="ban-ghi.js?v=2.12.1"></script>
 <script>
 /* ================= Cấu hình ================= */
 const SB_URL = 'https://fvacenxojembebqqxgfp.supabase.co';
@@ -1361,7 +1369,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.12.0</div>
+    <div class="muted">Phiên bản 2.12.1</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'

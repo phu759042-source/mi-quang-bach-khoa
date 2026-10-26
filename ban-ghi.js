@@ -116,7 +116,12 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, firs
   const players = data.map(d => ({id: d.user_id, ten: pmap.get(d.user_id)?.ten || 'Người chơi', av: pmap.get(d.user_id)?.avatar_url,
     ev: d.du_lieu.ev || [], st: rpNew(), dk: d.du_lieu.diff}));
   const dur = Math.max(...players.map(p => p.ev.length ? p.ev[p.ev.length - 1][0] : 0)) + 1000;
-  RP = {players, T: 0, dur, speed: 1, playing: false, last: 0, o};
+  const {data: kr} = o.thach_dau ? await sb.from('thach_dau').select('id,a,b,thang,ly_do,doi_a,doi_b,a_doanh_thu,b_doanh_thu,a_tim_mat,b_tim_mat,do_kho').eq('id', o.thach_dau).maybeSingle()
+    : await sb.from('runs').select('id,trang_thai,so_ngay,doanh_thu,tim_mat,delta').eq('id', o.run).maybeSingle();
+  if(!$('back')) return;
+  players.forEach(p => { p.kq = !kr ? null : o.thach_dau ? (!kr.thang ? 'hoa' : kr.thang === p.id ? 'thang' : 'thua')
+    : (kr.trang_thai === 'bo_cuoc' || (kr.delta || 0) < 0 ? 'thua' : (kr.delta || 0) > 0 ? 'thang' : 'hoa') });
+  RP = {players, T: 0, dur, speed: 1, playing: false, last: 0, o, kr, ketOn: null};
   const ks = ING_KEYS();
   const days = []; players[0].ev.forEach(e => { if(e[1] === 'D') days.push([e[0], e[2]]) });
   const moves = [];
@@ -126,6 +131,7 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, firs
     <h2>${esc(o.title || 'Xem lại')}</h2>
     ${players.length < 2 && o.thach_dau ? '<p class="muted">Chỉ có bản ghi của một bên (bên kia đang dùng bản game cũ hoặc chưa gửi kịp).</p>' : ''}
     <div class="rp-stage n${players.length}" id="rpStage">${players.map((p, i) => `<div class="rp-view" id="rpv${i}"></div>`).join('')}</div>
+    <div class="rp-ket" id="rpKet" role="status" hidden></div>
     <div class="rp-ctl">
       <div class="rp-btns">
         <button type="button" class="pz" id="rpBack10" aria-label="Lùi 10 giây">−10s</button>
@@ -172,6 +178,7 @@ function rpSeek(T, playing){
     while(p.st.i < p.ev.length && p.ev[p.st.i][0] <= T) rpApply(p.st, p.ev[p.st.i++]);
   });
   RP.T = T;
+  rpKet(T >= RP.dur - 50 || RP.players.every(p => p.st.ended));
   if(!playing){ RP.last = performance.now() }
   const s = $('rpSeek'); if(s && document.activeElement !== s) s.value = T;
   const n = $('rpNow'); if(n) n.textContent = mmss(T);
@@ -179,13 +186,33 @@ function rpSeek(T, playing){
   const ml = $('rpMoves'); if(ml){ let cur = null; ml.querySelectorAll('.rp-mv').forEach(b => { const on = +b.dataset.t <= T; b.classList.toggle('done', on); if(on) cur = b });
     ml.querySelectorAll('.rp-mv.cur').forEach(b => b.classList.remove('cur')); if(cur) cur.classList.add('cur') }
 }
+// Kết quả cuối trận: ai thắng ai thua (solo) hoặc lượt bán được bao nhiêu ĐBK, hiện khi tua tới cuối
+function rpKet(on){
+  const box = $('rpKet'); if(!box || !RP || !RP.kr) return;
+  on = !!on; if(RP.ketOn === on) return; RP.ketOn = on;
+  RP.players.forEach(p => p.ketTag = on && p.kq ? `<span class="rp-kq ${KQ[p.kq].c}">${KQ[p.kq].n}</span>` : '');
+  box.hidden = !on; if(!on){ box.innerHTML = ''; return }
+  const r = RP.kr, ps = RP.players, ten = id => esc(tenNgan((ps.find(p => p.id === id) || {}).ten || 'Đối thủ'));
+  if(RP.o.thach_dau){
+    const doi = id => { const s = r.a === id ? 'a' : 'b', d = r['doi_' + s] || 0, dk = diemSolo(r.do_kho, r[s + '_doanh_thu'] || 0, r[s + '_tim_mat'] || 0);
+      return `<span>${ten(id)}: ${dk} ĐBK · <b>${d > 0 ? '+' : d < 0 ? '−' : '±'}${Math.abs(d)} Elo</b></span>` };
+    box.className = 'rp-ket ' + (r.thang ? 'win' : 'even');
+    box.innerHTML = `<div class="rp-ket-t">${r.thang ? `${kqIcon('thang')} <b>${ten(r.thang)} thắng</b>${(() => { const l = r.thang === r.a ? r.b : r.a; return ` · ${ten(l)} thua` })()}`
+      : `${kqIcon('hoa')} <b>Hoà</b>`}<small>${LY_DO[r.ly_do] || ''}</small></div><div class="rp-ket-s">${doi(r.a)}${doi(r.b)}</div>`;
+  } else {
+    const p = ps[0], d = r.delta || 0;
+    box.className = 'rp-ket ' + KQ[p.kq].c;
+    box.innerHTML = `<div class="rp-ket-t">${kqIcon(p.kq)} <b>${r.trang_thai === 'bo_cuoc' ? 'Bỏ dở' : `Trụ ${r.so_ngay} ngày`}</b><small>${d > 0 ? 'có lời' : d < 0 ? 'lỗ' : 'hoà vốn'}</small></div>
+      <div class="rp-ket-s"><span>${r.doanh_thu || 0}k doanh thu · mất ${r.tim_mat || 0} tim</span><span><b>${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d)} ĐBK</b></span></div>`;
+  }
+}
 function rpDraw(p, i, T){
   const el = $('rpv' + i); if(!el) return;
   const st = p.st, rem = rpRem(st, T), dayT = DAYLEN - rem, rush = st.running && rem <= RUSH[1] && rem > RUSH[0];
   const bar = (r) => { const v = Math.max(0, Math.min(1, r)); return `<div class="pat"><i style="width:${v * 100}%;background:${v > .5 ? 'var(--leaf)' : v > .25 ? 'var(--turmeric)' : 'var(--chili)'}"></i></div>` };
   const ratio = k => k.r - (T - k.at) / 1000 / k.max, qratio = k => k.qr - (T - k.qat) / 1000 / k.qmax;
   const hearts = Array.from({length:5}, (_, k) => `<svg viewBox="0 0 24 22" aria-hidden="true"><path d="${HEART_PATH}" fill="${k < st.rep ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"/></svg>`).join('');
-  el.innerHTML = `<div class="rp-head">${avatarHTML(p.av, p.ten, 28)}<b>${esc(tenNgan(p.ten))}</b><span class="hearts">${hearts}</span></div>
+  el.innerHTML = `<div class="rp-head">${avatarHTML(p.av, p.ten, 28)}<b>${esc(tenNgan(p.ten))}</b>${p.ketTag || ''}<span class="hearts">${hearts}</span></div>
     <div class="rp-stats"><span>Ngày <b>${st.day || 1}</b></span><span>${st.shop ? 'Cửa hàng' : st.ended ? 'Đã xong' : `<b>${Math.ceil(rem)}</b>s`}</span>
       <span>Hôm nay <b>${st.earned}${st.target ? '/' + st.target : ''}k</b></span><span>Tổng <b>${st.total}k</b></span>${rush ? '<span class="tag rush">Cao điểm</span>' : ''}</div>
     <div class="rp-tables" style="--n:${st.n}">${st.slots.map((k, j) => k ? `<div class="rp-c${k.teacher ? ' teacher' : ''}"><span class="ava" style="background:${k.kh[2]}">${k.teacher ? 'Thầy' : k.kh[0]}</span>
