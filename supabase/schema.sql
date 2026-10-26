@@ -143,6 +143,10 @@ create policy "doc khoa"          on public.khoa      for select to anon, authen
 create policy "doc ho so"         on public.profiles  for select to anon, authenticated using (true);
 create policy "doc luot cua minh" on public.runs      for select to authenticated using (user_id = (select auth.uid()));
 create policy "doc tran cua minh" on public.thach_dau for select to authenticated using ((select auth.uid()) in (a, b));
+-- Hồ sơ công khai (bản 2.12.0): người đã đăng nhập xem được trận/lượt ĐÃ KẾT THÚC của người khác.
+-- Trận đang đấu, lời thách đang chờ và lượt đang chơi vẫn chỉ người trong cuộc đọc được.
+create policy "doc tran da xong"  on public.thach_dau for select to authenticated using (trang_thai = 'xong');
+create policy "doc luot da xong"  on public.runs      for select to authenticated using (trang_thai <> 'dang_choi');
 
 -- Supabase tự cấp mọi quyền cho anon/authenticated trên bảng mới: thu lại hết, chỉ cấp quyền đọc cần thiết
 revoke all on public.khoa, public.profiles, public.runs, public.luot_truy_cap, public.khach_ghe,
@@ -152,9 +156,8 @@ grant select on public.runs, public.thach_dau, public.ban_ghi to authenticated;
 
 alter table public.ban_ghi enable row level security;
 drop policy if exists "doc ban ghi" on public.ban_ghi;
-create policy "doc ban ghi" on public.ban_ghi for select to authenticated using (
-  user_id = (select auth.uid())
-  or exists (select 1 from public.thach_dau t where t.id = thach_dau_id and (select auth.uid()) in (t.a, t.b)));
+-- Bản ghi chỉ được gửi khi trận/lượt đã kết thúc (luu_ban_ghi), nên người đã đăng nhập đều xem lại được
+create policy "doc ban ghi" on public.ban_ghi for select to authenticated using (true);
 
 -- Realtime cho lời thách và tiến độ trận solo (RLS ở trên vẫn áp dụng)
 alter publication supabase_realtime add table public.thach_dau;

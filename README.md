@@ -187,12 +187,16 @@ Trong trận có nút **Bỏ cuộc · Hoà** (trận vẫn chạy khi mở): b�
 
 Giống mục Games và Stats của chess.com:
 
-- **Xem lại trận**: game không quay video mà **ghi lại từng thao tác** kèm thời điểm chính xác đến mili giây: khách đến, bỏ món nào, chan nước lèo, bưng cho bàn nào, sai món, khách bỏ về, mua nâng cấp, kể cả lúc tải lại trang. Khi xem lại, quán được dựng lại từ danh sách thao tác đó, nên thấy đúng nhịp nhanh chậm của người chơi. Trận solo hiện **hai quán cạnh nhau**, có nút phát/dừng, tua ±10 giây, tốc độ 1×–8×, thanh thời gian đánh dấu từng ngày, và danh sách diễn biến bấm vào để nhảy tới. Bản ghi chỉ hai người trong trận xem được.
+- **Xem lại trận**: game không quay video mà **ghi lại từng thao tác** kèm thời điểm chính xác đến mili giây: khách đến, bỏ món nào, chan nước lèo, bưng cho bàn nào, sai món, khách bỏ về, mua nâng cấp, kể cả lúc tải lại trang. Khi xem lại, quán được dựng lại từ danh sách thao tác đó, nên thấy đúng nhịp nhanh chậm của người chơi. Trận solo hiện **hai quán cạnh nhau**, có nút phát/dừng, tua ±10 giây, tốc độ 1×–8×, thanh thời gian đánh dấu từng ngày, và danh sách diễn biến bấm vào để nhảy tới.
 - **Ván solo**: danh sách trận mới nhất ở trên, có đối thủ (kèm Elo lúc đó), biểu tượng thắng/hoà/thua, độ khó, luật, lý do kết thúc, Elo được cộng hoặc trừ, ngày giờ.
 - **Thống kê**: Elo hiện tại và cao nhất, tỉ lệ thắng/hoà/thua, tỉ lệ thắng theo từng luật, biểu đồ Elo sau mỗi trận. Phần mở quán thường có ĐBK trung bình mỗi lượt, tỉ lệ lượt có lời, lượt tốt nhất, số ngày trụ lâu nhất, chuỗi ngày hiện tại và dài nhất, biểu đồ ĐBK từng lượt, và bảng theo độ khó.
 - Màu thắng/thua trong biểu đồ dùng **xanh dương–đỏ** thay vì xanh lá–đỏ, đã kiểm tra bằng công cụ đo để người mù màu vẫn phân biệt được; biểu tượng còn có dấu +, =, − nên không phụ thuộc vào màu.
 
+- **Hồ sơ người khác**: bấm tên bất kỳ ai ở bảng xếp hạng hay ô tìm kiếm để xem thống kê, ván solo và lượt bán của họ, mở xem lại từng trận, rồi thách đấu ngay từ hồ sơ. Giống chess.com, lịch sử **đã kết thúc** là công khai với người đã đăng nhập; trận đang đấu, lời thách đang chờ và lượt đang chơi vẫn chỉ người trong cuộc đọc được.
+- **Xem trực tiếp**: người đang bán hoặc đang solo có nút **Xem trực tiếp** (ở ô tìm kiếm là "Xem trận"). Màn xem dùng lại bộ dựng quán của phần xem lại, trễ khoảng nửa giây; trận solo hiện cả hai quán. Hết trận, màn xem báo ai thắng, Elo đổi bao nhiêu (hoặc người đó đã chốt sổ được bao nhiêu ĐBK) và hiện nút thách đấu người vừa rảnh. Dữ liệu đi qua Supabase Realtime Broadcast, máy người chơi chỉ gửi khi có người đang xem, không ghi gì vào database.
+
 <p align="center"><img src="docs/images/xem-lai-laptop.png" width="820" alt="Xem lại một trận solo, hai quán cạnh nhau"></p>
+<p align="center"><img src="docs/images/xem-truc-tiep.png" width="820" alt="Xem trực tiếp một trận solo, kết quả khi trận kết thúc, và hồ sơ của người khác"></p>
 <p align="center"><img src="docs/images/van-solo-laptop.png" width="820" alt="Danh sách ván solo với biểu tượng thắng, hoà, thua"></p>
 <p align="center"><img src="docs/images/ho-so-dien-thoai.png" width="820" alt="Thống kê, xem lại và danh sách lượt bán trên điện thoại"></p>
 
@@ -275,7 +279,9 @@ flowchart TB
 
 **Không mất điểm khi mạng chập chờn.** Safari trên iOS hay báo lỗi `Load failed` khi dùng lại kết nối cũ. Kết quả lượt chơi vì thế được **lưu vào localStorage trước khi gửi**. Game gửi lại tự động kèm cơ chế thử lại (`rpcRetry`), và nếu vẫn lỗi thì lần mở game sau trên máy đó sẽ tự nộp (`flushPending`). Lượt đang chờ nộp không bị tính là bỏ dở.
 
-**Solo realtime mà vẫn chống gian lận.** Thông báo thách đấu và tiến độ đối thủ đến qua Supabase Realtime, nhưng RLS chỉ cho mỗi người đọc trận của chính mình. Mọi thay đổi đều đi qua RPC trên server (`gui_thach_dau`, `tra_loi_thach_dau`, `cap_nhat_solo`…). Server kiểm tra doanh thu không giảm, tim mất không giảm, thời gian chơi khớp số ngày, rồi tự phân thắng thua và tính Elo. Thông báo hệ thống đi theo đường: lời thách mới → trigger Postgres gọi Edge Function `thong-bao-thach-dau` qua `pg_net` → hàm gửi Web Push (khoá VAPID cất trong Supabase Vault) → `sw.js` hiện thông báo, và bỏ qua nếu game đang mở trước mặt để không báo hai lần. Người chơi phải báo về mỗi 4 giây; ai im lặng quá 25 giây bị xử thua, nên không thể tắt game để né trận thua.
+**Solo realtime mà vẫn chống gian lận.** Thông báo thách đấu và tiến độ đối thủ đến qua Supabase Realtime, nhưng RLS chỉ cho mỗi người đọc trận đang đấu của chính mình (trận đã xong mới công khai). Mọi thay đổi đều đi qua RPC trên server (`gui_thach_dau`, `tra_loi_thach_dau`, `cap_nhat_solo`…). Server kiểm tra doanh thu không giảm, tim mất không giảm, thời gian chơi khớp số ngày, rồi tự phân thắng thua và tính Elo. Thông báo hệ thống đi theo đường: lời thách mới → trigger Postgres gọi Edge Function `thong-bao-thach-dau` qua `pg_net` → hàm gửi Web Push (khoá VAPID cất trong Supabase Vault) → `sw.js` hiện thông báo, và bỏ qua nếu game đang mở trước mặt để không báo hai lần. Người chơi phải báo về mỗi 4 giây; ai im lặng quá 25 giây bị xử thua, nên không thể tắt game để né trận thua.
+
+**Xem trực tiếp mà không tốn database.** Mỗi người chơi giữ một kênh Broadcast `xem:<id>`. Người xem gửi lời "chào" kèm số sự kiện đã có, 8 giây một lần; còn người xem thì máy người chơi gửi phần sự kiện mới mỗi 0,6 giây (thiếu đoạn nào thì người xem xin gửi lại từ đó). Thời gian được tính theo đồng hồ của người chơi (số mili giây từ lúc mở quán) nên lệch giờ giữa hai máy không làm sai nhịp. Kết quả cuối (Elo, ĐBK) được gửi kèm sau khi server tính xong.
 
 **Cân bằng độ khó bằng mô phỏng.** Mục tiêu doanh thu mỗi ngày không đặt theo cảm tính. Chúng được lấy từ mô phỏng 2.000 ván với chiến lược của người chơi khá, có mua nâng cấp dần, rồi nhân thêm một tỉ lệ tăng theo ngày.
 
@@ -290,7 +296,7 @@ flowchart TB
 ```
 mi-quang-bach-khoa/
 ├── index.html               # Game: HTML + CSS + JS
-├── ban-ghi.js               # Ghi thao tác, xem lại trận, hồ sơ (ván đấu, thống kê, biểu đồ)
+├── ban-ghi.js               # Ghi thao tác, xem lại, hồ sơ (ván đấu, thống kê, biểu đồ), xem trực tiếp
 ├── sw.js                    # Service worker nhận thông báo thách đấu
 ├── manifest.webmanifest     # Cấu hình PWA
 ├── icons/                   # Favicon, icon PWA, mã QR ủng hộ
@@ -321,7 +327,7 @@ Các phần chính trong `index.html`, tìm theo tên:
 | Bảng xếp hạng, tìm người chơi | `leaderboard`, `loadBoard`, `searchPlayers`, `ruleText` |
 | Solo | `soloConnect`, `showNotice`, `challengeScreen`, `startSolo`, `soloPush`, `soloEnd` |
 | Thông báo đẩy | `swInit`, `pushCard`, `enablePush`, `pushResync`, `openThach` (và `sw.js`) |
-| Ghi và xem lại, hồ sơ (`ban-ghi.js`) | `recStart`, `rec`, `recUpload`, `replayScreen`, `rpApply`, `hoSoScreen`, `statsTab`, `gamesTab`, `lineChart`, `barChart` |
+| Ghi và xem lại, hồ sơ, xem trực tiếp (`ban-ghi.js`) | `recStart`, `rec`, `recUpload`, `replayScreen`, `rpApply`, `hoSoScreen`, `statsTab`, `gamesTab`, `liveOpen`, `liveTick`, `watchScreen`, `lineChart`, `barChart` |
 | Giao diện | `applyTheme`, `home` |
 
 ## 10. Chạy thử trên máy
@@ -342,7 +348,7 @@ Nếu không kết nối được Supabase, game tự chuyển sang **chế đ�
 Mỗi lần push lên `main`, GitHub Actions chạy ba bài kiểm tra:
 - cú pháp JavaScript;
 - **dựng lại database từ `supabase/schema.sql`** trên một Postgres trống, rồi thử các luật server (chống gian lận khi nộp điểm, quyền đọc trận solo, Elo, trigger thông báo);
-- **chơi thật bằng hai trình duyệt** (điện thoại và laptop) với server giả lập cùng luật: thách đấu, thông báo, Sinh tồn, Điểm cao, hiệu ứng thắng/thua, tải lại trang giữa trận.
+- **chơi thật bằng hai trình duyệt** (điện thoại và laptop) với server giả lập cùng luật: thách đấu, thông báo, Sinh tồn, Điểm cao, hiệu ứng thắng/thua, tải lại trang giữa trận, xem lại, hồ sơ người khác, và xem trực tiếp bằng trình duyệt thứ ba.
 
 Cách chạy trên máy ở [tests/README.md](tests/README.md). Cách dựng lại backend trên project Supabase mới ở [supabase/README.md](supabase/README.md).
 

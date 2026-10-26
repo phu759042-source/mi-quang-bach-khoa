@@ -436,6 +436,14 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .pod .st-badge{margin:2px auto 0}
 .li .act:disabled{background:var(--line);color:var(--muted);cursor:default}
 .msg.warn{color:var(--heading)}
+.hs-act{gap:8px;flex-wrap:wrap}.hs-act .btn{flex:1;min-width:140px}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--chili);margin-right:6px;vertical-align:1px;animation:livePulse 1.4s ease-in-out infinite}
+@keyframes livePulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.live-dot{animation:none}}
+.live-tag{color:var(--chili);font-weight:800}
+.li .act.watch{background:var(--navy);color:#fff}
+.li[data-prof]{cursor:pointer}
+.xem-ket{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0;line-height:1.5}
 /* ======== Laptop / màn hình rộng ======== */
 @media (min-width:900px) and (min-height:560px){
   .desk{display:revert!important}
@@ -527,7 +535,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="ban-ghi.js?v=2.11.1"></script>
+<script src="ban-ghi.js?v=2.12.0"></script>
 <script>
 /* ================= Cấu hình ================= */
 const SB_URL = 'https://fvacenxojembebqqxgfp.supabase.co';
@@ -936,7 +944,7 @@ let midClose=false, lastRunRec=null;
 async function finishRun(why, cashOut=false, sauFx=false){
   setTimeout(syncPresence,0);
   clearRun();
-  if(REC&&!REC.xong){rec('O',S.day,S.total,S.lost||0);REC.xong=1}
+  if(REC&&!REC.xong){rec('O',S.day,S.total,S.lost||0,cashOut?1:0);REC.xong=1}
   if(!cashOut&&!sauFx){
     running=false; midRun=false;
     if(ranked&&runId&&user) savePending({uid:user.id,run:runId,so_ngay:S.day,doanh_thu:S.total,tim_mat:S.lost||0}); // giữ điểm nếu tắt trang giữa chừng
@@ -985,7 +993,7 @@ async function finishRun(why, cashOut=false, sauFx=false){
         <div class="col grow"><button class="btn" id="retry">Thử nộp lại</button><button class="btn ghost" id="home">Về màn hình chính</button></div>`;
       $('retry').onclick=trySubmit; $('home').onclick=home; return;
     }
-    lastRunRec=pend.run; recUpload({run:pend.run});
+    lastRunRec=pend.run; liveKet({delta:data?data.delta:null,cash:cashOut?1:0}); recUpload({run:pend.run});
     if(data&&data.chuoi_moi){
       const before=streakState().n;
       if(profile){profile.chuoi=data.chuoi;profile.ngay_chuoi=vnDate();profile.chuoi_dai_nhat=data.chuoi_dai_nhat}
@@ -1353,7 +1361,7 @@ function home(){
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    <div class="muted">Phiên bản 2.11.1</div>
+    <div class="muted">Phiên bản 2.12.0</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?'Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.'
     :diff==='kho'?'Khách vội hơn, gọi nhiều món hơn. Điểm thưởng ×1.5, phạt gấp đôi.'
@@ -1364,7 +1372,7 @@ function home(){
     $('diffs').querySelectorAll('.diff').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===diff));desc()};
   $('go').onclick=startRun;
   $('lb').onclick=()=>leaderboard('sv');
-  if(ranked){$('solo').onclick=()=>leaderboard('solo',true);$('hoso').onclick=()=>hoSoScreen('stats')}
+  if(ranked){$('solo').onclick=()=>leaderboard('solo',true);$('hoso').onclick=()=>hoSoScreen('stats',null,home)}
   $('contact').onclick=()=>contactScreen(home);
   $('donate').onclick=()=>donateScreen(home);
   if(ranked){$('edit').onclick=profileScreen;$('out').onclick=logout}else $('login').onclick=()=>sb?authScreen():toast('Không kết nối được máy chủ');
@@ -1468,15 +1476,19 @@ async function leaderboard(tab,focus){
   <div class="rule" id="rule"></div>`);
   $('back').onclick=home;
   document.querySelector('.tabs').onclick=e=>{const b=e.target.closest('[data-t]');if(b)leaderboard(b.dataset.t)};
-  const hint=canSolo?' Bấm vào tên một bạn để thách đấu solo.':'';
+  const hint=canSolo?' Bấm vào tên một bạn để xem hồ sơ, thách đấu solo, hoặc xem trực tiếp khi bạn ấy đang bán.':'';
   $('rule').innerHTML=tab==='sv'?ruleText()+(hint?`<p style="margin-top:6px">${hint.trim()}</p>`:''):tab==='lop'
     ?'Điểm lớp = tổng ĐBK của 10 bạn cao nhất lớp, chia 10. Lớp chưa đủ 10 người chơi thì phần thiếu tính là 0.'
     :tab==='khoa'?'Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30.'
     :'Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Ai chưa đấu trận nào đứng ở 1200. Solo không ảnh hưởng ĐBK.'+hint;
   if(!sb){$('lbBody').innerHTML='<div class="empty-state">Không kết nối được máy chủ bảng xếp hạng.</div>';return}
-  $('lbBody').onclick=e=>{const el=e.target.closest('[data-uid]'); if(!el||el.disabled) return; const p=lbPeople.get(el.dataset.uid); if(!p) return;
-    if(onlineSt.get(p.id)==='solo'){toast(`${tenNgan(p.ten)} đang trong trận solo khác`);return}
-    challengeScreen(p,()=>leaderboard(tab))};
+  const lbBack=()=>leaderboard(tab);
+  $('lbBody').onclick=e=>{
+    const b=e.target.closest('.act[data-uid]');
+    if(b){const p=lbPeople.get(b.dataset.uid); if(!p) return;
+      if(onlineSt.get(p.id)==='solo') return watchScreen(p.id,lbBack);
+      return challengeScreen(p,lbBack)}
+    const el=e.target.closest('[data-prof]'); if(el) hoSoScreen('stats',el.dataset.prof,lbBack)};
   const q=$('q');
   if(q){ if(focus) setTimeout(()=>q.focus(),60);
     let t; q.oninput=()=>{clearTimeout(t); const v=q.value.trim(); t=setTimeout(()=>v?searchPlayers(v):loadBoard(tab,canSolo),300)} }
@@ -1503,7 +1515,7 @@ async function loadBoard(tab,canSolo){
   if(!norm.length){body.innerHTML=tab==='solo'
     ?`<div class="empty-state">Chưa có trận solo nào.${canSolo?' Tìm một bạn ở ô phía trên và thách đấu để mở màn.':' Đăng nhập để thách đấu bạn bè.'}</div>`
     :`<div class="empty-state">Chưa có ai trên bảng. Chơi một lượt để ghi tên ${tab==='lop'?'lớp bạn':'mình'} đầu tiên.</div>`;return}
-  const tap=r=>canSolo&&r.uid&&!r.mine?` data-uid="${r.uid}" role="button" tabindex="0" aria-label="Thách đấu ${esc(r.nm)}"`:'';
+  const tap=r=>canSolo&&r.uid?` data-prof="${r.uid}" role="button" tabindex="0" aria-label="Xem hồ sơ ${esc(r.nm)}"`:'';
   const dot=r=>r.uid?`<span class="dot" data-online="${r.uid}" ${onlineSet.has(r.uid)?'':'hidden'}></span>`:'';
   const stb=r=>r.uid&&!r.mine?stBadge(r.uid):'';
   const top=norm.slice(0,3), rest=norm.slice(3);
@@ -1512,7 +1524,7 @@ async function loadBoard(tab,canSolo){
   if(rest.length) html+=`<div class="list">${rest.map(r=>`<div class="li${r.mine?' mine':''}"${tap(r)}><span class="rk">#${r.rk}</span><span class="nm${r.hasAv?' with-av':''}">${r.hasAv?avatarHTML(r.av,r.nm,34):''}<span>${dot(r)}${esc(r.nm)} ${stb(r)}<span class="sb">${esc(r.sb)}</span></span></span><span class="pt">${r.pt}</span></div>`).join('')}</div>`;
   if(tab==='sv'&&profile&&myRank&&!norm.some(r=>r.mine)) html+=`<div class="list"><div class="li mine"><span class="rk">#${myRank}</span><span class="nm with-av">${avatarHTML(profile.avatar_url,profile.ten,34)}<span>${esc(profile.ten)}<span class="sb">Bạn</span></span></span><span class="pt">${profile.diem}</span></div></div>`;
   body.innerHTML=html;
-  body.querySelectorAll('[data-uid][role=button]').forEach(el=>el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click()}});
+  body.querySelectorAll('[data-prof][role=button]').forEach(el=>el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click()}});
 }
 function ruleText(){
   return `<b>Cách tính ĐBK mỗi lượt:</b> doanh thu × hệ số ÷ 10, trừ số tim mất × mức phạt. Bỏ dở lượt giữa chừng tính như mất cả 5 tim.
@@ -1608,7 +1620,10 @@ const stBadge=id=>`<span class="st-badge" data-st="${id}" ${ST_TEN[onlineSt.get(
 function applyPresence(){
   document.querySelectorAll('[data-online]').forEach(el=>el.hidden=!onlineSet.has(el.dataset.online));
   document.querySelectorAll('[data-st]').forEach(el=>{const t=ST_TEN[onlineSt.get(el.dataset.st)];el.hidden=!t;el.textContent=t||''});
-  document.querySelectorAll('.act[data-uid]').forEach(b=>{const kin=onlineSt.get(b.dataset.uid)==='solo';b.disabled=kin;b.textContent=kin?'Đang trong trận':'Thách đấu'});
+  // người đang solo: nút đổi thành "Xem trận" (xem trực tiếp), hết trận tự đổi lại "Thách đấu"
+  document.querySelectorAll('.act[data-uid]').forEach(b=>{const kin=onlineSt.get(b.dataset.uid)==='solo';b.classList.toggle('watch',kin);b.textContent=kin?'Xem trận':'Thách đấu'});
+  document.querySelectorAll('[data-thach]').forEach(b=>{const kin=onlineSt.get(b.dataset.thach)==='solo';b.textContent=kin?'Đang trong trận · Xem':'Thách đấu'});
+  document.querySelectorAll('[data-xem]').forEach(b=>{const st=onlineSt.get(b.dataset.xem);b.hidden=!(st==='ban'||st==='solo')});
   const cb=$('busyNote'); if(cb) cb.dispatchEvent(new Event('presence'));
 }
 const notices=new Map();  // id lời thách → {el,row,p,timer}
@@ -1631,12 +1646,13 @@ function soloConnect(){
       onlineSt=new Map(Object.entries(ps).map(([k,ms])=>{const m=[...(ms||[])].sort((a,b)=>(b.at||0)-(a.at||0))[0]||{};return [k,m.st||'ranh']}));
       applyPresence()})
     .subscribe(s=>{if(s==='SUBSCRIBED') syncPresence(true)});
+  liveOpen();
   soloPoll(true); clearInterval(soloConnect.t); soloConnect.t=setInterval(()=>soloPoll(false),15000);
 }
 function soloDisconnect(){
   if(soloCh){sb.removeChannel(soloCh);soloCh=null}
   if(onlineCh){sb.removeChannel(onlineCh);onlineCh=null}
-  clearInterval(soloConnect.t); [...notices.keys()].forEach(dropNotice);
+  liveClose(); clearInterval(soloConnect.t); [...notices.keys()].forEach(dropNotice);
 }
 // Dự phòng khi realtime chập chờn: hỏi server lời thách đang chờ; trận cũ còn treo (tải lại trang giữa trận) thì tính bỏ trận
 async function soloPoll(boot){
@@ -1801,7 +1817,7 @@ function startSolo(r,opp){
 }
 function soloBegin(){
   if(!solo) return;
-  S={day:1,money:0,rep:5,upg:{},total:0,lost:0,bought:0}; recStart('solo'); startDay();
+  S={day:1,money:0,rep:5,upg:{},total:0,lost:0,bought:0}; recStart('solo'); REC.opp=solo.row[solo.op]; REC.td=solo.id; startDay();
   solo.ping=setInterval(()=>soloPush(true),4000);
   solo.chk=setInterval(async()=>{if(!solo)return;const id=solo.id;const {data}=await sb.rpc('kiem_tra_solo',{p_id:id});if(data&&solo&&solo.id===id)soloUpdate(data)},10000);
 }
@@ -1867,6 +1883,7 @@ function soloEnd(r){
   running=false; midRun=false; clearInterval(s.ping); clearInterval(s.chk); clearTimeout(s.tt);
   diff=s.prevDiff;
   if(REC){rec('O',S.day,S.total,S.lost||0); recUpload({thach_dau:r.id})}
+  liveKet({id:r.id,a:r.a,b:r.b,thang:r.thang,ly_do:r.ly_do,doi_a:r.doi_a,doi_b:r.doi_b});
   const me=s.me, o=s.op, draw=!r.thang, win=r.thang===user.id, d=r['doi_'+me]??0, eloMoi=(r['elo_'+me]??myElo())+d;
   if(profile){profile.elo=Math.max(100,eloMoi); const k=draw?'solo_hoa':win?'solo_thang':'solo_thua'; profile[k]=(profile[k]||0)+1}
   const ten=s.opp.ten||'Đối thủ', n=tenNgan(ten);
@@ -1964,10 +1981,11 @@ async function searchPlayers(q){
   if(!data||!data.length){body.innerHTML='<div class="empty-state">Không thấy ai có tên hoặc lớp này.</div>';return}
   const rows=[...data].sort((a,b)=>onlineSet.has(b.id)-onlineSet.has(a.id));
   rows.forEach(p=>lbPeople.set(p.id,p));
-  body.innerHTML=`<div class="list">${rows.map(p=>`<div class="li"><span>${avatarHTML(p.avatar_url,p.ten,34)}</span>
+  body.innerHTML=`<div class="list">${rows.map(p=>`<div class="li" data-prof="${p.id}" role="button" tabindex="0" aria-label="Xem hồ sơ ${esc(p.ten)}"><span>${avatarHTML(p.avatar_url,p.ten,34)}</span>
     <span class="nm"><span class="dot" data-online="${p.id}" ${onlineSet.has(p.id)?'':'hidden'}></span>${esc(p.ten)} ${stBadge(p.id)}<span class="sb">${esc(p.lop)} · ${esc(p.khoa)} · Elo ${p.elo}</span></span>
     <button type="button" class="act" data-uid="${p.id}">Thách đấu</button></div>`).join('')}</div>
-    <p class="muted"><span class="dot"></span>đang mở game · <span class="st-badge">Đang solo</span> thì chưa thách được</p>`;
+    <p class="muted"><span class="dot"></span>đang mở game · bấm tên để xem hồ sơ · <span class="st-badge">Đang solo</span> thì bấm "Xem trận" để xem trực tiếp</p>`;
+  body.querySelectorAll('[data-prof]').forEach(el=>el.onkeydown=e=>{if(e.target===el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();el.click()}});
   applyPresence();
 }
 

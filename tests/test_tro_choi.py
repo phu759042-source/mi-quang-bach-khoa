@@ -12,7 +12,8 @@ Cần:    pip install playwright && python3 -m playwright install chromium
 
 Các bước: tab Solo trước khi có trận, hiệu ứng thua + khoá nút ở chế độ thường, tìm bạn, chọn luật,
 thông báo góc dưới phải có âm thanh, đếm ngược, thanh đối thủ, Sinh tồn, từ chối, Điểm cao 3 ngày,
-bảng xếp hạng Solo, tải lại trang lúc đang chờ và giữa trận."""
+bảng xếp hạng Solo, tải lại trang lúc đang chờ và giữa trận, xem lại, thống kê, trạng thái bận,
+xem trực tiếp (trình duyệt thứ ba xem trận solo và lượt bán thường đến lúc chốt sổ), hồ sơ người khác."""
 import sys, os, json, time, itertools, subprocess, threading
 from datetime import datetime, timezone, timedelta
 from playwright.sync_api import sync_playwright
@@ -37,6 +38,7 @@ class Fake:
         s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': []}
         s.runs, s.run_seq, s.nop, s.bg, s.pres = {}, itertools.count(77), [], [], {}
         s.calls = []
+        s.bcq = {}                                            # hàng đợi Realtime Broadcast theo người (giả lập kênh xem:<id>)
 
     def emit(s, r):
         for u in (r['a'], r['b']):
@@ -176,24 +178,28 @@ class Fake:
             if isinstance(uid, list): return {'data': [dict(s.prof[x]) for x in uid if x in s.prof]}
             p = s.prof.get(uid)
             return {'data': dict(p) if p else None}
-        if t == 'runs':
+        if t == 'runs':                                       # RLS: của mình, hoặc lượt đã kết thúc của bất kỳ ai
+            xem = lambda r: r['user_id'] == u or r['trang_thai'] != 'dang_choi'
             rid = next((v for k, op, v in f if k == 'id'), None)
-            if rid is not None: return {'data': dict(s.runs[rid]) if rid in s.runs and s.runs[rid]['user_id'] == u else None}
-            rows = [dict(r) for r in s.runs.values() if r['user_id'] == u and r['trang_thai'] != 'dang_choi']
+            if rid is not None: return {'data': dict(s.runs[rid]) if rid in s.runs and xem(s.runs[rid]) else None}
+            who = next((v for k, op, v in f if k == 'user_id'), u)
+            rows = [dict(r) for r in s.runs.values() if r['user_id'] == who and r['trang_thai'] != 'dang_choi' and xem(r)]
             return {'data': sorted(rows, key=lambda r: r['ket_thuc'], reverse=not q.get('asc'))}
-        if t == 'ban_ghi':                                    # RLS: của mình, hoặc trận solo mình có mặt
-            def xem(b): return b['user_id'] == u or (b['thach_dau_id'] and u in (s.rows[b['thach_dau_id']]['a'], s.rows[b['thach_dau_id']]['b']))
-            rows = [b for b in s.bg if xem(b)]
+        if t == 'ban_ghi':                                    # RLS: người đã đăng nhập đọc được mọi bản ghi (chỉ có khi đã xong)
+            rows = list(s.bg)
             for k, op, v in f:
                 if k in ('thach_dau_id', 'run_id'): rows = [b for b in rows if (b[k] in v if op == 'in' else b[k] == v)]
             return {'data': [dict(b) for b in rows]}
         if t == 'thach_dau':
             rid = next((v for k, op, v in f if k == 'id'), None)
+            xem = lambda r: u in (r['a'], r['b']) or r['trang_thai'] == 'xong'     # RLS: trận của mình, hoặc trận đã xong
             if rid is not None:
                 r = s.rows.get(int(rid))
-                return {'data': dict(r, a_ping=None, b_ping=None) if r and u in (r['a'], r['b']) else None}
+                return {'data': dict(r, a_ping=None, b_ping=None) if r and xem(r) else None}
             st = next((v if op == 'in' else [v] for k, op, v in f if k == 'trang_thai'), ['cho', 'dang_dau'])
-            rows = [dict(r, a_ping=None, b_ping=None) for r in s.rows.values() if u in (r['a'], r['b']) and r['trang_thai'] in st]
+            orf = next((v for k, op, v in f if op == 'or'), None)
+            who = orf.split(',')[0].split('.eq.')[1] if orf else u
+            rows = [dict(r, a_ping=None, b_ping=None) for r in s.rows.values() if who in (r['a'], r['b']) and r['trang_thai'] in st and xem(r)]
             if st == ['xong']: return {'data': sorted(rows, key=lambda r: r['ket_thuc'], reverse=not q.get('asc'))}
             return {'data': sorted(rows, key=lambda r: -r['id'])}
         if t == 'bxh_sinh_vien':
@@ -220,16 +226,18 @@ STUB = r"""
       then(ok,no){return call('select',st).then(ok,no)}};
     return b;
   }
-  const subs=[], syncs=[]; window.__pres={}; let presKey='';
+  const subs=[], syncs=[], chans=[]; window.__pres={}; let presKey='';
   setInterval(async()=>{const evs=await call('events',{});evs.forEach(r=>subs.forEach(cb=>cb({new:r})));
+    const bcs=await call('bcs',{});bcs.forEach(m=>chans.forEach(ch=>{if(ch.name===m.topic&&ch.bc[m.event])ch.bc[m.event]({payload:m.payload})}));
     const pr=await call('presence',{}), k=JSON.stringify(pr); if(k!==presKey){presKey=k;window.__pres=pr;syncs.forEach(f=>f())}},150);
   window.__chal=0;
   window.supabase={createClient:()=>({
     from:q, rpc:(fn,args)=>call('rpc',{fn,args:args||{}}),
-    channel(name){const ch={on(type,filt,cb){if(type==='postgres_changes')subs.push(cb);else{ch.sync=cb;syncs.push(cb)}return ch},
+    channel(name){const ch={name,bc:{},on(type,filt,cb){if(type==='postgres_changes')subs.push(cb);else if(type==='broadcast')ch.bc[filt.event]=cb;else{ch.sync=cb;syncs.push(cb)}return ch},
+      send(m){call('bc',{topic:name,event:m.event,payload:m.payload})},
       subscribe(cb){cb&&setTimeout(()=>{cb('SUBSCRIBED');ch.sync&&ch.sync()},50);return ch},
-      presenceState(){return Object.fromEntries(Object.entries(window.__pres).map(([k,v])=>[k,[v]]))},track(p){call('track',p)}};return ch},
-    removeChannel(){},
+      presenceState(){return Object.fromEntries(Object.entries(window.__pres).map(([k,v])=>[k,[v]]))},track(p){call('track',p)}};chans.push(ch);return ch},
+    removeChannel(ch){const i=chans.indexOf(ch);if(i>=0)chans.splice(i,1)},
     auth:{onAuthStateChange(){},getSession:async()=>({data:{session:{user:{id:window.__uid}}}}),signOut:async()=>({})},
     storage:{from:()=>({upload:async()=>({}),remove:async()=>({})})}
   })};
@@ -263,8 +271,16 @@ def make(b, uid, w, h, scheme='light'):
                 return json.dumps(ev)
             if kind == 'track': F.pres[uid] = a; return json.dumps(None)       # giả lập Supabase presence
             if kind == 'presence': return json.dumps(F.pres)
+            if kind == 'bc':                                                   # broadcast: gửi cho mọi máy khác (self:false)
+                for k, qq in F.bcq.items():
+                    if k != uid: qq.append(a)
+                return json.dumps(None)
+            if kind == 'bcs':
+                ev, F.bcq[uid] = F.bcq[uid], []
+                return json.dumps(ev)
             if kind == 'rpc': return json.dumps(F.rpc(uid, a['fn'], a['args']))
             return json.dumps(F.select(uid, a))
+    F.bcq[uid] = []
     ctx.expose_binding('__sb', handler)
     ctx.add_init_script(STUB + f"window.__uid='{uid}';")
     p = ctx.new_page()
@@ -522,7 +538,7 @@ with sync_playwright() as pw:
     check(A.locator('#rList .li.game').count() >= 2, 'tab Lượt bán liệt kê các lượt')
     shot(A, 'ho-so-03-luot-ban')
 
-    print('20. Trạng thái "Đang solo" / "Đang bán" khi tìm người để thách')
+    print('20. Trạng thái "Đang solo": nút đổi thành "Xem trận", xem trực tiếp, hết trận thì thách được')
     C = make(b, 'C', 390, 844)
     A.click('#back'); A.wait_for_timeout(300); B.click('#back'); B.wait_for_timeout(400); B.click('#back'); B.wait_for_timeout(300)
     A.click('#solo'); A.fill('#q', 'huy'); A.wait_for_timeout(700); A.click('.li .act'); A.wait_for_timeout(300); A.click('#send')
@@ -530,18 +546,55 @@ with sync_playwright() as pw:
     A.wait_for_function('running===true', timeout=9000)
     C.click('#solo'); C.fill('#q', 'huy'); C.wait_for_timeout(900)
     btn = C.locator('.li .act[data-uid="B"]')
-    check(C.locator('[data-st="B"]').inner_text() == 'Đang solo' and C.locator('[data-st="B"]').is_visible() and btn.is_disabled() and 'Đang trong trận' in btn.inner_text(),
-          'C thấy Huy "Đang solo", nút thách bị khoá')
+    check(C.locator('[data-st="B"]').inner_text() == 'Đang solo' and C.locator('[data-st="B"]').is_visible() and btn.is_enabled() and btn.inner_text() == 'Xem trận',
+          'C thấy Huy "Đang solo", nút đổi thành "Xem trận"')
     shot(C, 'trang-thai-01-dang-solo')
+    btn.click(); C.wait_for_function("document.querySelectorAll('#xStage .rp-view').length===2", timeout=6000)
+    C.wait_for_timeout(1500)
+    check(' vs ' in C.inner_text('#xTitle') and 'Phú' in C.inner_text('#xTitle'), f"xem trực tiếp: tiêu đề {C.inner_text('#xTitle')!r}")
+    check(C.locator('#rpv0 .rp-c').count() >= 3 and C.locator('#rpv1 .rp-c').count() >= 3, 'dựng được quán của cả hai người')
+    A.evaluate("()=>{rec('V',999,0,120,80);S.total+=120;S.money+=120;D.earned+=120;renderStats()}"); C.wait_for_timeout(1800)
+    check('120k' in C.inner_text('#xStage'), 'thấy tiền bán của Phú cập nhật gần như ngay')
+    shot(C, 'xem-truc-tiep-01-solo')
     A.click('#pauseBtn'); A.click('#smQuit'); A.wait_for_timeout(450); A.click('#smQuit')
-    A.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=8000); C.wait_for_timeout(900)
-    check(btn.is_enabled() and C.locator('[data-st="B"]').is_hidden(), 'trận xong: Huy hết "Đang solo", nút thách mở lại')
-    A.click('#home'); A.wait_for_timeout(300); A.click('#go'); A.wait_for_function('running===true', timeout=5000); C.wait_for_timeout(900)
-    C.fill('#q', 'phú'); C.wait_for_timeout(900)
-    check(C.locator('[data-st="A"]').inner_text() == 'Đang bán', 'C thấy Phú "Đang bán" khi Phú mở quán thường')
-    C.click('.li .act[data-uid="A"]'); C.wait_for_selector('#busyNote', timeout=3000); C.wait_for_timeout(300)
-    check('đang bán ở chế độ thường' in C.inner_text('#busyNote') and C.locator('#send').is_enabled(), 'màn thách báo trước Phú đang bán, vẫn cho gửi')
-    shot(C, 'trang-thai-02-dang-ban')
+    A.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=8000)
+    C.wait_for_selector('#xEnd .xem-ket', timeout=8000)
+    check('Huy thắng' in C.inner_text('#xEnd') and 'bỏ cuộc' in C.inner_text('#xEnd'), f"hết trận: báo kết quả ({C.inner_text('#xEnd')!r})")
+    check(C.locator('[data-thach-xem="B"]').count() == 1 and C.locator('[data-thach-xem="A"]').count() == 1, 'có nút thách đấu cả hai người')
+    C.wait_for_timeout(800); shot(C, 'xem-truc-tiep-02-ket-qua')
+    C.click('[data-thach-xem="B"]'); C.wait_for_selector('#send', timeout=3000)
+    check('Thách đấu Huy' in C.inner_text('#ov') and C.locator('#send').is_enabled(), 'bấm "Thách đấu Huy" mở màn thách, gửi được')
+    C.click('#back'); C.wait_for_timeout(400)
+
+    print('21. Xem trực tiếp Phú bán thường đến lúc chốt sổ')
+    A.click('#home'); A.wait_for_timeout(300); A.click('#go'); A.wait_for_function('running===true', timeout=5000)
+    C.click('#back'); C.wait_for_timeout(300); C.click('#solo'); C.fill('#q', 'phú'); C.wait_for_timeout(900)
+    check(C.locator('[data-st="A"]').inner_text() == 'Đang bán', 'C thấy Phú "Đang bán"')
+    C.click('.li[data-prof="A"] .nm'); C.wait_for_selector('#hsXem', state='visible', timeout=4000)
+    check('Nguyễn Tấn Phú' in C.inner_text('.me') and C.locator('#hsThach').count() == 1, 'bấm tên mở hồ sơ Phú, có nút Thách đấu và Xem trực tiếp')
+    C.click('#hsXem'); C.wait_for_selector('#xStage .rp-view .rp-c', timeout=6000)
+    check('đang bán' in C.inner_text('#xTitle'), f"tiêu đề {C.inner_text('#xTitle')!r}")
+    A.evaluate("()=>{rec('V',998,1,2000,70);S.total+=2000;S.money+=2000;D.earned+=2000;renderStats()}"); C.wait_for_timeout(1500)
+    shot(C, 'xem-truc-tiep-03-ban-thuong')
+    A.wait_for_selector('#cash', timeout=15000); A.wait_for_timeout(300); A.click('#cash'); A.click('#cash')
+    C.wait_for_selector('#xEnd .xem-ket', timeout=10000)
+    t = C.inner_text('#xEnd')
+    check('đã chốt sổ' in t and 'ĐBK' in t and C.locator('[data-thach-xem="A"]').count() == 1, f'biết Phú chốt sổ, có nút thách ({t!r})')
+    shot(C, 'xem-truc-tiep-04-chot-so')
+
+    print('22. Hồ sơ người khác: thống kê, ván solo, lượt bán, xem lại')
+    C.click('#xHoSo'); C.wait_for_selector('#hsBody .card-s', timeout=5000); C.wait_for_timeout(400)
+    nA = sum(1 for r in F.rows.values() if r['trang_thai'] == 'xong' and 'A' in (r['a'], r['b']))
+    check(f'Số trận\n{nA}' in C.inner_text('#hsBody'), f'thống kê đúng số trận solo của Phú ({nA})')
+    shot(C, 'ho-so-nguoi-khac-01-thong-ke')
+    C.click('[data-t="games"]'); C.wait_for_selector('#gList .li.game', timeout=4000)
+    check(C.locator('#gList .li.game').count() == nA, 'tab Ván solo liệt kê trận của Phú, không lẫn trận người khác')
+    C.click('#gList .li.game'); C.wait_for_selector('#rpStage .rp-view', timeout=5000); C.wait_for_timeout(400)
+    check('Phú' in C.inner_text('#rpv0 .rp-head'), 'xem lại: quán của Phú ở bên trái')
+    C.click('#back'); C.wait_for_selector('#gList', timeout=4000)
+    C.click('[data-t="runs"]'); C.wait_for_selector('#rList .li.game', timeout=4000)
+    check(C.locator('#rList .li.game').count() >= 2, 'tab Lượt bán của Phú')
+    shot(C, 'ho-so-nguoi-khac-02-luot-ban')
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

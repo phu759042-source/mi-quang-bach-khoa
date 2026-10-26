@@ -2,7 +2,8 @@
    1. Bộ ghi thao tác: mỗi sự kiện của lượt chơi / trận solo được ghi kèm thời điểm (ms tính từ lúc bắt đầu),
       lưu cùng bản lưu máy (mqbk-run) và gửi lên server (bảng ban_ghi) khi kết thúc.
    2. Màn xem lại: dựng lại quán từ danh sách sự kiện, xem hai người cạnh nhau, phát/tua/đổi tốc độ.
-   3. Hồ sơ: Thống kê (solo + mở quán), Ván solo (kiểu chess.com), Lượt bán.
+   3. Hồ sơ (của mình hoặc người khác): Thống kê (solo + mở quán), Ván solo (kiểu chess.com), Lượt bán.
+   4. Xem trực tiếp người đang bán / đang solo qua Realtime Broadcast, hết trận thì mời thách đấu.
    File này chỉ khai báo hàm; mọi biến game (S, D, solo, DIFF, KHACH…) nằm trong index.html. */
 
 /* ================= 1. Bộ ghi ================= */
@@ -94,8 +95,8 @@ const mmss = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Mat
 /* ================= 2b. Màn xem lại ================= */
 let RP = null;   // {players:[{ten, av, ev, st}], T, dur, speed, playing, raf, last}
 function rpStop(){ if(RP){ RP.playing = false; cancelAnimationFrame(RP.raf); clearInterval(RP.tick) } RP = null }
-async function replayScreen(o){   // o = {thach_dau, run, back, title, sub}
-  rpStop();
+async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, first: id người hiện bên trái}
+  rpStop(); xemStop();
   openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Xem lại</div><button class="link" id="back">Đóng</button></div>
     <h2>${esc(o.title || 'Xem lại')}</h2><div class="empty-state">Đang tải bản ghi…</div>`);
   $('back').onclick = () => { rpStop(); (o.back || home)() };
@@ -110,7 +111,8 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub}
   const ids = data.map(d => d.user_id);
   const {data: ps} = await sb.from('profiles').select('id,ten,avatar_url').in('id', ids);
   const pmap = new Map((ps || []).map(p => [p.id, p]));
-  data.sort((a, b) => (a.user_id === user.id ? -1 : b.user_id === user.id ? 1 : 0));
+  const first = o.first || user.id;
+  data.sort((a, b) => (a.user_id === first ? -1 : b.user_id === first ? 1 : 0));
   const players = data.map(d => ({id: d.user_id, ten: pmap.get(d.user_id)?.ten || 'Người chơi', av: pmap.get(d.user_id)?.avatar_url,
     ev: d.du_lieu.ev || [], st: rpNew(), dk: d.du_lieu.diff}));
   const dur = Math.max(...players.map(p => p.ev.length ? p.ev[p.ev.length - 1][0] : 0)) + 1000;
@@ -193,49 +195,78 @@ function rpDraw(p, i, T){
     <div class="rp-log">${st.log.slice().reverse().map((l, k) => `<span class="${l.kind}" style="opacity:${1 - k * .25}">${esc(l.txt)}</span>`).join('')}</div>`;
 }
 
-/* ================= 3. Hồ sơ: Thống kê · Ván solo · Lượt bán ================= */
+/* ================= 3. Hồ sơ: Thống kê · Ván solo · Lượt bán (của mình hoặc của bất kỳ ai) ================= */
 const fmtNgay = iso => { if(!iso) return ''; const d = new Date(iso);
   return d.toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh', day:'2-digit', month:'2-digit', year:'numeric'}) + ' · ' +
     d.toLocaleTimeString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh', hour:'2-digit', minute:'2-digit'}) };
 const KQ = {thang:{c:'win', s:'+', n:'Thắng'}, thua:{c:'loss', s:'−', n:'Thua'}, hoa:{c:'even', s:'=', n:'Hoà'}};
 const kqIcon = k => `<span class="kq ${KQ[k].c}" role="img" aria-label="${KQ[k].n}">${KQ[k].s}</span>`;
 const LY_DO = {het_tim:'hết tim', diem:'so điểm', roi_tran:'rời trận', bo_cuoc:'bỏ cuộc', ca_hai_roi:'cả hai rời', hoa_thoa_thuan:'đồng ý hoà'};
-function soloView(r){   // một trận nhìn từ phía mình
-  const me = r.a === user.id ? 'a' : 'b', o = me === 'a' ? 'b' : 'a';
-  const kq = !r.thang ? 'hoa' : r.thang === user.id ? 'thang' : 'thua';
+function soloView(r, uid = user.id){   // một trận nhìn từ phía người chơi uid
+  const me = r.a === uid ? 'a' : 'b', o = me === 'a' ? 'b' : 'a';
+  const kq = !r.thang ? 'hoa' : r.thang === uid ? 'thang' : 'thua';
   return {r, me, o, kq, opp: r[o], eloTruoc: r['elo_' + me], doi: r['doi_' + me] || 0, eloOpp: r['elo_' + o]};
 }
-async function hoSoScreen(tab = 'stats'){
-  if(!ranked || !sb){ toast('Đăng nhập để xem thống kê'); return }
-  rpStop();
-  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Hồ sơ</div><button class="link" id="back">Đóng</button></div>
-    <div class="me has-av">${avatarHTML(profile.avatar_url, profile.ten, 48, 'me-av')}<div class="nm">${esc(profile.ten)}</div>
-      <div class="sub">${esc(profile.lop)} · ${esc(khoaTen(profile.khoa_id))}</div><div class="pts">${profile.elo ?? 1200}<small>Elo solo</small></div></div>
+const PROF_COT = 'id,ten,lop,khoa_id,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url,ngay_xa_nhat,chuoi,chuoi_dai_nhat,ngay_chuoi';
+let HS = null;   // hồ sơ đang xem: {uid, who, back, self}
+// Chuỗi ngày của người khác: tính từ các cột trong profiles giống streakState()
+const chuoiCua = w => { const lit = w.ngay_chuoi === vnDate(), alive = lit || w.ngay_chuoi === vnDate(-1);
+  return {n: alive ? w.chuoi || 0 : 0, lit, best: w.chuoi_dai_nhat || 0} };
+async function hoSoScreen(tab = 'stats', uid = null, back = null){
+  if(!ranked || !sb){ toast('Đăng nhập để xem hồ sơ'); return }
+  rpStop(); xemStop();
+  const self = !uid || uid === user.id; uid = self ? user.id : uid;
+  if(back || !HS || HS.uid !== uid) HS = {uid, self, back: back || home, who: self ? profile : null};
+  if(self) HS.who = profile;
+  if(!HS.who){
+    openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Hồ sơ</div><button class="link" id="back">Đóng</button></div><div class="empty-state">Đang tải hồ sơ…</div>`);
+    $('back').onclick = HS.back;
+    const h = HS, {data, error} = await sb.from('profiles').select(PROF_COT).eq('id', uid).maybeSingle();
+    if(HS !== h || !$('back')) return;
+    if(!data){ $('ov').querySelector('.empty-state').textContent = error ? 'Không tải được: ' + error.message : 'Không tìm thấy người chơi này.'; return }
+    h.who = data;
+  }
+  const w = HS.who;
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Hồ sơ${self ? ' của bạn' : ''}</div><button class="link" id="back">Đóng</button></div>
+    <div class="me has-av">${avatarHTML(w.avatar_url, w.ten, 48, 'me-av')}<div class="nm">${self ? '' : `<span class="dot" data-online="${w.id}" ${onlineSet.has(w.id) ? '' : 'hidden'}></span>`}${esc(w.ten)}${self ? '' : ' ' + stBadge(w.id)}</div>
+      <div class="sub">${esc(w.lop)} · ${esc(khoaTen(w.khoa_id))}</div><div class="pts">${w.elo ?? 1200}<small>Elo solo</small></div></div>
+    ${self ? '' : `<div class="row hs-act"><button type="button" class="btn" id="hsThach" data-thach="${w.id}">Thách đấu</button>
+      <button type="button" class="btn ghost live-btn" id="hsXem" data-xem="${w.id}" hidden><i class="live-dot" aria-hidden="true"></i>Xem trực tiếp</button></div>`}
     <div class="tabs" role="tablist">${[['stats','Thống kê'],['games','Ván solo'],['runs','Lượt bán']].map(([k, n]) => `<button role="tab" data-t="${k}" aria-selected="${k === tab}">${n}</button>`).join('')}</div>
     <div class="col" id="hsBody"><div class="empty-state">Đang tải…</div></div>`);
-  $('back').onclick = home;
-  $('ov').querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-t]'); if(b) hoSoScreen(b.dataset.t) };
+  $('back').onclick = HS.back;
+  const me = () => hoSoScreen(tab, uid);
+  if(!self){
+    $('hsThach').onclick = () => { if(onlineSt.get(uid) === 'solo') return watchScreen(uid, me); challengeScreen(w, me) };
+    $('hsXem').onclick = () => watchScreen(uid, me);
+    applyPresence();
+  }
+  $('ov').querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-t]'); if(b) hoSoScreen(b.dataset.t, uid) };
   const body = $('hsBody');
   if(tab === 'games') return gamesTab(body, 0);
   if(tab === 'runs') return runsTab(body);
   return statsTab(body);
 }
-const back2 = tab => () => hoSoScreen(tab);
+const back2 = tab => { const uid = HS.uid; return () => hoSoScreen(tab, uid) };
+const tenHS = () => HS.self ? 'Bạn' : tenNgan(HS.who.ten);
 async function oppMap(ids){
   if(!ids.length) return new Map();
-  const {data} = await sb.from('profiles').select('id,ten,lop,avatar_url').in('id', [...new Set(ids)]);
+  const {data} = await sb.from('profiles').select('id,ten,lop,elo,avatar_url').in('id', [...new Set(ids)]);
   return new Map((data || []).map(p => [p.id, p]));
 }
+// Trận đã xong của một người (sau khi mở hồ sơ công khai, RLS cho đọc mọi trận đã xong nên phải lọc theo người)
+const tranCua = (uid, cot) => sb.from('thach_dau').select(cot).or(`a.eq.${uid},b.eq.${uid}`).eq('trang_thai', 'xong');
 async function gamesTab(body, from){
-  const N = 20;
-  const {data, error} = await sb.from('thach_dau').select('id,a,b,do_kho,che_do,thang,ly_do,elo_a,elo_b,doi_a,doi_b,ket_thuc,a_doanh_thu,b_doanh_thu,a_tim_mat,b_tim_mat')
-    .eq('trang_thai', 'xong').order('ket_thuc', {ascending:false}).range(from, from + N - 1);
-  if(!$('hsBody')) return;
+  const N = 20, h = HS, uid = h.uid;
+  const {data, error} = await tranCua(uid, 'id,a,b,do_kho,che_do,thang,ly_do,elo_a,elo_b,doi_a,doi_b,ket_thuc,a_doanh_thu,b_doanh_thu,a_tim_mat,b_tim_mat')
+    .order('ket_thuc', {ascending:false}).range(from, from + N - 1);
+  if(!$('hsBody') || HS !== h) return;
   if(error){ body.innerHTML = `<div class="empty-state">Không tải được: ${esc(error.message)}</div>`; return }
-  const rows = (data || []).map(soloView);
-  if(!rows.length && !from){ body.innerHTML = '<div class="empty-state">Bạn chưa đấu trận solo nào. Vào Bảng xếp hạng, bấm tên một bạn để thách đấu.</div>'; return }
+  const rows = (data || []).map(r => soloView(r, uid));
+  if(!rows.length && !from){ body.innerHTML = `<div class="empty-state">${h.self ? 'Bạn chưa đấu trận solo nào. Vào Bảng xếp hạng, bấm tên một bạn để thách đấu.' : `${esc(tenNgan(h.who.ten))} chưa đấu trận solo nào.`}</div>`; return }
   const om = await oppMap(rows.map(v => v.opp));
   const {data: bg} = rows.length ? await sb.from('ban_ghi').select('thach_dau_id').in('thach_dau_id', rows.map(v => v.r.id)) : {data: []};
+  if(HS !== h) return;
   const coBG = new Set((bg || []).map(x => x.thach_dau_id));
   const html = rows.map(v => { const p = om.get(v.opp) || {ten:'Người chơi'};
     return `<button type="button" class="li game" data-id="${v.r.id}">${kqIcon(v.kq)}
@@ -249,16 +280,18 @@ async function gamesTab(body, from){
   $('gMore') && ($('gMore').onclick = () => gamesTab(body, from + N));
   $('gList').onclick = e => { const b = e.target.closest('[data-id]'); if(!b) return; const v = rows.find(x => x.r.id === +b.dataset.id); if(!v) return;
     const p = om.get(v.opp) || {ten:'Đối thủ'};
-    replayScreen({thach_dau: v.r.id, back: back2('games'), title: `${tenNgan(profile.ten)} vs ${tenNgan(p.ten)}`,
+    replayScreen({thach_dau: v.r.id, first: uid, back: back2('games'), title: `${tenNgan(h.who.ten)} vs ${tenNgan(p.ten)}`,
       sub: `${KQ[v.kq].n} · ${DIFF[v.r.do_kho].n} · ${CHE_DO[v.r.che_do].n} · ${fmtNgay(v.r.ket_thuc)}`}) };
 }
 async function runsTab(body){
+  const h = HS;
   const {data, error} = await sb.from('runs').select('id,do_kho,trang_thai,so_ngay,doanh_thu,tim_mat,delta,ket_thuc')
-    .eq('user_id', user.id).neq('trang_thai', 'dang_choi').order('ket_thuc', {ascending:false}).limit(50);
-  if(!$('hsBody')) return;
+    .eq('user_id', h.uid).neq('trang_thai', 'dang_choi').order('ket_thuc', {ascending:false}).limit(50);
+  if(!$('hsBody') || HS !== h) return;
   if(error){ body.innerHTML = `<div class="empty-state">Không tải được: ${esc(error.message)}</div>`; return }
-  if(!data || !data.length){ body.innerHTML = '<div class="empty-state">Bạn chưa có lượt bán nào được tính điểm.</div>'; return }
+  if(!data || !data.length){ body.innerHTML = `<div class="empty-state">${h.self ? 'Bạn' : esc(tenNgan(h.who.ten))} chưa có lượt bán nào được tính điểm.</div>`; return }
   const {data: bg} = await sb.from('ban_ghi').select('run_id').in('run_id', data.map(r => r.id));
+  if(HS !== h) return;
   const coBG = new Set((bg || []).map(x => x.run_id));
   body.innerHTML = `<p class="muted">50 lượt gần nhất. Bản ghi để xem lại được giữ cho 50 lượt mới nhất.</p><div class="list games" id="rList">${data.map(r => {
     const d = r.delta || 0, k = r.trang_thai === 'bo_cuoc' ? 'thua' : d > 0 ? 'thang' : d < 0 ? 'thua' : 'hoa';
@@ -268,31 +301,32 @@ async function runsTab(body){
       <span class="pt"><span class="elo-doi">${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d)}</span>${coBG.has(r.id) ? '<small class="xem">Xem lại ›</small>' : ''}</span></button>` }).join('')}</div>`;
   $('rList').onclick = e => { const b = e.target.closest('[data-id]'); if(!b) return; if(b.dataset.no){ toast('Lượt này không có bản ghi'); return }
     const r = data.find(x => x.id === +b.dataset.id);
-    replayScreen({run: r.id, back: back2('runs'), title: `Lượt bán ${DIFF[r.do_kho].n}`, sub: `${r.so_ngay} ngày · ${r.delta > 0 ? '+' : ''}${r.delta} ĐBK · ${fmtNgay(r.ket_thuc)}`}) };
+    replayScreen({run: r.id, first: h.uid, back: back2('runs'), title: `${h.self ? 'Lượt bán' : tenNgan(h.who.ten) + ' bán'} ${DIFF[r.do_kho].n}`, sub: `${r.so_ngay} ngày · ${r.delta > 0 ? '+' : ''}${r.delta} ĐBK · ${fmtNgay(r.ket_thuc)}`}) };
 }
 async function statsTab(body){
+  const h = HS, w = h.who;
   const [{data: tr}, {data: rs}] = await Promise.all([
-    sb.from('thach_dau').select('id,a,b,che_do,do_kho,thang,elo_a,elo_b,doi_a,doi_b,ket_thuc').eq('trang_thai', 'xong').order('ket_thuc', {ascending:true}).limit(1000),
-    sb.from('runs').select('id,do_kho,trang_thai,so_ngay,doanh_thu,delta,ket_thuc').eq('user_id', user.id).neq('trang_thai', 'dang_choi').order('ket_thuc', {ascending:true}).limit(1000)]);
-  if(!$('hsBody')) return;
-  const games = (tr || []).map(soloView), runs = rs || [];
+    tranCua(h.uid, 'id,a,b,che_do,do_kho,thang,elo_a,elo_b,doi_a,doi_b,ket_thuc').order('ket_thuc', {ascending:true}).limit(1000),
+    sb.from('runs').select('id,do_kho,trang_thai,so_ngay,doanh_thu,delta,ket_thuc').eq('user_id', h.uid).neq('trang_thai', 'dang_choi').order('ket_thuc', {ascending:true}).limit(1000)]);
+  if(!$('hsBody') || HS !== h) return;
+  const games = (tr || []).map(r => soloView(r, h.uid)), runs = rs || [];
   const W = games.filter(g => g.kq === 'thang').length, L = games.filter(g => g.kq === 'thua').length, Dr = games.length - W - L;
   const pct = n => games.length ? Math.round(n / games.length * 100) : 0;
   const eloSeries = games.map(g => ({t: g.r.ket_thuc, v: (g.eloTruoc ?? 1200) + g.doi, g}));
-  const eloMax = Math.max(1200, profile.elo ?? 1200, ...eloSeries.map(x => x.v));
-  const theo = md => { const gs = games.filter(g => g.r.che_do === md), w = gs.filter(g => g.kq === 'thang').length;
-    return gs.length ? `${w}/${gs.length} thắng (${Math.round(w / gs.length * 100)}%)` : 'chưa đấu' };
+  const eloMax = Math.max(1200, w.elo ?? 1200, ...eloSeries.map(x => x.v));
+  const theo = md => { const gs = games.filter(g => g.r.che_do === md), x = gs.filter(g => g.kq === 'thang').length;
+    return gs.length ? `${x}/${gs.length} thắng (${Math.round(x / gs.length * 100)}%)` : 'chưa đấu' };
   const tot = runs.length, loi = runs.filter(r => (r.delta || 0) > 0).length;
   const avg = tot ? Math.round(runs.reduce((s, r) => s + (r.delta || 0), 0) / tot) : 0;
   const best = runs.reduce((b, r) => !b || (r.delta || 0) > (b.delta || 0) ? r : b, null);
-  const dai = Math.max(profile.ngay_xa_nhat || 0, ...runs.map(r => r.so_ngay || 0));
-  const st = streakState();
+  const dai = Math.max(w.ngay_xa_nhat || 0, ...runs.map(r => r.so_ngay || 0));
+  const st = h.self ? streakState() : chuoiCua(w);
   const byDiff = Object.keys(DIFF).map(k => { const xs = runs.filter(r => r.do_kho === k); if(!xs.length) return '';
     return `<tr><td>${DIFF[k].n}</td><td>${xs.length}</td><td>${Math.round(xs.reduce((s, r) => s + (r.delta || 0), 0) / xs.length)}</td>
       <td>${Math.max(...xs.map(r => r.delta || 0))}</td><td>${Math.max(...xs.map(r => r.so_ngay || 0))}</td></tr>` }).join('');
   body.innerHTML = `
     <section class="card-s"><h3>Solo</h3>
-      <div class="tiles"><div class="tile"><span>Elo hiện tại</span><b>${profile.elo ?? 1200}</b></div><div class="tile"><span>Elo cao nhất</span><b>${eloMax}</b></div>
+      <div class="tiles"><div class="tile"><span>Elo hiện tại</span><b>${w.elo ?? 1200}</b></div><div class="tile"><span>Elo cao nhất</span><b>${eloMax}</b></div>
         <div class="tile"><span>Số trận</span><b>${games.length}</b></div></div>
       ${games.length ? `<div class="wdl" role="img" aria-label="Thắng ${pct(W)}%, hoà ${pct(Dr)}%, thua ${pct(L)}%">
           ${W ? `<i class="win" style="flex:${W}"></i>` : ''}${Dr ? `<i class="even" style="flex:${Dr}"></i>` : ''}${L ? `<i class="loss" style="flex:${L}"></i>` : ''}</div>
@@ -301,17 +335,175 @@ async function statsTab(body){
         <div class="chart-t">Elo sau mỗi trận</div><div class="chart" id="cElo"></div>` : '<p class="muted">Chưa có trận solo nào.</p>'}
     </section>
     <section class="card-s"><h3>Mở quán (chế độ thường)</h3>
-      <div class="tiles"><div class="tile"><span>ĐBK hiện có</span><b>${profile.diem}</b></div><div class="tile"><span>Số lượt</span><b>${tot}</b></div>
+      <div class="tiles"><div class="tile"><span>ĐBK hiện có</span><b>${w.diem}</b></div><div class="tile"><span>Số lượt</span><b>${tot}</b></div>
         <div class="tile"><span>TB mỗi lượt</span><b>${avg > 0 ? '+' : avg < 0 ? '−' : ''}${Math.abs(avg)}</b></div>
         <div class="tile"><span>Lượt có lời</span><b>${tot ? Math.round(loi / tot * 100) : 0}%</b></div>
         <div class="tile"><span>Trụ lâu nhất</span><b>${dai} ngày</b></div>
         <div class="tile"><span>Lượt tốt nhất</span><b>${best ? (best.delta > 0 ? '+' : '') + best.delta : '—'}</b></div></div>
-      <div class="streak-pill ${st.lit ? 'on' : ''}">${flameSVG(st.lit)}<b>${st.n}</b><span>ngày liên tiếp hiện tại · dài nhất <b>${profile.chuoi_dai_nhat || st.best || 0}</b> ngày</span></div>
+      <div class="streak-pill ${st.lit ? 'on' : ''}">${flameSVG(st.lit)}<b>${st.n}</b><span>ngày liên tiếp hiện tại · dài nhất <b>${w.chuoi_dai_nhat || st.best || 0}</b> ngày</span></div>
       ${tot ? `<div class="chart-t">ĐBK từng lượt (${Math.min(tot, 40)} lượt gần nhất)</div><div class="chart" id="cRuns"></div>
         <div style="overflow-x:auto"><table class="tb"><tr><th>Độ khó</th><th>Số lượt</th><th>TB ĐBK</th><th>Tốt nhất</th><th>Trụ lâu nhất</th></tr>${byDiff}</table></div>` : '<p class="muted">Chưa có lượt bán nào được tính điểm.</p>'}
     </section>`;
   if(games.length) lineChart($('cElo'), eloSeries.map((x, k) => ({x:k, y:x.v, tip:`Trận ${k + 1} · ${KQ[x.g.kq].n} · ${x.g.doi > 0 ? '+' : ''}${x.g.doi} → <b>${x.v}</b><br>${fmtNgay(x.t)}`})));
   if(tot) barChart($('cRuns'), runs.slice(-40).map(r => ({y:r.delta || 0, tip:`${DIFF[r.do_kho].n} · ${r.trang_thai === 'bo_cuoc' ? 'bỏ dở' : r.so_ngay + ' ngày'} · <b>${(r.delta || 0) > 0 ? '+' : ''}${r.delta || 0} ĐBK</b><br>${fmtNgay(r.ket_thuc)}`})));
+}
+
+/* ================= 4. Xem trực tiếp =================
+   Mỗi người chơi giữ một kênh Realtime Broadcast "xem:<id>". Người xem gửi "hello" (8 giây/lần);
+   khi còn người xem, máy người chơi gửi các sự kiện mới của REC mỗi 0,6 giây. Không ghi gì vào database.
+   Màn xem dùng lại bộ dựng quán của phần xem lại (rpApply/rpDraw), trễ khoảng nửa giây. */
+const LIVE = {ch:null, cur:null, sent:0, until:0, need:null, ket:null, last:0, t:null, xem:new Map()};
+function liveOpen(){
+  if(!sb || !user || LIVE.ch) return;
+  LIVE.ch = sb.channel('xem:' + user.id, {config:{broadcast:{self:false}}})
+    .on('broadcast', {event:'hello'}, ({payload}) => {
+      const now = Date.now(), d = payload || {}; LIVE.until = now + 25000;
+      if(d.by) LIVE.xem.set(d.by, now + 25000);
+      const n = Math.max(0, +d.have || 0); LIVE.need = LIVE.need == null ? n : Math.min(LIVE.need, n);
+      liveTick() })
+    .subscribe();
+  clearInterval(LIVE.t); LIVE.t = setInterval(liveTick, 600);
+}
+function liveClose(){ if(LIVE.ch){ try{ sb.removeChannel(LIVE.ch) }catch(e){} LIVE.ch = null } clearInterval(LIVE.t) }
+const liveSend = (event, payload) => { try{ LIVE.ch && LIVE.ch.send({type:'broadcast', event, payload}) }catch(e){} };
+// Số người đang xem mình (hiện trong dòng trạng thái lúc bán)
+const liveSo = () => { const now = Date.now(); let n = 0; LIVE.xem.forEach((t, k) => t > now ? n++ : LIVE.xem.delete(k)); return n };
+function liveTick(){
+  if(REC && REC !== LIVE.cur){ LIVE.cur = REC; LIVE.sent = 0; LIVE.ket = null }
+  const now = Date.now();
+  if(!LIVE.ch || now > LIVE.until){ LIVE.need = null; return }
+  const R = LIVE.cur, ended = R && R.ev.length && R.ev[R.ev.length - 1][1] === 'O';
+  if(!R || (ended && !REC && !midRun && now - (R.t0 + R.ev[R.ev.length - 1][0]) > 180000)){   // không bán gì (hoặc đã xong quá 3 phút)
+    if(LIVE.need != null){ LIVE.need = null; liveSend('idle', {st: presenceNow()}) } return }
+  let from = LIVE.need != null ? Math.min(LIVE.need, LIVE.sent) : LIVE.sent; LIVE.need = null;
+  if(from >= R.ev.length && now - LIVE.last < 3000) return;         // không có gì mới: 3 giây báo một lần
+  const m = {id:R.t0, kind:R.kind, diff:R.diff, md:R.md, opp:R.opp || null, td:R.td || null};
+  do { const part = R.ev.slice(from, from + 800);
+    liveSend('ev', {m, from, ev: part, el: now - R.t0, ket: LIVE.ket}); from += part.length } while(from < R.ev.length);
+  LIVE.sent = R.ev.length; LIVE.last = now;
+}
+// Kết quả cuối (sau khi server tính điểm/Elo) gửi kèm cho người xem
+function liveKet(k){ if(!LIVE.cur) return; LIVE.ket = k; LIVE.last = 0; if(Date.now() < LIVE.until) liveTick() }
+
+/* ---- màn xem trực tiếp ---- */
+let XEM = null;   // {uid, back, ps: Map id → {id, ten, av, ev, st, m, el, at, ket}, order, timers}
+function xemStop(){
+  if(!XEM) return;
+  const x = XEM; XEM = null;
+  clearInterval(x.hello); clearTimeout(x.wd); cancelAnimationFrame(x.raf);
+  x.ps.forEach(p => { try{ sb.removeChannel(p.ch) }catch(e){} });
+}
+function xemHello(p){ try{ p.ch.send({type:'broadcast', event:'hello', payload:{have: p.ev.length, by: user && user.id}}) }catch(e){} }
+async function watchScreen(uid, back){
+  if(!ranked || !sb || !user){ toast('Đăng nhập để xem trực tiếp'); return }
+  if(uid === user.id) return;
+  rpStop(); xemStop();
+  const x = XEM = {uid, back: back || home, ps: new Map(), order: [], idle: false, endShown: false};
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow"><span class="live-tag"><i class="live-dot" aria-hidden="true"></i>Trực tiếp</span> <span id="xEye"></span></div><button class="link" id="back">Đóng</button></div>
+    <h2 id="xTitle">Đang kết nối…</h2><p class="muted" id="xSub">Đang chờ quán của bạn ấy gửi tình hình.</p>
+    <div class="rp-stage n1" id="xStage"><div class="rp-view" id="rpv0"></div></div>
+    <div id="xEnd" aria-live="polite"></div>
+    <div class="eyebrow">Diễn biến mới nhất</div><div class="list rp-moves" id="xMoves"></div>`);
+  $('back').onclick = () => { xemStop(); x.back() };
+  await xemJoin(uid);
+  if(XEM !== x) return;
+  x.hello = setInterval(() => x.ps.forEach(xemHello), 8000);
+  x.wd = setTimeout(() => { if(XEM === x && !x.ps.get(uid).m && !x.idle) xemIdle(x, null) }, 7000);
+  x.raf = requestAnimationFrame(xemFrame);
+}
+async function xemJoin(id){
+  const x = XEM; if(!x || x.ps.has(id)) return;
+  const p = {id, ten: lbPeople.get(id)?.ten || 'Người chơi', av: lbPeople.get(id)?.avatar_url, ev: [], st: rpNew(), m: null, el: 0, at: 0, ket: null};
+  x.ps.set(id, p); x.order.push(id);
+  p.ch = sb.channel('xem:' + id, {config:{broadcast:{self:false}}})
+    .on('broadcast', {event:'ev'}, ({payload}) => xemEv(x, p, payload))
+    .on('broadcast', {event:'idle'}, ({payload}) => { if(id === x.uid && !p.m) xemIdle(x, payload && payload.st) })
+    .subscribe(s => { if(s === 'SUBSCRIBED') xemHello(p) });
+  const {data} = await sb.from('profiles').select('id,ten,lop,elo,avatar_url').eq('id', id).maybeSingle();
+  if(data){ p.ten = data.ten; p.av = data.avatar_url; p.prof = data; lbPeople.set(id, data) }
+  if(XEM === x) xemHead(x);
+}
+function xemEv(x, p, d){
+  if(XEM !== x || !d || !d.m) return;
+  if(!p.m || p.m.id !== d.m.id){          // lượt / trận mới: dựng lại từ đầu
+    p.m = d.m; p.ev = []; p.st = rpNew(); p.ket = null;
+    if(p.id === x.uid){ x.endShown = false; x.idle = false; $('xEnd').innerHTML = ''; $('xMoves').innerHTML = '';
+      [...x.ps.keys()].filter(k => k !== x.uid).forEach(k => { try{ sb.removeChannel(x.ps.get(k).ch) }catch(e){} x.ps.delete(k) });
+      x.order = [x.uid] }
+    if(d.from > 0){ xemHello(p); return }
+  }
+  if(d.from > p.ev.length){ xemHello(p); return }   // thiếu đoạn giữa: xin gửi lại
+  const moi = d.ev.slice(p.ev.length - d.from);
+  p.ev.push(...moi); p.el = d.el; p.at = Date.now();
+  if(d.ket) p.ket = d.ket;
+  const ks = ING_KEYS(), ml = $('xMoves');
+  if(ml) moi.forEach(e => { const l = rpLine(e, ks); if(!l) return;
+    ml.insertAdjacentHTML('afterbegin', `<div class="li rp-mv ${e[1] === 'V' ? 'good' : /[WLJ]/.test(e[1]) ? 'bad' : ''}"><span class="rk">${mmss(e[0])}</span><span class="nm">${x.order.length > 1 ? `<b>${esc(tenNgan(p.ten))}</b> · ` : ''}${esc(l)}</span></div>`);
+    while(ml.children.length > 30) ml.lastElementChild.remove() });
+  if(p.id === x.uid && p.m.kind === 'solo' && p.m.opp && !x.ps.has(p.m.opp)) xemJoin(p.m.opp);
+  xemHead(x);
+}
+function xemHead(x){
+  const p = x.ps.get(x.uid), t = $('xTitle'), sub = $('xSub'), stg = $('xStage'); if(!p || !t) return;
+  if(stg && stg.children.length !== x.order.length){
+    stg.className = 'rp-stage n' + x.order.length; stg.innerHTML = x.order.map((k, i) => `<div class="rp-view" id="rpv${i}"></div>`).join('') }
+  if(!p.m) { t.textContent = p.ten; return }
+  const o = p.m.opp && x.ps.get(p.m.opp);
+  t.textContent = p.m.kind === 'solo' ? `${tenNgan(p.ten)} vs ${o ? tenNgan(o.ten) : 'đối thủ'}` : `${p.ten} đang bán`;
+  sub.textContent = p.m.kind === 'solo' ? `Solo · ${DIFF[p.m.diff]?.n || ''} · ${CHE_DO[p.m.md]?.n || ''}` : `Chế độ thường · ${DIFF[p.m.diff]?.n || ''}`;
+}
+function xemIdle(x, st){
+  if(XEM !== x) return; x.idle = true;
+  const p = x.ps.get(x.uid);
+  $('xTitle').textContent = p.ten;
+  $('xSub').textContent = st === 'ranh' ? `${tenNgan(p.ten)} đang không bán, bạn có thể thách đấu ngay.`
+    : `Chưa nhận được gì từ quán của ${tenNgan(p.ten)}. Có thể bạn ấy vừa tắt game hoặc đang dùng bản cũ.`;
+  xemEnd(x, null);
+}
+function xemFrame(){
+  const x = XEM; if(!x) return;
+  if(!$('xStage')){ xemStop(); return }                // đã chuyển sang màn khác
+  const now = Date.now();
+  x.order.forEach((id, i) => { const p = x.ps.get(id); if(!p || !p.m) return;
+    const T = Math.max(0, p.el + (now - p.at) - 500);
+    while(p.st.i < p.ev.length && p.ev[p.st.i][0] <= T) rpApply(p.st, p.ev[p.st.i++]);
+    rpDraw(p, i, Math.min(T, p.st.ended ? p.ev[p.ev.length - 1][0] : T)) });
+  const p = x.ps.get(x.uid), eye = $('xEye');
+  if(eye) eye.textContent = p && p.m && p.at && now - p.at > 15000 ? '· mất tín hiệu' : '';
+  if(p && p.m && !x.endShown){
+    const o = p.m.opp && x.ps.get(p.m.opp), ket = p.ket || (o && o.ket);
+    if(p.m.kind === 'solo' ? ket : p.st.ended && (ket || now - (p.endAt ||= now) > 12000)) xemEnd(x, ket);
+  }
+  x.raf = requestAnimationFrame(xemFrame);
+}
+// Kết thúc: báo kết quả, mời thách đấu (người vừa xong đã rảnh)
+function xemEnd(x, ket){
+  x.endShown = true;
+  const p = x.ps.get(x.uid), box = $('xEnd'); if(!box) return;
+  const nut = id => { const q = x.ps.get(id); return q ? `<button type="button" class="btn${id === x.uid ? '' : ' ghost'}" data-thach-xem="${id}">Thách đấu ${esc(tenNgan(q.ten))}</button>` : '' };
+  let html = '';
+  if(p.m && p.m.kind === 'solo' && ket){
+    const r = ket, o = x.ps.get(p.m.opp), ten = id => esc(tenNgan((x.ps.get(id) || {}).ten || 'Đối thủ'));
+    const kq = !r.thang ? 'Hoà' : `${ten(r.thang)} thắng`;
+    const dm = id => { const s = r.a === id ? 'a' : 'b'; const d = r['doi_' + s] || 0; return `${ten(id)} ${d > 0 ? '+' : d < 0 ? '−' : '±'}${Math.abs(d)} Elo` };
+    html = `<div class="xem-ket"><b>${kq}</b> · ${LY_DO[r.ly_do] || ''}<br><span class="muted">${dm(r.a)} · ${dm(r.b)}</span></div>
+      <div class="col grow">${nut(x.uid)}${o ? nut(o.id) : ''}<button type="button" class="btn ghost" id="xReplay">Xem lại trận</button></div>`;
+  } else if(p.m && p.st.ended){
+    const cash = ket ? ket.cash : p.ev[p.ev.length - 1][5];
+    html = `<div class="xem-ket"><b>${esc(tenNgan(p.ten))} ${cash ? 'đã chốt sổ' : 'đã đóng quán'}</b> sau ${p.st.day || 1} ngày · ${p.st.total}k doanh thu${ket && ket.delta != null ? ` · ${ket.delta > 0 ? '+' : ''}${ket.delta} ĐBK` : ''}</div>
+      <div class="col grow">${nut(x.uid)}</div>`;
+  } else {
+    html = `<div class="col grow">${nut(x.uid)}</div>`;
+  }
+  box.innerHTML = html + `<button type="button" class="link" id="xHoSo">Xem hồ sơ ${esc(tenNgan(p.ten))}</button>`;
+  box.querySelectorAll('[data-thach-xem]').forEach(b => b.onclick = () => {
+    const id = b.dataset.thachXem, q = x.ps.get(id);
+    if(onlineSt.get(id) === 'solo'){ toast(`${tenNgan(q.ten)} vẫn đang trong trận`); return }
+    xemStop(); challengeScreen(q.prof || lbPeople.get(id) || {id, ten: q.ten, avatar_url: q.av}, x.back) });
+  $('xHoSo').onclick = () => { xemStop(); hoSoScreen('stats', x.uid, x.back) };
+  if($('xReplay')) $('xReplay').onclick = () => { const id = ket.id; xemStop();
+    replayScreen({thach_dau: id, first: x.uid, back: x.back, title: $('xTitle')?.textContent || 'Xem lại', sub: 'Trận vừa xong'}) };
+  if(ket) lockButtons(box, 700);
 }
 
 /* ---- Biểu đồ nhỏ (SVG) kèm chú thích khi rê/chạm ---- */

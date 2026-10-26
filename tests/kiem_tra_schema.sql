@@ -42,6 +42,12 @@ begin
   exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
   j := public.nop_ket_qua(v_id, 1, 1000, 1);
   if (j->>'delta')::int <> 150 - 34 then raise exception 'HONG: ĐBK sai, được %', j->>'delta'; end if;
+  perform pg_temp.dang_xuat();                          -- thêm một lượt đang chơi: người khác không được thấy
+  insert into public.runs (user_id, do_kho) values (A, 'thuong') returning id into v_id;
+  perform pg_temp.dang_nhap(B);
+  select count(*) into n from public.runs where user_id = A;
+  if n <> 1 then raise exception 'HONG: người khác thấy % lượt của A (phải là 1 lượt đã xong)', n; end if;
+  perform pg_temp.dang_xuat(); delete from public.runs where id = v_id;
   raise notice 'OK nộp điểm: chặn doanh thu vô lý, chặn sai thời gian, ĐBK = 1000×1.5/10 − 1×34 = 116';
 
   -- Solo: gửi, xem trộm, đồng ý, cập nhật, hết tim, Elo
@@ -70,7 +76,11 @@ begin
   perform pg_temp.dang_xuat();
   if (select elo from public.profiles where id = A) <> 1216 or (select elo from public.profiles where id = B) <> 1184 then
     raise exception 'HONG: Elo sau trận sai'; end if;
-  raise notice 'OK solo: trigger gọi hàm gửi thông báo, người ngoài không xem được trận, chặn tiến độ vô lý, B hết tim → A thắng, Elo 1216 / 1184';
+  perform pg_temp.dang_nhap(C);
+  select count(*) into n from public.thach_dau where id = v_id;
+  if n <> 1 then raise exception 'HONG: trận đã xong mà người khác không xem được trong hồ sơ'; end if;
+  perform pg_temp.dang_xuat();
+  raise notice 'OK solo: trigger gọi hàm gửi thông báo, người ngoài không xem được trận đang chờ, chặn tiến độ vô lý, B hết tim → A thắng, Elo 1216 / 1184, trận xong thì công khai';
 
   -- Xin hoà: tự đồng ý mình thì không được, bên kia từ chối, rồi đồng ý → hoà, Elo như ván hoà
   perform pg_temp.dang_xuat(); update public.profiles set elo = 1200 where id in (A, C);
@@ -108,10 +118,10 @@ begin
   if n <> 2 then raise exception 'HONG: C không thấy đủ 2 bản ghi trận mình (thấy %)', n; end if;
   perform pg_temp.dang_nhap(B);
   select count(*) into n from public.ban_ghi where thach_dau_id = v_id;
-  if n <> 0 then raise exception 'HONG: người ngoài đọc được bản ghi trận người khác'; end if;
+  if n <> 2 then raise exception 'HONG: người ngoài không xem lại được trận đã xong (thấy % bản ghi)', n; end if;
   begin perform public.luu_ban_ghi(v_id, null, '{"ev":[]}'); raise exception 'HONG: người ngoài gửi được bản ghi';
   exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
-  raise notice 'OK bản ghi: hai người trong trận đọc được của nhau, người ngoài không đọc/ghi được';
+  raise notice 'OK bản ghi: người đã đăng nhập xem lại được, người ngoài trận không gửi được';
 
   -- Xếp hạng
   if (select hang from public.bxh_sinh_vien where id = A) <> 1 then raise exception 'HONG: bảng xếp hạng sinh viên sai'; end if;
