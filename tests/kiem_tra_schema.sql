@@ -98,6 +98,21 @@ begin
   if (j->>'thang')::uuid <> C or j->>'ly_do' <> 'bo_cuoc' then raise exception 'HONG: bỏ cuộc sai: %', j; end if;
   raise notice 'OK bỏ cuộc: người kia thắng';
 
+  -- Bản ghi xem lại: chỉ người trong trận đọc được, không gửi cho trận người khác
+  perform pg_temp.dang_nhap(A);
+  perform public.luu_ban_ghi(v_id, null, '{"v":1,"ev":[[0,"D",1,0,3,0]]}');
+  begin perform public.luu_ban_ghi(v_id, null, '{"ev":"x"}'); raise exception 'HONG: nhận bản ghi sai dạng';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform pg_temp.dang_nhap(C); perform public.luu_ban_ghi(v_id, null, '{"v":1,"ev":[]}');
+  select count(*) into n from public.ban_ghi where thach_dau_id = v_id;
+  if n <> 2 then raise exception 'HONG: C không thấy đủ 2 bản ghi trận mình (thấy %)', n; end if;
+  perform pg_temp.dang_nhap(B);
+  select count(*) into n from public.ban_ghi where thach_dau_id = v_id;
+  if n <> 0 then raise exception 'HONG: người ngoài đọc được bản ghi trận người khác'; end if;
+  begin perform public.luu_ban_ghi(v_id, null, '{"ev":[]}'); raise exception 'HONG: người ngoài gửi được bản ghi';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  raise notice 'OK bản ghi: hai người trong trận đọc được của nhau, người ngoài không đọc/ghi được';
+
   -- Xếp hạng
   if (select hang from public.bxh_sinh_vien where id = A) <> 1 then raise exception 'HONG: bảng xếp hạng sinh viên sai'; end if;
   if (select count(*) from public.bxh_khoa) <> 14 then raise exception 'HONG: bảng khoa không đủ 14 khoa'; end if;

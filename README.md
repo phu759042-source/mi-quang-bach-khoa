@@ -183,6 +183,19 @@ Trong trận có nút **Bỏ cuộc · Hoà** (trận vẫn chạy khi mở): b�
 <p align="center"><img src="docs/images/solo-thong-bao.png" width="820" alt="Thông báo thách đấu ở góc dưới bên phải trên laptop"></p>
 <p align="center"><img src="docs/images/solo-tran-dau.png" width="820" alt="Đếm ngược, đang đấu, cửa hàng và kết quả Elo"></p>
 
+### Ván đấu, xem lại và thống kê
+
+Giống mục Games và Stats của chess.com:
+
+- **Xem lại trận**: game không quay video mà **ghi lại từng thao tác** kèm thời điểm chính xác đến mili giây: khách đến, bỏ món nào, chan nước lèo, bưng cho bàn nào, sai món, khách bỏ về, mua nâng cấp, kể cả lúc tải lại trang. Khi xem lại, quán được dựng lại từ danh sách thao tác đó, nên thấy đúng nhịp nhanh chậm của người chơi. Trận solo hiện **hai quán cạnh nhau**, có nút phát/dừng, tua ±10 giây, tốc độ 1×–8×, thanh thời gian đánh dấu từng ngày, và danh sách diễn biến bấm vào để nhảy tới. Bản ghi chỉ hai người trong trận xem được.
+- **Ván solo**: danh sách trận mới nhất ở trên, có đối thủ (kèm Elo lúc đó), biểu tượng thắng/hoà/thua, độ khó, luật, lý do kết thúc, Elo được cộng hoặc trừ, ngày giờ.
+- **Thống kê**: Elo hiện tại và cao nhất, tỉ lệ thắng/hoà/thua, tỉ lệ thắng theo từng luật, biểu đồ Elo sau mỗi trận. Phần mở quán thường có ĐBK trung bình mỗi lượt, tỉ lệ lượt có lời, lượt tốt nhất, số ngày trụ lâu nhất, chuỗi ngày hiện tại và dài nhất, biểu đồ ĐBK từng lượt, và bảng theo độ khó.
+- Màu thắng/thua trong biểu đồ dùng **xanh dương–đỏ** thay vì xanh lá–đỏ, đã kiểm tra bằng công cụ đo để người mù màu vẫn phân biệt được; biểu tượng còn có dấu +, =, − nên không phụ thuộc vào màu.
+
+<p align="center"><img src="docs/images/xem-lai-laptop.png" width="820" alt="Xem lại một trận solo, hai quán cạnh nhau"></p>
+<p align="center"><img src="docs/images/van-solo-laptop.png" width="820" alt="Danh sách ván solo với biểu tượng thắng, hoà, thua"></p>
+<p align="center"><img src="docs/images/ho-so-dien-thoai.png" width="820" alt="Thống kê, xem lại và danh sách lượt bán trên điện thoại"></p>
+
 ## 6. Giao diện và trải nghiệm
 
 - **Responsive**: trên điện thoại bố cục một cột, bếp nằm dưới; trên laptop chia hai cột, có thêm phím tắt.
@@ -248,6 +261,7 @@ flowchart TB
 | `thach_dau` | Lời thách và trận solo: hai người chơi, độ khó, luật, tiến độ từng bên, người thắng, Elo trước và sau |
 | `bxh_solo` | View xếp hạng Solo theo Elo |
 | `push_sub` | Đăng ký nhận thông báo đẩy của từng máy (tối đa 10 máy mỗi người) |
+| `ban_ghi` | Bản ghi thao tác để xem lại: mỗi người một bản cho mỗi trận solo (giữ hết) hoặc lượt thường (giữ 50 lượt mới nhất) |
 | `luot_truy_cap`, `khach_ghe`, `thong_ke` | Thống kê lượt truy cập |
 | `bxh_sinh_vien`, `bxh_lop`, `bxh_khoa` | View tính bảng xếp hạng |
 
@@ -275,7 +289,8 @@ flowchart TB
 
 ```
 mi-quang-bach-khoa/
-├── index.html               # Toàn bộ game: HTML + CSS + JS
+├── index.html               # Game: HTML + CSS + JS
+├── ban-ghi.js               # Ghi thao tác, xem lại trận, hồ sơ (ván đấu, thống kê, biểu đồ)
 ├── sw.js                    # Service worker nhận thông báo thách đấu
 ├── manifest.webmanifest     # Cấu hình PWA
 ├── icons/                   # Favicon, icon PWA, mã QR ủng hộ
@@ -306,6 +321,7 @@ Các phần chính trong `index.html`, tìm theo tên:
 | Bảng xếp hạng, tìm người chơi | `leaderboard`, `loadBoard`, `searchPlayers`, `ruleText` |
 | Solo | `soloConnect`, `showNotice`, `challengeScreen`, `startSolo`, `soloPush`, `soloEnd` |
 | Thông báo đẩy | `swInit`, `pushCard`, `enablePush`, `pushResync`, `openThach` (và `sw.js`) |
+| Ghi và xem lại, hồ sơ (`ban-ghi.js`) | `recStart`, `rec`, `recUpload`, `replayScreen`, `rpApply`, `hoSoScreen`, `statsTab`, `gamesTab`, `lineChart`, `barChart` |
 | Giao diện | `applyTheme`, `home` |
 
 ## 10. Chạy thử trên máy

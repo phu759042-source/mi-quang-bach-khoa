@@ -10,3 +10,4 @@ open(sys.argv[1], 'w', encoding='utf-8').write('\n;\n'.join(re.findall(r'<script
 PY
 node --check "$TMP/game.js" && echo "OK index.html"
 node --check sw.js && echo "OK sw.js"
+node --check ban-ghi.js && echo "OK ban-ghi.js"

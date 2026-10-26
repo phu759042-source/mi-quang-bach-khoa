@@ -35,7 +35,7 @@ class Fake:
                   'B': dict(base, id='B', ten='Phạm Gia Huy', khoa_id='dtvt', lop='24DT2', diem=1300),
                   'C': dict(base, id='C', ten='Lê Minh Anh', khoa_id='cntt', lop='23T_DT1', diem=900)}
         s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': []}
-        s.runs, s.run_seq, s.nop = {}, itertools.count(77), []
+        s.runs, s.run_seq, s.nop, s.bg = {}, itertools.count(77), [], []
         s.calls = []
 
     def emit(s, r):
@@ -93,14 +93,26 @@ class Fake:
             return {'data': res}
         if fn == 'bat_dau_luot':
             for k, v in s.runs.items():                       # giống _xu_ly_bo_cuoc: lượt cũ còn dở bị tính bỏ cuộc
-                if v == 'dang_choi': s.runs[k] = 'bo_cuoc'
-            i = next(s.run_seq); s.runs[i] = 'dang_choi'; return {'data': i}
+                if v['trang_thai'] == 'dang_choi' and v['user_id'] == u: v.update(trang_thai='bo_cuoc', so_ngay=0, doanh_thu=0, tim_mat=5, delta=-75, ket_thuc=iso(now()))
+            i = next(s.run_seq); s.runs[i] = dict(id=i, user_id=u, do_kho=a['p_do_kho'], trang_thai='dang_choi', so_ngay=None, doanh_thu=None, tim_mat=None, delta=None, ket_thuc=None)
+            return {'data': i}
         if fn == 'nop_ket_qua':
-            if s.runs.get(a['p_run_id']) != 'dang_choi': return {'data': None, 'error': {'message': 'Lượt chơi không tồn tại hoặc đã nộp'}}
+            if (s.runs.get(a['p_run_id']) or {}).get('trang_thai') != 'dang_choi': return {'data': None, 'error': {'message': 'Lượt chơi không tồn tại hoặc đã nộp'}}
             if a['p_tim_mat'] > 5 + a['p_doanh_thu'] // 500: return {'data': None, 'error': {'message': 'Kết quả không hợp lệ'}}
-            s.runs[a['p_run_id']] = 'xong'; s.nop.append(dict(a))
+            s.nop.append(dict(a))
+            hs = HS[s.runs[a['p_run_id']]['do_kho']]
+            s.runs[a['p_run_id']].update(trang_thai='xong', so_ngay=a['p_so_ngay'], doanh_thu=a['p_doanh_thu'], tim_mat=a['p_tim_mat'], ket_thuc=iso(now()),
+                                         delta=round(a['p_doanh_thu'] * hs / 10) - round(a['p_tim_mat'] * 15 * hs ** 2))
             hs = 1; d = round(a['p_doanh_thu'] * hs / 10) - round(a['p_tim_mat'] * 15 * hs ** 2)
             return {'data': {'delta': d, 'diem': s.prof[u]['diem'] + d, 'hang': 2, 'chuoi': 1, 'chuoi_moi': False, 'chuoi_dai_nhat': 1}}
+        if fn == 'luu_ban_ghi':                               # giống public.luu_ban_ghi
+            td, rn = a['p_thach_dau'], a['p_run']
+            if td: ok = (s.rows.get(td) or {}).get('trang_thai') == 'xong' and u in (s.rows[td]['a'], s.rows[td]['b'])
+            else: ok = (s.runs.get(rn) or {}).get('user_id') == u and s.runs[rn]['trang_thai'] != 'dang_choi'
+            if not ok or not isinstance(a['p_du_lieu'].get('ev'), list): return err('Không tìm thấy trận đã kết thúc')
+            if not any(b['user_id'] == u and b['thach_dau_id'] == td and b['run_id'] == rn for b in s.bg):
+                s.bg.append(dict(user_id=u, thach_dau_id=td, run_id=rn, du_lieu=a['p_du_lieu']))
+            return {'data': len(s.bg)}
         s.expire()
         if fn == 'gui_thach_dau':
             b = a['p_b']
@@ -161,18 +173,28 @@ class Fake:
         if t == 'profiles':
             uid = next((v for k, op, v in f if k == 'id'), None)
             if uid is None: return {'data': [dict(p) for p in s.prof.values()]}
+            if isinstance(uid, list): return {'data': [dict(s.prof[x]) for x in uid if x in s.prof]}
             p = s.prof.get(uid)
             return {'data': dict(p) if p else None}
         if t == 'runs':
             rid = next((v for k, op, v in f if k == 'id'), None)
-            return {'data': {'id': rid, 'trang_thai': s.runs[rid]} if rid in s.runs else None}
+            if rid is not None: return {'data': dict(s.runs[rid]) if rid in s.runs and s.runs[rid]['user_id'] == u else None}
+            rows = [dict(r) for r in s.runs.values() if r['user_id'] == u and r['trang_thai'] != 'dang_choi']
+            return {'data': sorted(rows, key=lambda r: r['ket_thuc'], reverse=not q.get('asc'))}
+        if t == 'ban_ghi':                                    # RLS: của mình, hoặc trận solo mình có mặt
+            def xem(b): return b['user_id'] == u or (b['thach_dau_id'] and u in (s.rows[b['thach_dau_id']]['a'], s.rows[b['thach_dau_id']]['b']))
+            rows = [b for b in s.bg if xem(b)]
+            for k, op, v in f:
+                if k in ('thach_dau_id', 'run_id'): rows = [b for b in rows if (b[k] in v if op == 'in' else b[k] == v)]
+            return {'data': [dict(b) for b in rows]}
         if t == 'thach_dau':
             rid = next((v for k, op, v in f if k == 'id'), None)
             if rid is not None:
                 r = s.rows.get(int(rid))
                 return {'data': dict(r, a_ping=None, b_ping=None) if r and u in (r['a'], r['b']) else None}
-            st = next((v for k, op, v in f if op == 'in'), ['cho', 'dang_dau'])
+            st = next((v if op == 'in' else [v] for k, op, v in f if k == 'trang_thai'), ['cho', 'dang_dau'])
             rows = [dict(r, a_ping=None, b_ping=None) for r in s.rows.values() if u in (r['a'], r['b']) and r['trang_thai'] in st]
+            if st == ['xong']: return {'data': sorted(rows, key=lambda r: r['ket_thuc'], reverse=not q.get('asc'))}
             return {'data': sorted(rows, key=lambda r: -r['id'])}
         if t == 'bxh_sinh_vien':
             if q.get('single'): return {'data': {'hang': 2}}
@@ -192,7 +214,7 @@ STUB = r"""
   const call = (kind, payload) => window.__sb(kind, JSON.stringify(payload)).then(r => JSON.parse(r));
   function q(table){
     const st={table,filters:[],single:false};
-    const b={select(){return b},order(){return b},limit(){return b},
+    const b={select(){return b},order(k,o){if(o&&o.ascending)st.asc=true;return b},limit(){return b},range(){return b},neq(k,v){st.filters.push([k,'neq',v]);return b},
       eq(k,v){st.filters.push([k,'eq',v]);return b},in(k,v){st.filters.push([k,'in',v]);return b},or(x){st.filters.push(['_or','or',x]);return b},
       maybeSingle(){st.single=true;return b},
       then(ok,no){return call('select',st).then(ok,no)}};
@@ -406,7 +428,7 @@ with sync_playwright() as pw:
     A.wait_for_function('running===true', timeout=5000)
     check(A.evaluate('S.total') == 200 and A.evaluate('S.upg.quat') == 1 and A.evaluate('runId') == run1,
           'tự bán tiếp sau 3 giây, giữ 200k, nâng cấp và đúng lượt chơi cũ')
-    check(F.runs[run1] == 'dang_choi', 'lượt chơi không bị tính bỏ cuộc')
+    check(F.runs[run1]['trang_thai'] == 'dang_choi', 'lượt chơi không bị tính bỏ cuộc')
 
     print('13. Tạm dừng → Đóng quán: tim còn lại bị tính là mất')
     A.click('#pauseBtn'); A.wait_for_selector('text=Quán đang tạm nghỉ', timeout=3000)
@@ -455,6 +477,47 @@ with sync_playwright() as pw:
     A.click('#pauseBtn'); A.click('#smQuit'); A.wait_for_timeout(450); A.click('#smQuit')
     A.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=8000); B.wait_for_selector('#ov >> text=Bạn thắng!', timeout=8000)
     check('Bạn đã bỏ cuộc' in A.inner_text('#ov'), 'bỏ cuộc: A thua, B thắng')
+
+    print('17. Bản ghi được gửi lên khi kết thúc')
+    A.wait_for_timeout(800)
+    last = max(F.rows)
+    bg = [b for b in F.bg if b['thach_dau_id'] == last]
+    check(len(bg) == 2, f'cả hai bên gửi bản ghi trận cuối ({len(bg)} bản)')
+    ev = bg[0]['du_lieu']['ev'] if bg else []
+    codes = {e[1] for e in ev}
+    check({'D', 'S', 'O'} <= codes and all(ev[k][0] <= ev[k + 1][0] for k in range(len(ev) - 1)), f'bản ghi có mở ngày, khách đến, kết thúc, thời gian tăng dần ({len(ev)} sự kiện)')
+    check(any(b['run_id'] for b in F.bg), 'lượt bán thường cũng có bản ghi')
+
+    print('18. Xem lại trận: hai bên, phát, tua')
+    A.click('#xemlai'); A.wait_for_selector('#rpStage .rp-view', timeout=5000)
+    check(A.locator('#rpStage .rp-view').count() == 2, 'hiện hai quán: mình và đối thủ')
+    A.click('.rp-speed [data-s="8"]'); A.wait_for_timeout(1500)
+    t1 = A.evaluate('RP.T'); check(t1 > 3000, f'đang phát, tốc độ 8× ({t1} ms)')
+    A.evaluate('rpPause()'); A.evaluate('rpSeek(RP.dur*0.5)'); A.wait_for_timeout(200)
+    check(A.locator('#rpMoves .rp-mv.done').count() > 0, 'tua giữa trận: danh sách diễn biến đánh dấu phần đã qua')
+    check('Bàn 1' in A.inner_text('#rpv0') or A.locator('#rpv0 .rp-c').count() >= 3, 'quán được dựng lại với các bàn')
+    shot(A, 'xem-lai-01-dien-thoai')
+    B.click('#home'); B.wait_for_timeout(300); B.click('#hoso'); B.wait_for_timeout(800); B.click('[data-t="games"]'); B.wait_for_timeout(900)
+    check(B.locator('#gList .li.game').count() >= 3, f"B thấy danh sách ván ({B.locator('#gList .li.game').count()} ván)")
+    check(B.locator('#gList .kq.win').count() >= 1 and B.locator('#gList .kq.loss').count() >= 1 and B.locator('#gList .kq.even').count() >= 1,
+          'có đủ biểu tượng thắng, thua, hoà')
+    shot(B, 'ho-so-02-van-solo-laptop')
+    B.click('#gList .li.game'); B.wait_for_selector('#rpStage .rp-view', timeout=5000); B.wait_for_timeout(1200)
+    B.evaluate('rpPause()'); B.evaluate('rpSeek(RP.dur*0.3)'); B.wait_for_timeout(200)
+    shot(B, 'xem-lai-02-laptop')
+
+    print('19. Thống kê')
+    A.click('#back'); A.wait_for_timeout(300); A.click('#hoso'); A.wait_for_selector('#hsBody .card-s', timeout=5000); A.wait_for_timeout(500)
+    t = A.inner_text('#hsBody')
+    nA = sum(1 for r in F.rows.values() if r['trang_thai'] == 'xong' and 'A' in (r['a'], r['b']))
+    check(f'Số trận\n{nA}' in t, f'đúng số trận solo ({nA})')
+    check(A.locator('#cElo svg .ln').count() == 1 and A.locator('#cRuns svg path').count() >= 1, 'có biểu đồ Elo và biểu đồ ĐBK từng lượt')
+    check('Trụ lâu nhất' in t and 'ngày liên tiếp hiện tại' in t, 'có ngày trụ lâu nhất và chuỗi ngày')
+    A.hover('#cElo svg'); A.wait_for_timeout(200)
+    shot(A, 'ho-so-01-thong-ke')
+    A.click('[data-t="runs"]'); A.wait_for_selector('#rList .li.game', timeout=4000)
+    check(A.locator('#rList .li.game').count() >= 2, 'tab Lượt bán liệt kê các lượt')
+    shot(A, 'ho-so-03-luot-ban')
     B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

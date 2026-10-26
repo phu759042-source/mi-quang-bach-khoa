@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Mì Quảng Bách Khoa · Cấu trúc database (Supabase / Postgres)
--- Xuất từ project fvacenxojembebqqxgfp ngày 2026-10-26, sau bản 2.9.1; thêm xin hoà ở bản 2.10.0.
+-- Xuất từ project fvacenxojembebqqxgfp ngày 2026-10-26, sau bản 2.9.1; thêm xin hoà ở bản 2.10.0, bản ghi xem lại ở 2.11.0.
 --
 -- Dựng lại database trống: Supabase › SQL Editor › dán cả file › Run.
 -- Chạy trên project MỚI (chưa có bảng). File KHÔNG chứa dữ liệu người chơi
@@ -111,6 +111,22 @@ create table public.push_sub (
 );
 create index push_sub_user_idx on public.push_sub (user_id);
 
+-- Bản ghi thao tác để xem lại (bản 2.11.0): mỗi người một bản cho mỗi trận solo / lượt thường
+create table if not exists public.ban_ghi (
+  id           bigint generated always as identity primary key,
+  user_id      uuid not null references public.profiles(id) on delete cascade,
+  thach_dau_id bigint references public.thach_dau(id) on delete cascade,
+  run_id       bigint references public.runs(id) on delete cascade,
+  du_lieu      jsonb not null,
+  tao_luc      timestamptz not null default now(),
+  check ((thach_dau_id is null) <> (run_id is null)),
+  unique (user_id, thach_dau_id),
+  unique (user_id, run_id)
+);
+create index if not exists ban_ghi_thach_dau_idx on public.ban_ghi (thach_dau_id);
+create index if not exists ban_ghi_run_idx on public.ban_ghi (run_id);
+create index if not exists ban_ghi_user_idx on public.ban_ghi (user_id, tao_luc desc);
+
 -- ---------------------------------------------------------------------
 -- 2. Quyền đọc: client chỉ được ĐỌC, mọi thao tác ghi đi qua hàm RPC ở mục 4
 -- ---------------------------------------------------------------------
@@ -130,9 +146,15 @@ create policy "doc tran cua minh" on public.thach_dau for select to authenticate
 
 -- Supabase tự cấp mọi quyền cho anon/authenticated trên bảng mới: thu lại hết, chỉ cấp quyền đọc cần thiết
 revoke all on public.khoa, public.profiles, public.runs, public.luot_truy_cap, public.khach_ghe,
-              public.thong_ke, public.thach_dau, public.push_sub from anon, authenticated;
+              public.thong_ke, public.thach_dau, public.push_sub, public.ban_ghi from anon, authenticated;
 grant select on public.khoa, public.profiles to anon, authenticated;
-grant select on public.runs, public.thach_dau to authenticated;
+grant select on public.runs, public.thach_dau, public.ban_ghi to authenticated;
+
+alter table public.ban_ghi enable row level security;
+drop policy if exists "doc ban ghi" on public.ban_ghi;
+create policy "doc ban ghi" on public.ban_ghi for select to authenticated using (
+  user_id = (select auth.uid())
+  or exists (select 1 from public.thach_dau t where t.id = thach_dau_id and (select auth.uid()) in (t.a, t.b)));
 
 -- Realtime cho lời thách và tiến độ trận solo (RLS ở trên vẫn áp dụng)
 alter publication supabase_realtime add table public.thach_dau;
@@ -600,6 +622,30 @@ begin
   return (select row_to_json(x) from public.thach_dau x where id = p_id);
 end $$;
 
+-- 4b''. Bản ghi để xem lại (bản 2.11.0)
+create or replace function public.luu_ban_ghi(p_thach_dau bigint, p_run bigint, p_du_lieu jsonb)
+returns bigint language plpgsql security definer set search_path = '' as $$
+declare v_uid uuid := auth.uid(); v_id bigint;
+begin
+  if v_uid is null then raise exception 'Chưa đăng nhập'; end if;
+  if (p_thach_dau is null) = (p_run is null) then raise exception 'Bản ghi phải thuộc một trận hoặc một lượt'; end if;
+  if jsonb_typeof(p_du_lieu->'ev') is distinct from 'array' then raise exception 'Bản ghi không hợp lệ'; end if;
+  if pg_column_size(p_du_lieu) > 400000 then raise exception 'Bản ghi quá lớn'; end if;
+  if p_thach_dau is not null then
+    if not exists (select 1 from public.thach_dau where id = p_thach_dau and v_uid in (a, b) and trang_thai = 'xong') then
+      raise exception 'Không tìm thấy trận đã kết thúc'; end if;
+  else
+    if not exists (select 1 from public.runs where id = p_run and user_id = v_uid and trang_thai <> 'dang_choi') then
+      raise exception 'Không tìm thấy lượt chơi đã kết thúc'; end if;
+  end if;
+  insert into public.ban_ghi (user_id, thach_dau_id, run_id, du_lieu) values (v_uid, p_thach_dau, p_run, p_du_lieu)
+    on conflict do nothing returning id into v_id;
+  -- chỉ giữ 50 bản ghi lượt thường mới nhất của mỗi người (bản ghi solo giữ hết)
+  delete from public.ban_ghi where user_id = v_uid and run_id is not null and id not in
+    (select id from public.ban_ghi where user_id = v_uid and run_id is not null order by tao_luc desc limit 50);
+  return v_id;
+end $$;
+
 -- 4c. Thông báo đẩy. Khoá đọc từ Vault: vapid_public, vapid_private, push_hook_secret
 create or replace function public.luu_push(p_endpoint text, p_p256dh text, p_auth text)
 returns void language plpgsql security definer set search_path = '' as $$
@@ -665,7 +711,7 @@ grant execute on function
   public.gui_thach_dau(uuid, text, text), public.tra_loi_thach_dau(bigint, boolean), public.huy_thach_dau(bigint),
   public.cap_nhat_solo(bigint, integer, integer, integer, boolean), public.kiem_tra_solo(bigint),
   public.bo_tran_solo(bigint), public.tim_nguoi_choi(text),
-  public.xin_hoa(bigint), public.tra_loi_hoa(bigint, boolean),
+  public.xin_hoa(bigint), public.tra_loi_hoa(bigint, boolean), public.luu_ban_ghi(bigint, bigint, jsonb),
   public.luu_push(text, text, text), public.xoa_push(text)
   to authenticated;
 -- nội bộ (_xu_ly_bo_cuoc, _diem_solo, _het_han_thach_dau, _ket_thuc_solo, _xu_ly_solo,
