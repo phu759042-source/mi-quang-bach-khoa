@@ -167,6 +167,7 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, firs
     const id = b.dataset.rpThach, p = BB.hs.get(id) || {id, ten: bbTen(id)}; rpStop();
     if(onlineSt.get(id) === 'solo') return watchScreen(id, () => replayScreen(o));
     challengeScreen(p, () => replayScreen(o)) });
+  $('rpStage').onclick = e => { const b = e.target.closest('[data-hs]'); if(b && b.dataset.hs){ rpStop(); hoSoScreen('stats', b.dataset.hs, () => replayScreen(o)) } };
   $('rpMoves').onclick = e => { const b = e.target.closest('[data-t]'); if(b) rpSeek(+b.dataset.t) };
   rpSeek(0); rpPlay();
 }
@@ -226,7 +227,13 @@ function rpDraw(p, i, T){
   const bar = (r) => { const v = Math.max(0, Math.min(1, r)); return `<div class="pat"><i style="width:${v * 100}%;background:${v > .5 ? 'var(--leaf)' : v > .25 ? 'var(--turmeric)' : 'var(--chili)'}"></i></div>` };
   const ratio = k => k.r - (T - k.at) / 1000 / k.max, qratio = k => k.qr - (T - k.qat) / 1000 / k.qmax;
   const hearts = Array.from({length:5}, (_, k) => `<svg viewBox="0 0 24 22" aria-hidden="true"><path d="${HEART_PATH}" fill="${k < st.rep ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"/></svg>`).join('');
-  el.innerHTML = `<div class="rp-head">${avatarHTML(p.av, p.ten, 28)}<b>${esc(tenNgan(p.ten))}</b>${p.ketTag || ''}<span class="hearts">${hearts}</span></div>
+  // Đầu quán (avatar + tên) dựng một lần và giữ nguyên, để bấm vào mở hồ sơ không bị mất khi khung hình vẽ lại
+  if(el.dataset.who !== String(p.id)){
+    el.dataset.who = p.id;
+    el.innerHTML = `<div class="rp-head"><button type="button" class="rp-who" data-hs="${p.id || ''}" aria-label="Xem hồ sơ ${esc(p.ten)}">${avatarHTML(p.av, p.ten, 28)}<b>${esc(tenNgan(p.ten))}</b></button><span class="rp-hr"></span></div><div class="rp-body"></div>`;
+  }
+  el.querySelector('.rp-hr').innerHTML = `${p.ketTag || ''}<span class="hearts">${hearts}</span>`;
+  el.querySelector('.rp-body').innerHTML = `
     <div class="rp-stats"><span>Ngày <b>${st.day || 1}</b></span><span>${st.shop ? 'Cửa hàng' : st.ended ? 'Đã xong' : `<b>${Math.ceil(rem)}</b>s`}</span>
       <span>Hôm nay <b>${st.earned}${st.target ? '/' + st.target : ''}k</b></span><span>Tổng <b>${st.total}k</b></span>${rush ? '<span class="tag rush">Cao điểm</span>' : ''}</div>
     <div class="rp-tables" style="--n:${st.n}">${st.slots.map((k, j) => k ? `<div class="rp-c${k.teacher ? ' teacher' : ''}"><span class="ava" style="background:${k.kh[2]}">${k.teacher ? 'Thầy' : k.kh[0]}</span>
@@ -458,6 +465,7 @@ async function watchScreen(uid, back){
     <div id="xEnd" aria-live="polite"></div>
     <div class="eyebrow">Diễn biến mới nhất</div><div class="list rp-moves" id="xMoves"></div>`);
   $('back').onclick = () => { xemStop(); x.back() };
+  $('xStage').onclick = e => { const b = e.target.closest('[data-hs]'); if(b && b.dataset.hs){ xemStop(); hoSoScreen('stats', b.dataset.hs, () => watchScreen(uid, x.back)) } };
   await xemJoin(uid);
   if(XEM !== x) return;
   x.hello = setInterval(() => x.ps.forEach(xemHello), 8000);

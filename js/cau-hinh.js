@@ -1,6 +1,6 @@
 /* Mì Quảng Bách Khoa · js/cau-hinh.js: Cấu hình, dữ liệu game (nguyên liệu, khách, nâng cấp, độ khó) và biến trạng thái dùng chung.
    Script thường (không phải module): mọi file dùng chung biến toàn cục, nạp theo thứ tự trong index.html. */
-const PHIEN_BAN='2.14.1';   // nhớ đổi cả ?v= trong index.html
+const PHIEN_BAN='2.14.2';   // nhớ đổi cả ?v= trong index.html
 /* ================= Cấu hình ================= */
 const SB_URL = 'https://fvacenxojembebqqxgfp.supabase.co';
 const SB_KEY = 'sb_publishable_w4bY8tj9UT-6sFUlXBlOdA_XBEH76qD'; // khoá công khai, an toàn khi để ở client

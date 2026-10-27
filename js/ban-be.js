@@ -31,7 +31,7 @@ const bbTen = id => BB.hs.get(id)?.ten || 'Người chơi';
 function bbVe(){
   document.querySelectorAll('[data-bb-badge]').forEach(el => { const n = el.dataset.bbBadge === 'tb' ? bbChuaDoc() : bbSoLoiMoi();
     el.textContent = n > 9 ? '9+' : n; el.hidden = !n });
-  document.querySelectorAll('[data-kb-slot]').forEach(el => el.innerHTML = kbNut(el.dataset.kbSlot, el.dataset.kbAn));
+  document.querySelectorAll('[data-kb-slot]').forEach(el => { if(!el.querySelector('[data-sure]')) el.innerHTML = kbNut(el.dataset.kbSlot, el.dataset.kbAn) });   // đang hỏi lại thì giữ nguyên
   if(BB.ve) BB.ve();
 }
 function bbDoi(){ clearTimeout(BB.t); BB.t = setTimeout(bbTai, 250) }
@@ -50,13 +50,14 @@ const UNG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 function kbNut(uid, an){
   if(!uid || !user || uid === user.id || !ranked) return '';
   const q = quanHe(uid), c = 'btn ghost kb';
-  if(q === 'ban') return an === 'ban' ? '' : `<button type="button" class="${c} on" data-kb="bo" data-kb-id="${uid}">Bạn bè ✓</button>`;
+  if(q === 'ban') return an === 'ban' ? '' : `<span class="kb-on" role="status">✓ Đã là bạn bè</span><button type="button" class="${c} kb-bo" data-kb="bo" data-kb-id="${uid}">Huỷ kết bạn</button>`;
   if(q === 'da_gui') return `<button type="button" class="${c}" data-kb="huy" data-kb-id="${uid}">Đã gửi lời mời · Huỷ</button>`;
   if(q === 'nhan') return `<button type="button" class="btn kb" data-kb="dong_y" data-kb-id="${uid}">Đồng ý kết bạn</button><button type="button" class="link" data-kb="tu_choi" data-kb-id="${uid}">Từ chối</button>`;
   return `<button type="button" class="${c}" data-kb="gui" data-kb-id="${uid}">${UNG}Kết bạn</button>`;
 }
 async function kbLam(act, uid, nut){
-  if(act === 'bo' && !nut.dataset.sure){ nut.dataset.sure = 1; nut.textContent = 'Bấm lần nữa để huỷ kết bạn'; return }
+  if(act === 'bo' && !nut.dataset.sure){ nut.dataset.sure = 1; nut.textContent = 'Chắc chắn? Bấm lần nữa để huỷ'; nut.classList.add('canh-bao');
+    setTimeout(() => { if(nut.isConnected && nut.dataset.sure){ delete nut.dataset.sure; nut.textContent = 'Huỷ kết bạn'; nut.classList.remove('canh-bao') } }, 4000); return }
   nut.disabled = true;
   const {data, error} = act === 'gui' ? await sb.rpc('gui_ket_ban', {p_b: uid})
     : act === 'dong_y' || act === 'tu_choi' ? await sb.rpc('tra_loi_ket_ban', {p_nguoi: uid, p_dong_y: act === 'dong_y'})
