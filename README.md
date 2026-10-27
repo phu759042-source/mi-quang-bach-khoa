@@ -193,6 +193,8 @@ Giống mục Games và Stats của chess.com:
 - Màu thắng/thua trong biểu đồ dùng **xanh dương–đỏ** thay vì xanh lá–đỏ, đã kiểm tra bằng công cụ đo để người mù màu vẫn phân biệt được; biểu tượng còn có dấu +, =, − nên không phụ thuộc vào màu.
 
 - **Hồ sơ người khác**: bấm tên bất kỳ ai ở bảng xếp hạng hay ô tìm kiếm để xem thống kê, ván solo và lượt bán của họ, mở xem lại từng trận, rồi thách đấu ngay từ hồ sơ. Giống chess.com, lịch sử **đã kết thúc** là công khai với người đã đăng nhập; trận đang đấu, lời thách đang chờ và lượt đang chơi vẫn chỉ người trong cuộc đọc được.
+- **Bạn bè và chuông thông báo**: tìm bạn ở mục Bạn bè, hoặc bấm "Kết bạn" trong hồ sơ, sau một trận solo hay ngay trên màn xem lại. Lời mời đến hiện trên chuông ở màn chính (có số chưa đọc, cập nhật tức thì qua Realtime); mục Bạn bè có danh sách bạn (ai đang mở game, đang bán, đang solo) và tab Lời mời đã nhận / đã gửi. Màn xem lại trận của người khác có luôn nút "Thách đấu".
+- **Biểu đồ dễ xem trên điện thoại**: số liệu của cột đang chọn hiện ở dòng phía trên biểu đồ nên ngón tay không che; chạm rồi kéo ngang để lướt qua từng lượt, thả tay vẫn giữ.
 - **Xem trực tiếp**: người đang bán hoặc đang solo có nút **Xem trực tiếp** (ở ô tìm kiếm là "Xem trận"). Màn xem dùng lại bộ dựng quán của phần xem lại, trễ khoảng nửa giây; trận solo hiện cả hai quán. Hết trận, màn xem báo ai thắng, Elo đổi bao nhiêu (hoặc người đó đã chốt sổ được bao nhiêu ĐBK) và hiện nút thách đấu người vừa rảnh. Dữ liệu đi qua Supabase Realtime Broadcast, máy người chơi chỉ gửi khi có người đang xem, không ghi gì vào database.
 
 <p align="center"><img src="docs/images/xem-lai-laptop.png" width="820" alt="Xem lại một trận solo, hai quán cạnh nhau"></p>
@@ -311,6 +313,7 @@ mi-quang-bach-khoa/
 │   ├── hieu-ung.js          # Hiệu ứng thắng/thua, khoá nút chống bấm nhầm
 │   ├── giu-quan.js          # Giữ quán khi tải lại, tạm dừng, đóng quán
 │   ├── ban-ghi.js           # Ghi thao tác, xem lại, hồ sơ, biểu đồ, xem trực tiếp
+│   ├── ban-be.js            # Bạn bè, lời mời kết bạn, chuông thông báo
 │   ├── dieu-huong.js        # Nhớ màn đang mở để tải lại trang vẫn ở đúng chỗ
 │   └── khoi-dong.js         # Khởi động: đăng nhập, vào lại lượt/trận đang dở
 ├── sw.js                    # Service worker nhận thông báo thách đấu

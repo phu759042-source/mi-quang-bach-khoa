@@ -11,7 +11,7 @@ const CHE_DO={
 let solo=null;            // trận đang đấu
 let soloWait=null;        // lời thách mình đã gửi, đang chờ trả lời
 let soloAccepting=null;   // id lời thách mình vừa bấm đồng ý
-let soloCh=null, onlineCh=null, onlineSet=new Set(), onlineSt=new Map(), myPresence='';
+let soloCh=null, bbCh=null, onlineCh=null, onlineSet=new Set(), onlineSt=new Map(), myPresence='';
 // Trạng thái gửi kèm tín hiệu "đang mở game": rảnh, đang bán (chế độ thường) hay đang solo
 const presenceNow=()=>solo?'solo':midRun?'ban':'ranh';
 function syncPresence(force){
@@ -42,6 +42,11 @@ function soloConnect(){
   soloCh=sb.channel('solo-'+user.id)
     .on('postgres_changes',{event:'*',schema:'public',table:'thach_dau'},p=>soloRow(p.new))
     .subscribe();
+  // kênh riêng cho chuông và bạn bè, lỗi ở đây không ảnh hưởng kênh solo
+  bbCh=sb.channel('bb-'+user.id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'thong_bao',filter:'user_id=eq.'+user.id},bbSuKien)
+    .on('postgres_changes',{event:'*',schema:'public',table:'ban_be'},bbDoi)
+    .subscribe();
   onlineCh=sb.channel('online',{config:{presence:{key:user.id}}});
   onlineCh.on('presence',{event:'sync'},()=>{
       const ps=onlineCh.presenceState();
@@ -49,13 +54,14 @@ function soloConnect(){
       onlineSt=new Map(Object.entries(ps).map(([k,ms])=>{const m=[...(ms||[])].sort((a,b)=>(b.at||0)-(a.at||0))[0]||{};return [k,m.st||'ranh']}));
       applyPresence()})
     .subscribe(s=>{if(s==='SUBSCRIBED') syncPresence(true)});
-  liveOpen();
+  liveOpen(); bbTai(); clearInterval(soloConnect.bb); soloConnect.bb=setInterval(bbTai,30000);
   soloPoll(true); clearInterval(soloConnect.t); soloConnect.t=setInterval(()=>soloPoll(false),15000);
 }
 function soloDisconnect(){
   if(soloCh){sb.removeChannel(soloCh);soloCh=null}
+  if(bbCh){sb.removeChannel(bbCh);bbCh=null}
   if(onlineCh){sb.removeChannel(onlineCh);onlineCh=null}
-  liveClose(); clearInterval(soloConnect.t); [...notices.keys()].forEach(dropNotice);
+  liveClose(); clearInterval(soloConnect.t); clearInterval(soloConnect.bb); bbReset(); [...notices.keys()].forEach(dropNotice);
 }
 // Dự phòng khi realtime chập chờn: hỏi server lời thách đang chờ; trận cũ còn treo (tải lại trang giữa trận) thì tính bỏ trận
 async function soloPoll(boot){
@@ -308,6 +314,7 @@ function soloEnd(r){
       <tr><td>Tim đã mất</td>${cell(0,r[me+'_tim_mat'])}${cell(0,r[o+'_tim_mat'])}</tr>
       <tr><td>ĐBK</td>${cell(0,'<b>'+dm+'</b>')}${cell(0,'<b>'+dt+'</b>')}</tr></table></div>
     <div class="col grow"><button class="btn" id="re">Tái đấu</button><button class="btn ghost" id="xemlai">Xem lại trận</button>
+      <span class="kb-row" data-kb-slot="${r[o]}" data-kb-an="ban">${kbNut(r[o],'ban')}</span>
       <div class="row"><button class="link" id="lbs">Bảng xếp hạng Solo</button><button class="link" id="home">Về màn hình chính</button></div></div>`);
     $('xemlai').onclick=()=>replayScreen({thach_dau:r.id,back:home,title:`${tenNgan(profile?.ten||'Bạn')} vs ${tenNgan(ten)}`,sub:`${draw?'Hoà':win?'Thắng':'Thua'} · ${DIFF[s.dk].n} · ${CHE_DO[s.md].n}`});
     $('re').onclick=()=>challengeScreen({...s.opp,id:r[o]},null,{dk:s.dk,md:s.md});

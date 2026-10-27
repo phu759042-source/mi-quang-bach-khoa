@@ -14,7 +14,7 @@ function home(){
   const pill=streakPill();
   openOv(`<div class="split"><div class="split-a">
   <img class="hero-icon desk" src="icons/favicon.svg" alt="" width="88" height="88">
-  <div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc</div>
+  <div class="home-top"><div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc</div>${ranked?chuongHTML():''}</div>
   <h1>Mì Quảng <em>Bách Khoa</em></h1>
   ${meCard}
   ${pill}
@@ -31,7 +31,7 @@ function home(){
   <div class="col grow">
     <button class="btn" id="go">${ranked?'Mở quán':'Mở quán (chơi thử)'}</button>
     <button class="btn ghost" id="lb">Bảng xếp hạng</button>
-    ${ranked?'<button class="btn warm" id="solo">Solo · thách đấu bạn bè</button><button class="btn ghost" id="hoso">Ván đấu &amp; thống kê</button>':''}
+    ${ranked?'<button class="btn warm" id="solo">Solo · thách đấu bạn bè</button><button class="btn ghost" id="hoso">Ván đấu &amp; thống kê</button><button class="btn ghost" id="banbe">Bạn bè <span class="bb-so" data-bb-badge="lm" hidden></span></button>':''}
     <div class="row">${ranked?`<button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
@@ -47,7 +47,8 @@ function home(){
     $('diffs').querySelectorAll('.diff').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===diff));desc()};
   $('go').onclick=startRun;
   $('lb').onclick=()=>leaderboard('sv');
-  if(ranked){$('solo').onclick=()=>leaderboard('solo',true);$('hoso').onclick=()=>hoSoScreen('stats',null,home)}
+  if(ranked){$('solo').onclick=()=>leaderboard('solo',true);$('hoso').onclick=()=>hoSoScreen('stats',null,home);
+    $('banbe').onclick=()=>banBeScreen(bbSoLoiMoi()?'loi_moi':'ban',home);$('chuong').onclick=()=>thongBaoScreen(home);bbVe()}
   $('contact').onclick=()=>contactScreen(home);
   $('donate').onclick=()=>donateScreen(home);
   if(ranked){$('edit').onclick=profileScreen;$('out').onclick=logout}else $('login').onclick=()=>sb?authScreen():toast('Không kết nối được máy chủ');

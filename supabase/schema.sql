@@ -757,3 +757,129 @@ insert into public.khoa (id, ten) values
   ('xdtl',  'Xây dựng Công trình thủy');
 
 insert into public.thong_ke (ten, gia_tri) values ('luot_mo_trang', 0);
+
+-- ---------------------------------------------------------------------
+-- 9. Bạn bè và thông báo (bản 2.14.0)
+--    ban_be: mỗi cặp một dòng (a < b), 'cho' = đang chờ người kia đồng ý, 'ban' = đã là bạn.
+--    thong_bao: chuông thông báo trong game (lời mời kết bạn, được đồng ý kết bạn).
+--    Client chỉ đọc; mọi thay đổi qua RPC bên dưới.
+-- ---------------------------------------------------------------------
+create table if not exists public.ban_be (
+  a          uuid not null references public.profiles(id) on delete cascade,
+  b          uuid not null references public.profiles(id) on delete cascade,
+  nguoi_gui  uuid not null,
+  trang_thai text not null default 'cho' check (trang_thai in ('cho', 'ban')),
+  tao_luc    timestamptz not null default now(),
+  ket_ban_luc timestamptz,
+  primary key (a, b),
+  check (a < b),
+  check (nguoi_gui in (a, b))
+);
+create index if not exists ban_be_b_idx on public.ban_be (b);
+
+create table if not exists public.thong_bao (
+  id      bigint generated always as identity primary key,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  loai    text not null check (loai in ('loi_moi_ket_ban', 'dong_y_ket_ban')),
+  tu      uuid references public.profiles(id) on delete cascade,
+  da_doc  boolean not null default false,
+  tao_luc timestamptz not null default now()
+);
+create index if not exists thong_bao_user_idx on public.thong_bao (user_id, tao_luc desc);
+create index if not exists thong_bao_tu_idx on public.thong_bao (tu);
+
+alter table public.ban_be    enable row level security;
+alter table public.thong_bao enable row level security;
+drop policy if exists "doc ban be cua minh" on public.ban_be;
+create policy "doc ban be cua minh" on public.ban_be for select to authenticated using ((select auth.uid()) in (a, b));
+drop policy if exists "doc thong bao cua minh" on public.thong_bao;
+create policy "doc thong bao cua minh" on public.thong_bao for select to authenticated using (user_id = (select auth.uid()));
+revoke all on public.ban_be, public.thong_bao from anon, authenticated;
+grant select on public.ban_be, public.thong_bao to authenticated;
+
+-- Thêm một thông báo, giữ 100 thông báo mới nhất mỗi người
+create or replace function public._them_thong_bao(p_user uuid, p_loai text, p_tu uuid)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  delete from public.thong_bao where user_id = p_user and loai = p_loai and tu = p_tu;   -- không hiện trùng
+  insert into public.thong_bao (user_id, loai, tu) values (p_user, p_loai, p_tu);
+  delete from public.thong_bao where user_id = p_user and id not in
+    (select id from public.thong_bao where user_id = p_user order by tao_luc desc limit 100);
+end $$;
+
+-- Gửi lời mời. Nếu người kia đã mời mình trước thì thành bạn luôn.
+create or replace function public.gui_ket_ban(p_b uuid)
+returns json language plpgsql security definer set search_path = '' as $$
+declare v_uid uuid := auth.uid(); v_x uuid; v_y uuid; r record; n int;
+begin
+  if v_uid is null then raise exception 'Chưa đăng nhập'; end if;
+  if p_b is null or p_b = v_uid then raise exception 'Không thể tự kết bạn với mình'; end if;
+  if not exists (select 1 from public.profiles where id = p_b) then raise exception 'Không tìm thấy người chơi'; end if;
+  v_x := least(v_uid, p_b); v_y := greatest(v_uid, p_b);
+  select * into r from public.ban_be where a = v_x and b = v_y for update;
+  if found then
+    if r.trang_thai = 'ban' then return json_build_object('trang_thai', 'ban'); end if;
+    if r.nguoi_gui = v_uid then return json_build_object('trang_thai', 'da_gui'); end if;
+    update public.ban_be set trang_thai = 'ban', ket_ban_luc = now() where a = v_x and b = v_y;
+    update public.thong_bao set da_doc = true where user_id = v_uid and loai = 'loi_moi_ket_ban' and tu = p_b;
+    perform public._them_thong_bao(p_b, 'dong_y_ket_ban', v_uid);
+    return json_build_object('trang_thai', 'ban');
+  end if;
+  select count(*) into n from public.ban_be where nguoi_gui = v_uid and trang_thai = 'cho';
+  if n >= 50 then raise exception 'Bạn đang có quá nhiều lời mời chưa được trả lời'; end if;
+  select count(*) into n from public.thong_bao where tu = v_uid and loai = 'loi_moi_ket_ban' and tao_luc > now() - interval '1 hour';
+  if n >= 30 then raise exception 'Gửi lời mời nhanh quá, thử lại sau ít phút'; end if;
+  insert into public.ban_be (a, b, nguoi_gui) values (v_x, v_y, v_uid);
+  perform public._them_thong_bao(p_b, 'loi_moi_ket_ban', v_uid);
+  return json_build_object('trang_thai', 'da_gui');
+end $$;
+
+-- Trả lời lời mời của p_nguoi
+create or replace function public.tra_loi_ket_ban(p_nguoi uuid, p_dong_y boolean)
+returns json language plpgsql security definer set search_path = '' as $$
+declare v_uid uuid := auth.uid(); v_x uuid := least(auth.uid(), p_nguoi); v_y uuid := greatest(auth.uid(), p_nguoi); r record;
+begin
+  if v_uid is null then raise exception 'Chưa đăng nhập'; end if;
+  select * into r from public.ban_be where a = v_x and b = v_y for update;
+  if not found or r.trang_thai <> 'cho' or r.nguoi_gui <> p_nguoi then
+    return json_build_object('trang_thai', coalesce(r.trang_thai, 'khong'));
+  end if;
+  update public.thong_bao set da_doc = true where user_id = v_uid and loai = 'loi_moi_ket_ban' and tu = p_nguoi;
+  if p_dong_y then
+    update public.ban_be set trang_thai = 'ban', ket_ban_luc = now() where a = v_x and b = v_y;
+    perform public._them_thong_bao(p_nguoi, 'dong_y_ket_ban', v_uid);
+    return json_build_object('trang_thai', 'ban');
+  end if;
+  delete from public.ban_be where a = v_x and b = v_y;
+  return json_build_object('trang_thai', 'khong');
+end $$;
+
+-- Huỷ lời mời mình đã gửi, hoặc huỷ kết bạn
+create or replace function public.huy_ket_ban(p_nguoi uuid)
+returns json language plpgsql security definer set search_path = '' as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null then raise exception 'Chưa đăng nhập'; end if;
+  delete from public.ban_be where a = least(v_uid, p_nguoi) and b = greatest(v_uid, p_nguoi);
+  delete from public.thong_bao where user_id = p_nguoi and tu = v_uid and loai = 'loi_moi_ket_ban';
+  return json_build_object('trang_thai', 'khong');
+end $$;
+
+-- Đánh dấu đã đọc mọi thông báo của mình
+create or replace function public.doc_thong_bao()
+returns void language sql security definer set search_path = '' as $$
+  update public.thong_bao set da_doc = true where user_id = auth.uid() and not da_doc;
+$$;
+
+revoke all on function public._them_thong_bao(uuid, text, uuid), public.gui_ket_ban(uuid),
+  public.tra_loi_ket_ban(uuid, boolean), public.huy_ket_ban(uuid), public.doc_thong_bao() from public, anon, authenticated;
+grant execute on function public.gui_ket_ban(uuid), public.tra_loi_ket_ban(uuid, boolean),
+  public.huy_ket_ban(uuid), public.doc_thong_bao() to authenticated;
+
+-- Realtime: chuông và danh sách bạn bè cập nhật ngay (RLS ở trên vẫn áp dụng)
+do $$ begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'ban_be') then
+    alter publication supabase_realtime add table public.ban_be; end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'thong_bao') then
+    alter publication supabase_realtime add table public.thong_bao; end if;
+end $$;

@@ -123,6 +123,34 @@ begin
   exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
   raise notice 'OK bản ghi: người đã đăng nhập xem lại được, người ngoài trận không gửi được';
 
+  -- Bạn bè: gửi, không gửi trùng, người ngoài không thấy, đồng ý, thông báo, mời ngược lại thì thành bạn luôn
+  perform pg_temp.dang_nhap(A); j := public.gui_ket_ban(B);
+  if j->>'trang_thai' <> 'da_gui' then raise exception 'HONG: gửi lời mời sai: %', j; end if;
+  if public.gui_ket_ban(B)->>'trang_thai' <> 'da_gui' then raise exception 'HONG: gửi lại lời mời'; end if;
+  begin perform public.gui_ket_ban(A); raise exception 'HONG: tự kết bạn với mình';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform pg_temp.dang_nhap(C);
+  select count(*) into n from public.ban_be; if n <> 0 then raise exception 'HONG: người ngoài thấy lời mời kết bạn'; end if;
+  select count(*) into n from public.thong_bao; if n <> 0 then raise exception 'HONG: người ngoài thấy thông báo'; end if;
+  begin perform public.tra_loi_ket_ban(A, true); exception when others then null; end;
+  perform pg_temp.dang_nhap(B);
+  select count(*) into n from public.thong_bao where loai = 'loi_moi_ket_ban' and tu = A and not da_doc;
+  if n <> 1 then raise exception 'HONG: B không nhận được thông báo lời mời (%)', n; end if;
+  j := public.tra_loi_ket_ban(A, true);
+  if j->>'trang_thai' <> 'ban' then raise exception 'HONG: đồng ý kết bạn sai: %', j; end if;
+  perform pg_temp.dang_nhap(A);
+  select count(*) into n from public.thong_bao where loai = 'dong_y_ket_ban' and tu = B;
+  if n <> 1 then raise exception 'HONG: A không được báo B đã đồng ý'; end if;
+  perform public.doc_thong_bao();
+  if exists (select 1 from public.thong_bao where not da_doc) then raise exception 'HONG: đánh dấu đã đọc không chạy'; end if;
+  perform public.huy_ket_ban(B);
+  if exists (select 1 from public.ban_be) then raise exception 'HONG: huỷ kết bạn không xoá'; end if;
+  perform pg_temp.dang_nhap(C); perform public.gui_ket_ban(A);
+  perform pg_temp.dang_nhap(A); j := public.gui_ket_ban(C);
+  if j->>'trang_thai' <> 'ban' then raise exception 'HONG: hai bên cùng mời mà chưa thành bạn: %', j; end if;
+  perform pg_temp.dang_xuat();
+  raise notice 'OK bạn bè: gửi, chống trùng, riêng tư, thông báo, đồng ý, huỷ, mời chéo thành bạn';
+
   -- Xếp hạng
   if (select hang from public.bxh_sinh_vien where id = A) <> 1 then raise exception 'HONG: bảng xếp hạng sinh viên sai'; end if;
   if (select count(*) from public.bxh_khoa) <> 14 then raise exception 'HONG: bảng khoa không đủ 14 khoa'; end if;

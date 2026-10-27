@@ -125,11 +125,16 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, firs
   RP = {players, T: 0, dur, speed: 1, playing: false, last: 0, o, kr, ketOn: null};
   const ks = ING_KEYS();
   const days = []; players[0].ev.forEach(e => { if(e[1] === 'D') days.push([e[0], e[2]]) });
+  // Người khác trong trận / lượt này: có nút thách đấu và kết bạn ngay trên màn xem lại
+  const khac = [...new Set(o.thach_dau && kr ? [kr.a, kr.b] : players.map(p => p.id))].filter(id => id && id !== user.id);
+  await bbHoSo(khac);
+  if(!$('back')) return;
   const moves = [];
   players.forEach((p, pi) => p.ev.forEach(e => { const l = rpLine(e, ks); if(l) moves.push({t: e[0], pi, l, kind: e[1]}) }));
   moves.sort((a, b) => a.t - b.t);
   openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${esc(o.sub || 'Xem lại')}</div><button class="link" id="back">Đóng</button></div>
     <h2>${esc(o.title || 'Xem lại')}</h2>
+    ${khac.length ? `<div class="row rp-act">${khac.map(id => `<button type="button" class="btn ghost" data-rp-thach="${id}">Thách đấu ${esc(tenNgan(bbTen(id)))}</button><span class="kb-row" data-kb-slot="${id}" data-kb-an="ban">${kbNut(id, 'ban')}</span>`).join('')}</div>` : ''}
     ${players.length < 2 && o.thach_dau ? '<p class="muted">Chỉ có bản ghi của một bên (bên kia đang dùng bản game cũ hoặc chưa gửi kịp).</p>' : ''}
     <div class="rp-stage n${players.length}" id="rpStage">${players.map((p, i) => `<div class="rp-view" id="rpv${i}"></div>`).join('')}</div>
     <div class="rp-ket" id="rpKet" role="status" hidden></div>
@@ -158,6 +163,10 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, firs
   $('rpSeek').oninput = e => rpSeek(+e.target.value);
   $('ov').querySelector('.rp-speed').onclick = e => { const b = e.target.closest('[data-s]'); if(!b) return; RP.speed = +b.dataset.s;
     $('ov').querySelectorAll('.rp-speed button').forEach(x => x.setAttribute('aria-pressed', x === b)) };
+  $('ov').querySelector('.rp-act')?.addEventListener('click', e => { const b = e.target.closest('[data-rp-thach]'); if(!b) return;
+    const id = b.dataset.rpThach, p = BB.hs.get(id) || {id, ten: bbTen(id)}; rpStop();
+    if(onlineSt.get(id) === 'solo') return watchScreen(id, () => replayScreen(o));
+    challengeScreen(p, () => replayScreen(o)) });
   $('rpMoves').onclick = e => { const b = e.target.closest('[data-t]'); if(b) rpSeek(+b.dataset.t) };
   rpSeek(0); rpPlay();
 }
@@ -265,7 +274,8 @@ async function hoSoScreen(tab = 'stats', uid = null, back = null){
       <div class="sub">${esc(w.lop)} · ${esc(khoaTen(w.khoa_id))}</div>
       <div class="pts2"><div><b>${w.diem ?? 0}</b><small id="hsRkD">ĐBK${self && myRank ? ` · #${myRank}` : ''}</small></div><div><b>${w.elo ?? 1200}</b><small id="hsRkE">Elo solo</small></div></div></div>
     ${self ? '' : `<div class="row hs-act"><button type="button" class="btn" id="hsThach" data-thach="${w.id}">Thách đấu</button>
-      <button type="button" class="btn ghost live-btn" id="hsXem" data-xem="${w.id}" hidden><i class="live-dot" aria-hidden="true"></i>Xem trực tiếp</button></div>`}
+      <button type="button" class="btn ghost live-btn" id="hsXem" data-xem="${w.id}" hidden><i class="live-dot" aria-hidden="true"></i>Xem trực tiếp</button>
+      <span class="kb-row" data-kb-slot="${w.id}">${kbNut(w.id)}</span></div>`}
     <div class="tabs" role="tablist">${[['stats','Thống kê'],['games','Ván solo'],['runs','Lượt bán']].map(([k, n]) => `<button role="tab" data-t="${k}" aria-selected="${k === tab}">${n}</button>`).join('')}</div>
     <div class="col" id="hsBody"><div class="empty-state">Đang tải…</div></div>`);
   $('back').onclick = HS.back;
@@ -375,7 +385,7 @@ async function statsTab(body){
           ${W ? `<i class="win" style="flex:${W}"></i>` : ''}${Dr ? `<i class="even" style="flex:${Dr}"></i>` : ''}${L ? `<i class="loss" style="flex:${L}"></i>` : ''}</div>
         <div class="wdl-l"><span>${kqIcon('thang')} Thắng <b>${W}</b> · ${pct(W)}%</span><span>${kqIcon('hoa')} Hoà <b>${Dr}</b> · ${pct(Dr)}%</span><span>${kqIcon('thua')} Thua <b>${L}</b> · ${pct(L)}%</span></div>
         <div class="muted">Sinh tồn: ${theo('sinh_ton')} · Điểm cao: ${theo('diem')}</div>
-        <div class="chart-t">Elo sau mỗi trận</div><div class="chart" id="cElo"></div>` : '<p class="muted">Chưa có trận solo nào.</p>'}
+        <div class="chart-t">Elo sau mỗi trận <span class="muted">· rê hoặc kéo ngang để xem từng trận</span></div><div class="chart" id="cElo"></div>` : '<p class="muted">Chưa có trận solo nào.</p>'}
     </section>
     <section class="card-s"><h3>Mở quán (chế độ thường)</h3>
       <div class="tiles"><div class="tile"><span>ĐBK hiện có</span><b>${w.diem}</b></div><div class="tile"><span>Số lượt</span><b>${tot}</b></div>
@@ -384,7 +394,7 @@ async function statsTab(body){
         <div class="tile"><span>Trụ lâu nhất</span><b>${dai} ngày</b></div>
         <div class="tile"><span>Lượt tốt nhất</span><b>${best ? (best.delta > 0 ? '+' : '') + best.delta : '—'}</b></div></div>
       <div class="streak-pill ${st.lit ? 'on' : ''}">${flameSVG(st.lit)}<b>${st.n}</b><span>ngày liên tiếp hiện tại · dài nhất <b>${w.chuoi_dai_nhat || st.best || 0}</b> ngày</span></div>
-      ${tot ? `<div class="chart-t">ĐBK từng lượt (${Math.min(tot, 40)} lượt gần nhất)</div><div class="chart" id="cRuns"></div>
+      ${tot ? `<div class="chart-t">ĐBK từng lượt (${Math.min(tot, 40)} lượt gần nhất) <span class="muted">· rê hoặc kéo ngang để xem từng lượt</span></div><div class="chart" id="cRuns"></div>
         <div style="overflow-x:auto"><table class="tb"><tr><th>Độ khó</th><th>Số lượt</th><th>TB ĐBK</th><th>Tốt nhất</th><th>Trụ lâu nhất</th></tr>${byDiff}</table></div>` : '<p class="muted">Chưa có lượt bán nào được tính điểm.</p>'}
     </section>`;
   if(games.length) lineChart($('cElo'), eloSeries.map((x, k) => ({x:k, y:x.v, tip:`Trận ${k + 1} · ${KQ[x.g.kq].n} · ${x.g.doi > 0 ? '+' : ''}${x.g.doi} → <b>${x.v}</b><br>${fmtNgay(x.t)}`})));
@@ -549,30 +559,34 @@ function xemEnd(x, ket){
   if(ket) lockButtons(box, 700);
 }
 
-/* ---- Biểu đồ nhỏ (SVG) kèm chú thích khi rê/chạm ---- */
-function chartTip(host, html, x, y){
-  let t = host.querySelector('.ctip'); if(!t){ t = document.createElement('div'); t.className = 'ctip'; host.appendChild(t) }
-  if(html == null){ t.hidden = true; return }
-  t.hidden = false; t.innerHTML = html;
-  const w = host.clientWidth; t.style.left = Math.min(Math.max(x - 70, 0), w - 150) + 'px'; t.style.top = Math.max(y - 64, 0) + 'px';
+/* ---- Biểu đồ nhỏ (SVG) ----
+   Dòng số liệu nằm PHÍA TRÊN biểu đồ (ngón tay không che), luôn hiện điểm đang chọn, mặc định là điểm mới nhất.
+   Rê chuột, hoặc chạm rồi kéo ngang để lướt qua từng cột/điểm; thả tay vẫn giữ điểm đã chọn.
+   Kéo dọc vẫn cuộn trang (touch-action: pan-y). Bàn phím: Tab vào biểu đồ rồi ← → Home End. */
+function chartScrub(host, svg, W, n, xOf, chon){
+  const read = document.createElement('div'); read.className = 'cread'; read.setAttribute('aria-live', 'polite'); host.prepend(read);
+  svg.setAttribute('tabindex', '0');
+  let k = -1;
+  const dat = i => { i = Math.max(0, Math.min(n - 1, i)); if(i === k) return; k = i; read.innerHTML = chon(i) };
+  const tu = e => { const r = svg.getBoundingClientRect(); if(!r.width) return; const vx = (e.clientX - r.left) * W / r.width;
+    let best = 0, d = Infinity; for(let i = 0; i < n; i++){ const di = Math.abs(xOf(i) - vx); if(di < d){ d = di; best = i } } dat(best) };
+  svg.addEventListener('pointerdown', e => { tu(e); try{ svg.setPointerCapture(e.pointerId) }catch(x){} });
+  svg.addEventListener('pointermove', tu);
+  svg.addEventListener('keydown', e => { const m = {ArrowLeft: k - 1, ArrowRight: k + 1, Home: 0, End: n - 1}[e.key];
+    if(m != null){ e.preventDefault(); dat(m) } });
+  dat(n - 1);
 }
 function lineChart(host, pts){
   const W = host.clientWidth || 320, H = 150, P = {l:38, r:10, t:12, b:20};
   const ys = pts.map(p => p.y), lo = Math.min(...ys, 1200) - 10, hi = Math.max(...ys, 1200) + 10;
   const X = k => P.l + (pts.length < 2 ? (W - P.l - P.r) / 2 : k / (pts.length - 1) * (W - P.l - P.r)), Y = v => P.t + (hi - v) / (hi - lo) * (H - P.t - P.b);
   const ticks = [lo + 10, Math.round((lo + hi) / 2), hi - 10];
-  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Elo từ ${ys[0]} đến ${ys[ys.length - 1]} qua ${pts.length} trận">
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Elo từ ${ys[0]} đến ${ys[ys.length - 1]} qua ${pts.length} trận. Dùng phím mũi tên để xem từng trận.">
     ${ticks.map(v => `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" class="grid"/><text x="${P.l - 6}" y="${Y(v) + 4}" class="ax" text-anchor="end">${Math.round(v)}</text>`).join('')}
     <polyline points="${pts.map((p, k) => `${X(k)},${Y(p.y)}`).join(' ')}" class="ln"/>
-    <circle cx="${X(pts.length - 1)}" cy="${Y(ys[ys.length - 1])}" r="4" class="dot"/>
     <line class="xh" y1="${P.t}" y2="${H - P.b}" x1="-9" x2="-9"/><circle class="dot hov" r="5" cx="-9" cy="-9"/></svg>`;
   const svg = host.querySelector('svg'), xh = svg.querySelector('.xh'), hv = svg.querySelector('.hov');
-  const move = e => { const r = svg.getBoundingClientRect(), mx = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
-    let k = Math.round((mx - P.l) / Math.max(1, W - P.l - P.r) * (pts.length - 1)); k = Math.max(0, Math.min(pts.length - 1, k));
-    xh.setAttribute('x1', X(k)); xh.setAttribute('x2', X(k)); hv.setAttribute('cx', X(k)); hv.setAttribute('cy', Y(pts[k].y));
-    chartTip(host, pts[k].tip, X(k), Y(pts[k].y)) };
-  svg.addEventListener('pointermove', move); svg.addEventListener('pointerdown', move);
-  svg.addEventListener('pointerleave', () => { xh.setAttribute('x1', -9); xh.setAttribute('x2', -9); hv.setAttribute('cx', -9); chartTip(host, null) });
+  chartScrub(host, svg, W, pts.length, X, k => { xh.setAttribute('x1', X(k)); xh.setAttribute('x2', X(k)); hv.setAttribute('cx', X(k)); hv.setAttribute('cy', Y(pts[k].y)); return pts[k].tip });
 }
 function barChart(host, bars){
   const W = host.clientWidth || 320, H = 150, P = {l:38, r:6, t:10, b:10};
@@ -582,13 +596,14 @@ function barChart(host, bars){
   const path = (x, v) => { const y = Y(v), h = Math.abs(y - y0); if(h < .5) return '';
     return v > 0 ? `M${x},${y0}V${y + rr}Q${x},${y} ${x + rr},${y}H${x + w - rr}Q${x + w},${y} ${x + w},${y + rr}V${y0}Z`
                  : `M${x},${y0}V${y - rr}Q${x},${y} ${x + rr},${y}H${x + w - rr}Q${x + w},${y} ${x + w},${y - rr}V${y0}Z` };
-  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="ĐBK của ${bars.length} lượt gần nhất">
+  const cx = k => P.l + k * bw + w / 2;
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="ĐBK của ${bars.length} lượt gần nhất. Dùng phím mũi tên để xem từng lượt.">
+    <line class="xh" y1="${P.t}" y2="${H - P.b}" x1="-9" x2="-9"/>
     <text x="${P.l - 6}" y="${Y(m) + 8}" class="ax" text-anchor="end">+${m}</text><text x="${P.l - 6}" y="${Y(-m)}" class="ax" text-anchor="end">−${m}</text>
     <line x1="${P.l}" x2="${W - P.r}" y1="${y0}" y2="${y0}" class="base"/><text x="${P.l - 6}" y="${y0 + 4}" class="ax" text-anchor="end">0</text>
-    ${bars.map((b, k) => `<path d="${path(P.l + k * bw, b.y)}" class="${b.y >= 0 ? 'up' : 'down'}"/><rect x="${P.l + k * bw}" y="${P.t}" width="${bw}" height="${H - P.t - P.b}" class="hit" data-k="${k}"/>`).join('')}</svg>`;
-  const svg = host.querySelector('svg');
-  const show = e => { const r = e.target.closest('.hit'); if(!r){ chartTip(host, null); return } const k = +r.dataset.k;
-    svg.querySelectorAll('path').forEach((p, j) => p.style.opacity = j === k ? 1 : .55); chartTip(host, bars[k].tip, P.l + k * bw + bw / 2, Y(Math.max(0, bars[k].y))) };
-  svg.addEventListener('pointermove', show); svg.addEventListener('pointerdown', show);
-  svg.addEventListener('pointerleave', () => { svg.querySelectorAll('path').forEach(p => p.style.opacity = 1); chartTip(host, null) });
+    ${bars.map((b, k) => `<path d="${path(P.l + k * bw, b.y)}" class="bar ${b.y >= 0 ? 'up' : 'down'}"/>`).join('')}
+    <rect x="${P.l}" y="0" width="${W - P.l - P.r}" height="${H}" class="hit"/></svg>`;
+  const svg = host.querySelector('svg'), xh = svg.querySelector('.xh'), ps = svg.querySelectorAll('path.bar');
+  chartScrub(host, svg, W, bars.length, cx, k => { ps.forEach((p, j) => p.classList.toggle('mo', j !== k));
+    xh.setAttribute('x1', cx(k)); xh.setAttribute('x2', cx(k)); return bars[k].tip });
 }

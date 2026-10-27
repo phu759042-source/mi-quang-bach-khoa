@@ -38,7 +38,8 @@ class Fake:
         s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': []}
         s.runs, s.run_seq, s.nop, s.bg, s.pres = {}, itertools.count(77), [], [], {}
         s.calls = []
-        s.bcq = {}                                            # hàng đợi Realtime Broadcast theo người (giả lập kênh xem:<id>)
+        s.bcq = {}
+        s.bb, s.tb, s.tb_seq = {}, [], itertools.count(1)      # bạn bè (khoá (a,b) với a<b), thông báo                                            # hàng đợi Realtime Broadcast theo người (giả lập kênh xem:<id>)
 
     def emit(s, r):
         for u in (r['a'], r['b']):
@@ -83,10 +84,43 @@ class Fake:
         elif ar: s.end(r, r['b'], 'roi_tran')
         elif br: s.end(r, r['a'], 'roi_tran')
 
+    def bb_emit(s, r):                                        # realtime bảng ban_be cho hai người
+        for x in (r['a'], r['b']): s.q[x].append(dict(r, _table='ban_be', _ev='UPDATE'))
+
+    def tb_add(s, user, loai, tu):                            # giống _them_thong_bao
+        s.tb = [t for t in s.tb if not (t['user_id'] == user and t['loai'] == loai and t['tu'] == tu)]
+        t = dict(id=next(s.tb_seq), user_id=user, loai=loai, tu=tu, da_doc=False, tao_luc=iso(now()))
+        s.tb.append(t); s.q[user].append(dict(t, _table='thong_bao', _ev='INSERT'))
+
     def rpc(s, u, fn, a):
         s.calls.append((u, fn))
         def err(m): return {'data': None, 'error': {'message': m}}
         if fn == 'ghi_luot_truy_cap': return {'data': {'luot': 321, 'nguoi': 45, 'hom_nay': 12, 'tong': 321}}
+        if fn in ('gui_ket_ban', 'tra_loi_ket_ban', 'huy_ket_ban'):   # luật giống schema.sql phần 9
+            o = a.get('p_b') or a.get('p_nguoi')
+            if o == u: return err('Không thể tự kết bạn với mình')
+            k = tuple(sorted((u, o))); r = s.bb.get(k)
+            if fn == 'gui_ket_ban':
+                if r and r['trang_thai'] == 'ban': return {'data': {'trang_thai': 'ban'}}
+                if r and r['nguoi_gui'] == u: return {'data': {'trang_thai': 'da_gui'}}
+                if r:
+                    r['trang_thai'] = 'ban'; s.bb_emit(r); s.tb_add(o, 'dong_y_ket_ban', u); return {'data': {'trang_thai': 'ban'}}
+                r = s.bb[k] = dict(a=k[0], b=k[1], nguoi_gui=u, trang_thai='cho', tao_luc=iso(now()), ket_ban_luc=None)
+                s.bb_emit(r); s.tb_add(o, 'loi_moi_ket_ban', u); return {'data': {'trang_thai': 'da_gui'}}
+            if fn == 'tra_loi_ket_ban':
+                if not r or r['trang_thai'] != 'cho' or r['nguoi_gui'] != o: return {'data': {'trang_thai': r['trang_thai'] if r else 'khong'}}
+                for t in s.tb:
+                    if t['user_id'] == u and t['tu'] == o and t['loai'] == 'loi_moi_ket_ban': t['da_doc'] = True
+                if a['p_dong_y']:
+                    r['trang_thai'] = 'ban'; s.bb_emit(r); s.tb_add(o, 'dong_y_ket_ban', u); return {'data': {'trang_thai': 'ban'}}
+                del s.bb[k]; s.bb_emit(dict(r, trang_thai='xoa')); return {'data': {'trang_thai': 'khong'}}
+            if r: del s.bb[k]; s.bb_emit(dict(r, trang_thai='xoa'))
+            s.tb = [t for t in s.tb if not (t['user_id'] == o and t['tu'] == u and t['loai'] == 'loi_moi_ket_ban')]
+            return {'data': {'trang_thai': 'khong'}}
+        if fn == 'doc_thong_bao':
+            for t in s.tb:
+                if t['user_id'] == u: t['da_doc'] = True
+            return {'data': None}
         if fn == 'tim_nguoi_choi':
             q = a['p_q'].lower()
             res = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=next(k['ten'] for k in s.khoa if k['id'] == p['khoa_id']),
@@ -171,6 +205,8 @@ class Fake:
 
     def select(s, u, q):
         t, f = q['table'], q['filters']
+        if t == 'ban_be': return {'data': [dict(r) for r in s.bb.values() if u in (r['a'], r['b'])]}       # RLS: của mình
+        if t == 'thong_bao': return {'data': sorted([dict(x) for x in s.tb if x['user_id'] == u], key=lambda x: -x['id'])}
         if t == 'khoa': return {'data': s.khoa}
         if t == 'profiles':
             uid = next((v for k, op, v in f if k == 'id'), None)
@@ -229,13 +265,13 @@ STUB = r"""
     return b;
   }
   const subs=[], syncs=[], chans=[]; window.__pres={}; let presKey='';
-  setInterval(async()=>{const evs=await call('events',{});evs.forEach(r=>subs.forEach(cb=>cb({new:r})));
+  setInterval(async()=>{const evs=await call('events',{});evs.forEach(r=>subs.forEach(x=>{if((r._table||'thach_dau')===x.table)x.cb({eventType:r._ev||'UPDATE',new:r})}));
     const bcs=await call('bcs',{});bcs.forEach(m=>chans.forEach(ch=>{if(ch.name===m.topic&&ch.bc[m.event])ch.bc[m.event]({payload:m.payload})}));
     const pr=await call('presence',{}), k=JSON.stringify(pr); if(k!==presKey){presKey=k;window.__pres=pr;syncs.forEach(f=>f())}},150);
   window.__chal=0;
   window.supabase={createClient:()=>({
     from:q, rpc:(fn,args)=>call('rpc',{fn,args:args||{}}),
-    channel(name){const ch={name,bc:{},on(type,filt,cb){if(type==='postgres_changes')subs.push(cb);else if(type==='broadcast')ch.bc[filt.event]=cb;else{ch.sync=cb;syncs.push(cb)}return ch},
+    channel(name){const ch={name,bc:{},on(type,filt,cb){if(type==='postgres_changes')subs.push({cb,table:filt.table});else if(type==='broadcast')ch.bc[filt.event]=cb;else{ch.sync=cb;syncs.push(cb)}return ch},
       send(m){call('bc',{topic:name,event:m.event,payload:m.payload})},
       subscribe(cb){cb&&setTimeout(()=>{cb('SUBSCRIBED');ch.sync&&ch.sync()},50);return ch},
       presenceState(){return Object.fromEntries(Object.entries(window.__pres).map(([k,v])=>[k,[v]]))},track(p){call('track',p)}};chans.push(ch);return ch},
@@ -652,6 +688,59 @@ with sync_playwright() as pw:
     check(A.input_value('#ten') == 'Nguyễn Tấn Phú' and A.locator('#pClose').count() == 1, 'bấm avatar mở màn Sửa hồ sơ, có nút Đóng')
     A.click('#pClose'); A.wait_for_selector('#edit', timeout=3000)
     check(True, 'Đóng quay về màn chính')
+
+    print('24. Kết bạn: gửi lời mời, chuông thông báo, đồng ý, danh sách bạn bè')
+    C.click('#banbe'); C.wait_for_selector('#bbQ', timeout=4000)
+    check('Chưa có bạn bè nào' in C.inner_text('#bbBody'), 'chưa có bạn bè')
+    C.fill('#bbQ', 'huy'); C.wait_for_selector('[data-kb="gui"][data-kb-id="B"]', timeout=4000)
+    C.click('[data-kb="gui"][data-kb-id="B"]'); C.wait_for_selector('[data-kb="huy"][data-kb-id="B"]', timeout=4000)
+    check(F.bb.get(('B', 'C'), {}).get('trang_thai') == 'cho', 'gửi lời mời: server có lời mời đang chờ, nút đổi thành "Đã gửi lời mời · Huỷ"')
+    shot(C, 'ban-be-01-tim-va-gui')
+    B.evaluate('home()'); B.wait_for_selector('#chuong .bb-so:not([hidden])', timeout=5000)
+    check(B.inner_text('#chuong .bb-so') == '1' and B.inner_text('#banbe .bb-so') == '1', 'B: chuông có số 1, nút Bạn bè có 1 lời mời')
+    shot(B, 'ban-be-02-chuong-laptop')
+    B.click('#chuong'); B.wait_for_selector('.tb-li', timeout=4000)
+    check('Lê Minh Anh' in B.inner_text('#tbBody') and 'gửi lời mời kết bạn' in B.inner_text('#tbBody'), 'màn thông báo hiện lời mời của Minh Anh')
+    shot(B, 'ban-be-03-thong-bao-laptop')
+    B.click('[data-kb="dong_y"][data-kb-id="C"]'); B.wait_for_timeout(900)
+    check(F.bb[('B', 'C')]['trang_thai'] == 'ban' and 'đã là bạn bè' in B.inner_text('#tbBody'), 'B đồng ý: hai người thành bạn bè')
+    check(all(t['da_doc'] for t in F.tb if t['user_id'] == 'B'), 'mở chuông thì thông báo được đánh dấu đã đọc')
+    C.wait_for_timeout(800); C.fill('#bbQ', ''); C.wait_for_timeout(700)
+    check('Phạm Gia Huy' in C.inner_text('#bbBody') and C.locator('#bbBody .act[data-uid="B"]').count() == 1, 'C: danh sách bạn bè có Huy, có nút thách đấu')
+    shot(C, 'ban-be-04-danh-sach')
+    C.click('#back'); C.wait_for_selector('#chuong .bb-so:not([hidden])', timeout=5000)
+    C.click('#chuong'); C.wait_for_selector('.tb-li', timeout=4000)
+    check('đã đồng ý kết bạn' in C.inner_text('#tbBody'), 'C được báo Huy đã đồng ý')
+    C.click('#back'); C.wait_for_timeout(300)
+
+    print('25. Hồ sơ người khác có nút kết bạn; xem lại trận của người khác có nút thách đấu')
+    C.evaluate("hoSoScreen('games','A',home)"); C.wait_for_selector('#gList .li.game', timeout=5000)
+    check(C.locator('.hs-act [data-kb="gui"][data-kb-id="A"]').count() == 1, 'hồ sơ Phú có nút "Kết bạn"')
+    C.click('#gList .li.game'); C.wait_for_selector('[data-rp-thach="A"]', timeout=5000)
+    check('Thách đấu Phú' in C.inner_text('.rp-act') and C.locator('.rp-act [data-kb="gui"][data-kb-id="A"]').count() == 1, 'màn xem lại có "Thách đấu Phú" và "Kết bạn"')
+    shot(C, 'xem-lai-04-nut-thach-dau')
+    C.click('[data-rp-thach="A"]'); C.wait_for_selector('#send', timeout=4000)
+    check('Thách đấu Phú' in C.inner_text('#ov'), 'bấm mở màn thách đấu Phú')
+    C.click('#back'); C.wait_for_selector('#rpStage', timeout=5000)
+    check(True, 'Đóng màn thách quay lại màn xem lại')
+
+    print('26. Biểu đồ: dòng số liệu phía trên, rê/kéo ngang để xem từng cột')
+    A.click('#hoso'); A.wait_for_selector('#cRuns .cread', timeout=5000); A.wait_for_timeout(300)
+    A.evaluate("document.querySelector('#cRuns').scrollIntoView({block:'center'})"); A.wait_for_timeout(300)
+    box = A.locator('#cRuns svg').bounding_box()
+    t1 = A.inner_text('#cRuns .cread')
+    cdp = A.context.new_cdp_session(A); y = box['y'] + box['height'] / 2           # kéo ngang bằng ngón tay thật (touch)
+    cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': box['x'] + box['width'] - 6, 'y': y}]})
+    for k in range(1, 11): cdp.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': box['x'] + box['width'] - 6 - k * (box['width'] - 50) / 10, 'y': y}]})
+    A.wait_for_timeout(150); t2 = A.inner_text('#cRuns .cread')
+    cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []}); A.wait_for_timeout(150)
+    check(t1 and t2 and t1 != t2 and 'ĐBK' in t2, f'kéo ngang bằng ngón tay: số liệu đổi theo cột ({t1!r} → {t2!r})')
+    check(A.inner_text('#cRuns .cread') == t2, 'thả tay vẫn giữ cột đã chọn')
+    ry = A.locator('#cRuns .cread').bounding_box()['y']
+    check(ry < box['y'], 'dòng số liệu nằm phía trên biểu đồ, ngón tay không che')
+    A.locator('#cRuns svg').focus(); A.keyboard.press('End'); t3 = A.inner_text('#cRuns .cread')
+    check(t3 == t1, 'phím End về lượt mới nhất')
+    A.keyboard.press('ArrowLeft'); A.locator('#cRuns svg').blur(); shot(A, 'bieu-do-01-keo-ngang')
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

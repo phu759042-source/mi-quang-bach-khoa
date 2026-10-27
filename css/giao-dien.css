@@ -498,3 +498,26 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .split,.split-a,.split-b{display:contents}
 @media (min-width:900px) and (min-height:560px){.split{display:grid}.split-a,.split-b{display:flex}}
 @media (max-height:640px){.cust{min-height:112px}.quote{display:none}.ov h1{font-size:34px}}
+
+/* ===== Biểu đồ: dòng số liệu phía trên, rê/kéo ngang để chọn (bản 2.14.0) ===== */
+.cread{min-height:40px;margin:2px 0 6px;padding:6px 10px;border-radius:10px;background:var(--soft);font-size:13px;line-height:1.45;color:var(--ink)}
+.chart .hit{cursor:crosshair}
+.chart svg:focus-visible{outline:2px solid var(--turmeric);outline-offset:4px;border-radius:6px}
+.chart .bar{transition:opacity .12s}.chart .bar.mo{opacity:.4}
+
+/* ===== Bạn bè, chuông thông báo (bản 2.14.0) ===== */
+.home-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.chuong{position:relative;flex:none;width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);color:var(--heading);display:grid;place-items:center;cursor:pointer}
+.chuong svg{width:21px;height:21px}
+.bb-so{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:var(--chili);color:#fff;font:800 11px/1 var(--body);vertical-align:2px}
+.chuong .bb-so{position:absolute;top:-4px;right:-4px;box-shadow:0 0 0 2px var(--paper)}
+.bb-dem{color:var(--muted);font-weight:600}
+.kb-row{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn.kb{display:inline-flex;align-items:center;justify-content:center;gap:6px}.btn.kb svg{width:17px;height:17px}
+.btn.kb.on{color:var(--win);border-color:var(--win)}
+.li .kb-row .btn{padding:6px 12px;font-size:13px;min-height:0}
+.tb-li.moi{background:var(--soft)}
+.tb-li .nm{display:flex;flex-direction:column;gap:3px}
+.rp-act{gap:8px;flex-wrap:wrap}.rp-act .btn{padding:7px 14px;font-size:14px}
+.hs-act .kb-row{flex:1 1 100%}.hs-act .kb-row .btn{flex:1}
+.kb-row .btn{width:auto;flex:none}.rp-act .btn{width:auto;white-space:nowrap}

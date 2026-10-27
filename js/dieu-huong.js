@@ -23,6 +23,8 @@ async function moLaiMan(){
       case 'thach': if(!ranked) return false; await challengeScreen({id: a}, hoSo('stats', a)); return true;
       case 'suahoso': if(!ranked) return false; profileScreen(); return true;
       case 'lienhe': contactScreen(home); return true;
+      case 'banbe': if(!ranked) return false; await banBeScreen(a || 'ban', home); return true;
+      case 'thongbao': if(!ranked) return false; await thongBaoScreen(home); return true;
       case 'ungho': donateScreen(home); return true;
     }
   }catch(err){ console.warn('Không mở lại được màn cũ', err) }

@@ -164,7 +164,7 @@ function profileScreen(){
     await loadProfile(); ranked=true; soloConnect(); home();
   };
 }
-async function logout(){nhoMan(null);soloDisconnect();await pushUnlink();await sb.auth.signOut();user=null;profile=null;ranked=false;authScreen()}
+async function logout(){nhoMan(null);bbReset();soloDisconnect();await pushUnlink();await sb.auth.signOut();user=null;profile=null;ranked=false;authScreen()}
 
 /* ================= Avatar ================= */
 const AV_BASE=SB_URL+'/storage/v1/object/public/avatars/';
