@@ -38,6 +38,7 @@ class Fake:
         s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': []}
         s.runs, s.run_seq, s.nop, s.bg, s.pres = {}, itertools.count(77), [], [], {}
         s.calls = []
+        s.dem = []
         s.bcq = {}
         s.bb, s.tb, s.tb_seq = {}, [], itertools.count(1)      # bạn bè (khoá (a,b) với a<b), thông báo                                            # hàng đợi Realtime Broadcast theo người (giả lập kênh xem:<id>)
 
@@ -95,7 +96,9 @@ class Fake:
     def rpc(s, u, fn, a):
         s.calls.append((u, fn))
         def err(m): return {'data': None, 'error': {'message': m}}
-        if fn == 'ghi_luot_truy_cap': return {'data': {'luot': 321, 'nguoi': 45, 'hom_nay': 12, 'tong': 321}}
+        if fn == 'ghi_luot_truy_cap':
+            s.dem.append((u, a.get('p_khach')))                 # ghi lại để kiểm tra: chỉ ghi nhận người sau khi có thao tác
+            return {'data': {'luot': 321, 'nguoi': 45, 'hom_nay': 12, 'tong': 321}}
         if fn in ('gui_ket_ban', 'tra_loi_ket_ban', 'huy_ket_ban'):   # luật giống schema.sql phần 9
             o = a.get('p_b') or a.get('p_nguoi')
             if o == u: return err('Không thể tự kết bạn với mình')
@@ -289,7 +292,8 @@ errors = []
 
 def make(b, uid, w, h, scheme='light'):
     ctx = b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=2, color_scheme=scheme, locale='vi-VN',
-                        timezone_id='Asia/Ho_Chi_Minh', has_touch=w < 600, is_mobile=w < 600)
+                        timezone_id='Asia/Ho_Chi_Minh', has_touch=w < 600, is_mobile=w < 600,
+                        user_agent=('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0 Mobile Safari/537.36' if w < 600 else 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0 Safari/537.36'))   # UA mặc định có chữ HeadlessChrome, game coi là bot
 
     def route(r):
         u = r.request.url
@@ -322,7 +326,7 @@ def make(b, uid, w, h, scheme='light'):
             return json.dumps(F.select(uid, a))
     F.bcq[uid] = []
     ctx.expose_binding('__sb', handler)
-    ctx.add_init_script(STUB + f"window.__uid='{uid}';")
+    ctx.add_init_script(STUB + f"window.__uid='{uid}';Object.defineProperty(navigator,'webdriver',{{get:()=>false}});")   # Playwright tự báo webdriver, game coi là bot
     p = ctx.new_page()
     p.on('pageerror', lambda e: errors.append(f'{uid}: {e}'))
     p.on('console', lambda m: m.type == 'error' and 'net::ERR_FAILED' not in m.text and errors.append(f'{uid} console: {m.text}'))
@@ -351,7 +355,12 @@ sys.excepthook = _hook
 with sync_playwright() as pw:
     b = pw.chromium.launch()
     A = make(b, 'A', 390, 844)        # Phú trên điện thoại
+    A.wait_for_timeout(500)
+    check([k for u, k in F.dem if u == 'A'] == [None], f"mở trang chưa thao tác: chỉ đọc số, chưa ghi nhận người ({F.dem})")
     A.wait_for_selector('.push-card', timeout=3000); A.click('#pushLater'); A.wait_for_timeout(200)
+    A.wait_for_timeout(500)
+    ks = [k for u, k in F.dem if u == 'A']
+    check(len(ks) == 2 and ks[0] is None and ks[1], f'thao tác đầu tiên mới ghi nhận 1 người ({ks})')
     print('0. Tab Solo trước khi có trận nào: hiện mọi người ở 1200')
     A.click('#lb'); A.wait_for_timeout(300); A.click('[data-t="solo"]'); A.wait_for_timeout(600)
     check(A.locator('.pod').count() == 3 and 'chưa đấu trận nào' in A.inner_text('#lbBody'), 'hiện 3 người, ghi "chưa đấu trận nào"')

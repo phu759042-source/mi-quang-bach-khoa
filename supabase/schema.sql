@@ -71,6 +71,12 @@ create table public.khach_ghe (
   lan_cuoi timestamptz not null default now(),
   so_lan   integer not null default 1
 );
+-- bản 2.15.3: mã băm địa chỉ mạng của người mới, để giới hạn 20 người mới / giờ / mạng (xoá sau 1 ngày)
+create table public.khach_moi (
+  ip  text not null,
+  luc timestamptz not null default now()
+);
+create index khach_moi_ip_idx on public.khach_moi (ip, luc);
 create table public.thong_ke (
   ten     text primary key,
   gia_tri bigint not null default 0
@@ -135,6 +141,7 @@ alter table public.profiles      enable row level security;
 alter table public.runs          enable row level security;
 alter table public.luot_truy_cap enable row level security;
 alter table public.khach_ghe     enable row level security;
+alter table public.khach_moi     enable row level security;
 alter table public.thong_ke      enable row level security;
 alter table public.thach_dau     enable row level security;
 alter table public.push_sub      enable row level security;
@@ -149,6 +156,7 @@ create policy "doc tran da xong"  on public.thach_dau for select to authenticate
 create policy "doc luot da xong"  on public.runs      for select to authenticated using (trang_thai <> 'dang_choi');
 
 -- Supabase tự cấp mọi quyền cho anon/authenticated trên bảng mới: thu lại hết, chỉ cấp quyền đọc cần thiết
+revoke all on public.khach_moi from anon, authenticated;
 revoke all on public.khoa, public.profiles, public.runs, public.luot_truy_cap, public.khach_ghe,
               public.thong_ke, public.thach_dau, public.push_sub, public.ban_ghi from anon, authenticated;
 grant select on public.khoa, public.profiles to anon, authenticated;
@@ -361,24 +369,33 @@ begin
   update public.profiles set avatar_url = p_url, avatar_khung = p_khung where id = v_uid;
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.ghi_luot_truy_cap(p_khach uuid)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-declare v_ngay date := (now() at time zone 'Asia/Ho_Chi_Minh')::date; v_cuoi timestamptz;
+create or replace function public.ghi_luot_truy_cap(p_khach uuid)
+returns json language plpgsql security definer set search_path = '' as $$
+declare v_ngay date := (now() at time zone 'Asia/Ho_Chi_Minh')::date; v_cuoi timestamptz; v_h json; v_ip text; n int;
 begin
   if p_khach is not null then
-    insert into public.luot_truy_cap (khach, ngay) values (p_khach, v_ngay) on conflict do nothing;
     select lan_cuoi into v_cuoi from public.khach_ghe where khach = p_khach for update;
     if not found then
-      insert into public.khach_ghe (khach) values (p_khach);
-      update public.thong_ke set gia_tri = gia_tri + 1 where ten = 'luot_mo_trang';
+      -- người mới: giới hạn theo địa chỉ mạng để một máy không tạo hàng loạt mã giả
+      begin v_h := nullif(current_setting('request.headers', true), '')::json; exception when others then v_h := null; end;
+      v_ip := nullif(trim(split_part(coalesce(v_h->>'cf-connecting-ip', v_h->>'x-forwarded-for', ''), ',', 1)), '');
+      if v_ip is not null then
+        v_ip := md5(v_ip || ':mqbk');
+        delete from public.khach_moi where luc < now() - interval '1 day';
+        select count(*) into n from public.khach_moi where ip = v_ip and luc > now() - interval '1 hour';
+        if n >= 20 then p_khach := null; else insert into public.khach_moi (ip) values (v_ip); end if;
+      end if;
+      if p_khach is not null then
+        insert into public.khach_ghe (khach) values (p_khach);
+        update public.thong_ke set gia_tri = gia_tri + 1 where ten = 'luot_mo_trang';
+      end if;
     elsif v_cuoi < now() - interval '10 seconds' then
       -- chống bấm tải lại liên tục để đẩy số: cùng trình duyệt, cách nhau dưới 10 giây thì không tính thêm
       update public.khach_ghe set lan_cuoi = now(), so_lan = so_lan + 1 where khach = p_khach;
       update public.thong_ke set gia_tri = gia_tri + 1 where ten = 'luot_mo_trang';
+    end if;
+    if p_khach is not null then
+      insert into public.luot_truy_cap (khach, ngay) values (p_khach, v_ngay) on conflict do nothing;
     end if;
   end if;
   return json_build_object(
@@ -386,7 +403,7 @@ begin
     'nguoi', (select count(*) from public.khach_ghe),
     'hom_nay', (select count(*) from public.luot_truy_cap where ngay = v_ngay),
     'tong', (select count(*) from public.luot_truy_cap));
-end $function$;
+end $$;
 
 -- 4b. Solo: thách đấu, cập nhật trận, tính Elo (K = 32)
 create or replace function public._diem_solo(p_do_kho text, p_doanh_thu int, p_tim_mat int)

@@ -4,16 +4,32 @@
 function showOv(on){const ov=$('ov');ov.hidden=!on;ov.style.display=on?'flex':'none';
   const v=$('visits');if(v){const show=on&&visitCount!=null;v.hidden=!show;v.style.display=show?'flex':'none'}}
 let visitCount=null;
-async function countVisit(){
-  let id=null;
-  try{id=localStorage.getItem('mqbk-khach');if(!id){id=crypto.randomUUID();localStorage.setItem('mqbk-khach',id)}}catch(e){id=null}
-  const {data,error}=await rpcRetry('ghi_luot_truy_cap',{p_khach:id},2);
-  if(error||!data) return;
+// Bộ đếm truy cập (bản 2.15.3): mở trang chỉ đọc số (p_khach = null). Chỉ ghi nhận một "người" khi có thao tác thật
+// (chạm, bấm, gõ phím) và trình duyệt không tự nhận là tự động / bot, vì bot quét web chạy được JS nhưng hiếm khi bấm.
+// Server còn giới hạn 20 người mới / giờ / địa chỉ mạng (ghi_luot_truy_cap).
+function hienSoTruyCap(data){
+  if(!data) return;
   visitCount=data.luot??data.tong;
   $('vTong').textContent=Number(visitCount).toLocaleString('vi-VN');
   $('vNguoi').textContent=Number(data.nguoi??0).toLocaleString('vi-VN');
   $('visits').title=`Lượt truy cập: mỗi lần mở trang tính 1 lượt. Người: số trình duyệt khác nhau đã ghé. Hôm nay có ${data.hom_nay} người ghé.`;
   showOv(!$('ov').hidden);
+}
+const laBot=()=>navigator.webdriver===true||/bot|crawl|spider|slurp|headless|lighthouse|preview|scan|fetch/i.test(navigator.userAgent||'');
+async function countVisit(){
+  const {data}=await rpcRetry('ghi_luot_truy_cap',{p_khach:null},2);
+  hienSoTruyCap(data);
+  if(laBot()) return;
+  const EV=['pointerdown','keydown','touchstart'];
+  const ghi=async()=>{
+    EV.forEach(ev=>removeEventListener(ev,ghi,true));
+    let id=null;
+    try{id=localStorage.getItem('mqbk-khach');if(!id){id=crypto.randomUUID();localStorage.setItem('mqbk-khach',id)}}catch(e){id=null}
+    if(!id) return;
+    const {data}=await rpcRetry('ghi_luot_truy_cap',{p_khach:id},2);
+    hienSoTruyCap(data);
+  };
+  EV.forEach(ev=>addEventListener(ev,ghi,{capture:true,passive:true}));
 }
 function openOv(html){const ov=$('ov');showOv(true);ov.innerHTML=html;ov.scrollTop=0;return ov}
 const khoaTen=id=>(khoaList.find(k=>k.id===id)||{}).ten||'';

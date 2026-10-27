@@ -17,7 +17,7 @@ insert into auth.users (id) values
 
 do $$
 declare A uuid := '00000000-0000-0000-0000-00000000000a'; B uuid := '00000000-0000-0000-0000-00000000000b';
-        C uuid := '00000000-0000-0000-0000-00000000000c'; v_id bigint; j json; n int; ok boolean;
+        C uuid := '00000000-0000-0000-0000-00000000000c'; v_id bigint; j json; n int; i int; ok boolean;
 begin
   -- Hồ sơ
   perform pg_temp.dang_nhap(A); perform public.luu_ho_so('Người A', 'cntt', '26t_attt');
@@ -150,6 +150,20 @@ begin
   if j->>'trang_thai' <> 'ban' then raise exception 'HONG: hai bên cùng mời mà chưa thành bạn: %', j; end if;
   perform pg_temp.dang_xuat();
   raise notice 'OK bạn bè: gửi, chống trùng, riêng tư, thông báo, đồng ý, huỷ, mời chéo thành bạn';
+
+  -- Bộ đếm truy cập: một địa chỉ mạng tạo tối đa 20 người mới mỗi giờ, mạng khác vẫn đếm bình thường
+  perform pg_temp.dang_xuat();
+  perform set_config('request.headers', '{"x-forwarded-for":"203.0.113.9, 10.0.0.1"}', false);
+  perform set_config('role', 'anon', false);
+  n := (public.ghi_luot_truy_cap(null)->>'nguoi')::int;
+  for i in 1..25 loop perform public.ghi_luot_truy_cap(gen_random_uuid()); end loop;
+  if (public.ghi_luot_truy_cap(null)->>'nguoi')::int <> n + 20 then raise exception 'HONG: giới hạn 20 người mới / giờ / mạng không chạy'; end if;
+  perform set_config('request.headers', '{"x-forwarded-for":"198.51.100.7"}', false);
+  if (public.ghi_luot_truy_cap(gen_random_uuid())->>'nguoi')::int <> n + 21 then raise exception 'HONG: mạng khác bị chặn oan'; end if;
+  perform set_config('request.headers', '', false);
+  perform pg_temp.dang_xuat();
+  if exists (select 1 from public.khach_moi where ip like '%203.0.113%') then raise exception 'HONG: lưu địa chỉ mạng dạng thô'; end if;
+  raise notice 'OK bộ đếm: chặn một mạng tạo quá 20 người mới / giờ, không lưu IP thô';
 
   -- Xếp hạng
   if (select hang from public.bxh_sinh_vien where id = A) <> 1 then raise exception 'HONG: bảng xếp hạng sinh viên sai'; end if;
