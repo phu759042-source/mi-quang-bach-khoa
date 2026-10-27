@@ -555,3 +555,10 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .len-hang.xuong{opacity:.85}
 .me .pts .hang-logo{display:block;margin:0 0 2px auto}
 .pts2 .hang-row{display:flex;align-items:center;gap:6px}
+/* Về game (bản 2.16.0) */
+.ve-game{display:flex;flex-direction:column;gap:12px;text-align:left}
+.ve-game p,.ve-game li{font-size:14px;line-height:1.55;margin:0}
+.ve-game ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.ve-game a{color:var(--heading);text-decoration:underline;overflow-wrap:anywhere}
+.ve-tt{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px}
+.ve-tt span{color:var(--muted,#6b7280)}

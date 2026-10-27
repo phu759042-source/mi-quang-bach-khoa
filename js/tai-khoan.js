@@ -45,6 +45,7 @@ function authScreen(mode='login'){
     <label>Email<input id="em" type="email" autocomplete="email" required placeholder="ban@email.com"></label>
     <label>Mật khẩu<input id="pw" type="password" autocomplete="${mode==='login'?'current-password':'new-password'}" minlength="6" required placeholder="Ít nhất 6 ký tự"></label>
     <div class="msg" id="msg"></div>
+    ${mode==='signup'?'<p class="muted" style="margin:0;font-size:13px">Tạo tài khoản là bạn đồng ý với cách game lưu và dùng dữ liệu ở mục "Về game &amp; chính sách dữ liệu" bên dưới.</p>':''}
     <button class="btn" type="submit">${mode==='login'?'Đăng nhập':'Tạo tài khoản'}</button>
   </form>
   <button class="link" id="sw">${mode==='login'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập'}</button>
@@ -52,8 +53,10 @@ function authScreen(mode='login'){
   <button class="link" id="guest">Chơi thử, không tính điểm</button>
   ${themeHTML()}
   <button class="link" id="contact">Liên hệ người làm game</button>
+  <button class="link" id="vegame">Về game &amp; chính sách dữ liệu</button>
   </div></div>`);
   $('contact').onclick=()=>contactScreen(()=>authScreen(mode));
+  $('vegame').onclick=()=>veGameScreen(()=>authScreen(mode));
   if(linkError){$('msg').textContent=linkError;linkError=''}
   if(mode==='login') $('forgot').onclick=()=>forgotScreen($('em').value.trim());
   $('sw').onclick=()=>authScreen(mode==='login'?'signup':'login');

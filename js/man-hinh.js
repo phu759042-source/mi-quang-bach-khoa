@@ -36,6 +36,7 @@ function home(){
     <div class="row">${ranked?`<button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
+    <div class="row"><button class="link" id="vegame">Về game &amp; chính sách dữ liệu</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
     <div class="muted">Phiên bản ${PHIEN_BAN}</div>
   </div></div></div>`);
@@ -52,6 +53,7 @@ function home(){
     $('banbe').onclick=()=>banBeScreen(bbSoLoiMoi()?'loi_moi':'ban',home);$('chuong').onclick=()=>thongBaoScreen(home);bbVe()}
   $('contact').onclick=()=>contactScreen(home);
   $('donate').onclick=()=>donateScreen(home);
+  $('vegame').onclick=()=>veGameScreen(home);
   if(ranked){$('edit').onclick=profileScreen;$('out').onclick=logout}else $('login').onclick=()=>sb?authScreen():toast('Không kết nối được máy chủ');
 }
 async function startRun(){

@@ -691,6 +691,20 @@ with sync_playwright() as pw:
     reload(C); C.wait_for_selector('#go', timeout=8000)
     check(C.locator('#lbBody').count() == 0, 'về màn chính rồi tải lại thì ở màn chính')
 
+    print('22c. Màn "Về game": thông tin, chính sách dữ liệu, các bên liên quan; tải lại vẫn ở đó')
+    C.click('#vegame'); C.wait_for_selector('.ve-game', timeout=4000)
+    t = C.inner_text('.ve-game')
+    check('24/10/2026' in t and 'Online lần đầu' in t, 'Về game: có ngày online lần đầu 24/10/2026')
+    for ben in ['Supabase', 'GitHub Pages', 'Resend', 'jsDelivr', 'Google Fonts']:
+        check(ben in t, f'Về game: có bên liên quan {ben}')
+    check(C.locator('.ve-game a[href="https://supabase.com/privacy"]').count() == 1, 'Về game: có link chính sách Supabase')
+    check(C.evaluate('PHIEN_BAN') in t, 'Về game: hiện phiên bản')
+    shot(C, 've-game')
+    reload(C); C.wait_for_selector('.ve-game', timeout=8000)
+    check(True, 'tải lại: vẫn ở màn Về game')
+    C.click('#back'); C.wait_for_selector('#go', timeout=4000)
+    check(C.locator('.ve-game').count() == 0, 'Đóng Về game về màn chính')
+
     print('23. Màn chính: bấm thẻ tên/avatar để sửa hồ sơ')
     A.click('#home'); A.wait_for_selector('#edit', timeout=4000)
     check(A.locator('text=Sửa hồ sơ').count() == 0, 'không còn dòng "Sửa hồ sơ" ở cuối màn chính')

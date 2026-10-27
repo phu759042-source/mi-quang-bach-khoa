@@ -218,6 +218,8 @@ Giống mục Games và Stats của chess.com:
 - **Chống bấm nhầm khi kết thúc lượt**: lúc thắng hoặc thua, màn hình dừng khoảng 2 giây và chặn mọi lần chạm. Thắng thì pháo giấy bắn từ dưới lên kèm tiếng kèn, thua thì màn hình xám lại, mưa rơi và rung nhẹ. Sau đó mới hiện kết quả, và các nút còn bị khoá thêm khoảng 1 giây. Cửa hàng cuối ngày và màn hết tim cũng khoá nút một nhịp ngắn. Nhờ vậy, người đang bấm liên tục ở cuối trận không lỡ tay bấm qua màn kết quả.
 - **Giữ quán khi lỡ tải lại trang**: trạng thái lượt chơi được lưu trên máy mỗi giây, tải lại thì tự quay về đúng ngày đang bán (hoặc cửa hàng cuối ngày) sau 3 giây, không bị tính bỏ cuộc. Muốn dừng hẳn thì bấm **Tạm dừng → Đóng quán**; game báo trước số tim còn lại sẽ bị tính là mất và số ĐBK bị trừ.
 - **Kéo xuống để tải lại** trên điện thoại (chỉ ở các màn không chơi; lúc đang bán thì tắt hẳn). Tính năng này tự tắt khi đang chơi để tránh lỡ tay.
+- **Về game và chính sách dữ liệu**: màn riêng (mở từ màn chính và màn đăng nhập) ghi ngày game online lần đầu (24/10/2026), game thu thập dữ liệu gì, ai xem được gì, các biện pháp bảo mật, các bên dịch vụ liên quan (Supabase, GitHub Pages, Resend, jsDelivr, Google Fonts, dịch vụ thông báo của trình duyệt) kèm link chính sách riêng của từng bên, và cách yêu cầu xoá tài khoản.
+- **Ảnh xem trước khi chia sẻ link** (Open Graph 1200×630) để link miquangbk.com hiện ảnh lớn trên Messenger, Facebook, Zalo.
 - **Tiếp cận**: có nhãn `aria`, điều khiển được bằng bàn phím, và tôn trọng cài đặt giảm chuyển động (`prefers-reduced-motion`).
 
 <p align="center"><img src="docs/images/giao-dien-toi.png" width="620" alt="Giao diện tối"></p>
@@ -322,11 +324,12 @@ mi-quang-bach-khoa/
 │   ├── giu-quan.js          # Giữ quán khi tải lại, tạm dừng, đóng quán
 │   ├── ban-ghi.js           # Ghi thao tác, xem lại, hồ sơ, biểu đồ, xem trực tiếp
 │   ├── ban-be.js            # Bạn bè, lời mời kết bạn, chuông thông báo
+│   ├── ve-game.js           # Màn "Về game": thông tin, chính sách dữ liệu và bảo mật
 │   ├── dieu-huong.js        # Nhớ màn đang mở để tải lại trang vẫn ở đúng chỗ
 │   └── khoi-dong.js         # Khởi động: đăng nhập, vào lại lượt/trận đang dở
 ├── sw.js                    # Service worker nhận thông báo thách đấu
 ├── manifest.webmanifest     # Cấu hình PWA
-├── icons/                   # Favicon, icon PWA, mã QR ủng hộ
+├── icons/                   # Favicon, icon PWA, ảnh xem trước khi chia sẻ link (og-image.png), mã QR ủng hộ
 ├── emails/
 │   ├── xac-nhan-email.html  # Mẫu email xác nhận tài khoản
 │   └── dat-lai-mat-khau.html# Mẫu email đặt lại mật khẩu
