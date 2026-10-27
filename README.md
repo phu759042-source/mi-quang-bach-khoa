@@ -69,7 +69,7 @@ flowchart LR
 
 ### Thao tác làm một tô mì
 
-1. Bấm **Mì** để cho vắt mì vào tô. Sợi mì Quảng vẽ đúng kiểu thật: dẹt, to bản, màu trắng ngà.
+1. Bấm **Mì** để cho vắt mì vào tô. Sợi mì Quảng vẽ đúng kiểu thật: dẹt, to bản, màu trắng ngà, cuộn thành ổ trong tô; chan nước lèo thì nước chỉ xâm xấp ở đáy như mì Quảng thật.
 2. Thêm **đúng các topping** khách gọi. Có 7 loại: tôm, thịt heo, gà ta, trứng cút, đậu phộng, bánh tráng, rau sống.
 3. Bấm **Chan nước lèo**.
 4. Bấm vào khách để bưng ra. Nếu làm sai, bấm **Đổ bỏ** để làm lại.

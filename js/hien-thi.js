@@ -34,6 +34,20 @@ function updateBars(){
     bar.style.background=r>.5?'var(--leaf)':r>.25?'var(--turmeric)':'var(--chili)';
   });
 }
+// Vắt mì Quảng trong tô (bản 2.17.1): sợi dẹt to bản màu trắng ngà cuộn thành ổ, viền nâu nhạt và bóng mờ.
+// Dựng một lần với số ngẫu nhiên cố định nên tô không đổi hình mỗi lần vẽ lại.
+const MI_TO=(()=>{let q=9;const r=()=>(q=(q*1103515245+12345)&0x7fffffff)/0x7fffffff, RX=78, RY=20, W=7, ds=[];
+  for(let i=0;i<18;i++){
+    const sc=.12+.88*Math.sqrt(r()), cx=120+(r()-.5)*14, cy=56+(r()-.5)*5, t1=r()*Math.PI*2,
+      span=(1.1+r()*1.6)*Math.PI*(r()<.5?1:-1), wob=2+r()*3, ph=r()*6;
+    let d=''; for(let j=0;j<=28;j++){const t=t1+span*j/28, rr=1+.06*Math.sin(ph+t*3);
+      d+=(j?'L':'M')+(cx+Math.cos(t)*RX*sc*rr).toFixed(1)+' '+(cy+Math.sin(t)*RY*sc*rr+Math.sin(ph+t*2)*wob*.3).toFixed(1)}
+    ds.push({d,z:r(),c:['#FFFDF6','#FCF6E8','#F8EFDD'][Math.floor(r()*3)]});
+  }
+  ds.sort((a,b)=>a.z-b.z);
+  return `<ellipse cx="120" cy="57" rx="${RX+4}" ry="${RY+3}" fill="#E3D5B8"/><g fill="none" stroke-linecap="round" stroke-linejoin="round">`+
+    ds.map(a=>`<path d="${a.d}" stroke="#A8957018" stroke-width="${W+5}" transform="translate(0 1.6)"/><path d="${a.d}" stroke="#C4B08A" stroke-width="${W+1.6}"/><path d="${a.d}" stroke="${a.c}" stroke-width="${W}"/>`).join('')+'</g>';
+})();
 function renderBowl(){
   const b=D.bowl;
   let s=`<defs><clipPath id="in"><ellipse cx="120" cy="52" rx="98" ry="29"/></clipPath></defs>
@@ -42,10 +56,10 @@ function renderBowl(){
   <path d="M30 86 Q120 112 210 86" fill="none" stroke="#FBF3E3" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
   <path d="M40 106 Q120 128 200 106" fill="none" stroke="#5C7BB0" stroke-width="2"/>
   <ellipse cx="120" cy="52" rx="104" ry="33" fill="#FBF3E3" stroke="#1B3A6B" stroke-width="5"/><g clip-path="url(#in)">`;
-  // Mì Quảng: sợi dẹt to bản màu trắng ngà, có viền mảnh để nổi trên lòng tô màu kem
-  if(b.items.has('mi')){let d='';for(let y=25,i=0;y<88;y+=10,i++) d+=`M${4+(i%2)*14} ${y} q14 -5 28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 `;
-    s+=`<g fill="none" stroke-linecap="round"><path d="${d}" stroke="#B49D74" stroke-width="11"/><path d="${d}" stroke="#FFFDF5" stroke-width="8.4"/></g>`}
-  if(b.broth) s+=`<ellipse cx="120" cy="58" rx="100" ry="26" fill="#D9822B" opacity=".55"/><ellipse cx="90" cy="44" rx="30" ry="4" fill="#fff" opacity=".25"/>`;
+  // Bản 2.17.1: nước lèo xâm xấp ở đáy (mì Quảng ít nước), vắt mì trắng cuộn thành ổ nằm trên
+  if(b.broth) s+=`<ellipse cx="120" cy="56" rx="100" ry="27" fill="#E0A04A"/><ellipse cx="120" cy="56" rx="100" ry="27" fill="#C9772A" opacity=".35"/>`;
+  if(b.items.has('mi')) s+=MI_TO;
+  if(b.broth) s+=`<g fill="#F2C14E" opacity=".9"><circle cx="40" cy="58" r="2.2"/><circle cx="200" cy="54" r="1.8"/><circle cx="60" cy="72" r="1.6"/><circle cx="185" cy="70" r="2"/></g>`;
   s+=`</g>`;
   TOPS.forEach(k=>{if(b.items.has(k)){const [x,y]=POS[k];s+=`<g transform="translate(${x} ${y}) scale(.9)">${ING[k].s}</g>`}});
   if(!b.items.size) s+=`<text x="120" y="57" text-anchor="middle" font-family="Be Vietnam Pro, sans-serif" font-size="12" fill="#7A6A55">Tô trống</text>`;
