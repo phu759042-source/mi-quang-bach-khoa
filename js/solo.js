@@ -98,7 +98,7 @@ function titleBlink(on){clearInterval(titleBlink.t);document.title=TITLE0;if(!on
 const soloBusy=()=>midRun||!!solo||!!soloWait;
 async function showNotice(r){
   notices.set(r.id,{row:r});                      // giữ chỗ để không hiện hai lần
-  const {data:p}=await sb.from('profiles').select('id,ten,lop,khoa_id,elo,avatar_url').eq('id',r.a).maybeSingle();
+  const {data:p}=await sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,elo,avatar_url').eq('id',r.a).maybeSingle();
   if(!notices.has(r.id)) return;
   const left=Math.max(0,new Date(r.het_han)-Date.now());
   let box=$('notices');
@@ -106,7 +106,7 @@ async function showNotice(r){
   const el=document.createElement('div'); el.className='notice'; el.setAttribute('role','alertdialog'); el.setAttribute('aria-label','Lời thách đấu');
   el.innerHTML=`${avatarHTML(p?.avatar_url,p?.ten||'?',44)}
     <div class="t">${esc(p?.ten||'Một người chơi')} thách đấu bạn!</div>
-    <div class="d">${esc(p?.lop||'')} · Elo ${p?.elo??'—'} · ${DIFF[r.do_kho].n} · ${CHE_DO[r.che_do].n}</div>
+    <div class="d">${p?lopKhoaHTML(p,false)+' · ':''}Elo ${p?.elo??'—'} · ${DIFF[r.do_kho].n} · ${CHE_DO[r.che_do].n}</div>
     <div class="note" hidden>Bạn đang chơi dở, chốt sổ xong mới nhận được.</div>
     <div class="timer"><i style="animation-duration:${left}ms"></i></div>
     <div class="acts2"><button type="button" class="btn ghost" data-no>Từ chối</button><button type="button" class="btn" data-yes>Đồng ý</button></div>`;
@@ -143,7 +143,7 @@ async function answer(id,yes){
 const vsHTML=(opp)=>`<div class="vs">
   <div class="p">${avatarHTML(profile?.avatar_url,profile?.ten||'Bạn',56)}<div class="nm">${esc(profile?.ten||'Bạn')}</div><div class="sb">Elo ${myElo()} · ${eloTitle(myElo())}</div></div>
   <div class="x">VS</div>
-  <div class="p">${avatarHTML(opp.avatar_url,opp.ten,56)}<div class="nm">${esc(opp.ten)}</div><div class="sb">${opp.lop?esc(opp.lop)+' · ':''}Elo ${opp.elo??'—'}${opp.elo!=null?' · '+eloTitle(opp.elo):''}</div></div></div>`;
+  <div class="p">${avatarHTML(opp.avatar_url,opp.ten,56)}<div class="nm">${esc(opp.ten)}</div><div class="sb">${'lop' in opp?lopKhoaHTML(opp,false)+' · ':''}Elo ${opp.elo??'—'}${opp.elo!=null?' · '+eloTitle(opp.elo):''}</div></div></div>`;
 async function challengeScreen(p,back,opt={}){
   if(!ranked||!sb){toast('Đăng nhập để solo');return}
   if(!p||p.id===user.id) return;
@@ -395,7 +395,7 @@ async function searchPlayers(q){
   const rows=[...data].sort((a,b)=>onlineSet.has(b.id)-onlineSet.has(a.id));
   rows.forEach(p=>lbPeople.set(p.id,p));
   body.innerHTML=`<div class="list">${rows.map(p=>`<div class="li" data-prof="${p.id}" role="button" tabindex="0" aria-label="Xem hồ sơ ${esc(p.ten)}"><span>${avatarHTML(p.avatar_url,p.ten,34)}</span>
-    <span class="nm"><span class="dot" data-online="${p.id}" ${onlineSet.has(p.id)?'':'hidden'}></span>${esc(p.ten)} ${stBadge(p.id)}<span class="sb">${esc(p.lop)} · ${esc(p.khoa)} · Elo ${p.elo} ${eloTitle(p.elo)}</span></span>
+    <span class="nm"><span class="dot" data-online="${p.id}" ${onlineSet.has(p.id)?'':'hidden'}></span>${esc(p.ten)} ${stBadge(p.id)}<span class="sb">${lopKhoaHTML(p,p.khoa)} · Elo ${p.elo} ${eloTitle(p.elo)}</span></span>
     <button type="button" class="act" data-uid="${p.id}">Thách đấu</button></div>`).join('')}</div>
     <p class="muted"><span class="dot"></span>đang mở game · bấm tên để xem hồ sơ · <span class="st-badge">Đang solo</span> thì bấm "Xem trận" để xem trực tiếp</p>`;
   body.querySelectorAll('[data-prof]').forEach(el=>el.onkeydown=e=>{if(e.target===el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();el.click()}});

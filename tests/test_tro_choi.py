@@ -31,7 +31,7 @@ class Fake:
     def __init__(s):
         s.khoa = [{'id': 'cntt', 'ten': 'Công nghệ Thông tin'}, {'id': 'dtvt', 'ten': 'Điện tử Viễn thông'}]
         base = dict(diem=0, so_luot=3, ngay_xa_nhat=4, chuoi=0, ngay_chuoi=None, chuoi_dai_nhat=0, avatar_url=None,
-                    avatar_khung=None, elo=1200, solo_thang=0, solo_thua=0, solo_hoa=0)
+                    avatar_khung=None, elo=1200, solo_thang=0, solo_thua=0, solo_hoa=0, sinh_vien=True)
         s.prof = {'A': dict(base, id='A', ten='Nguyễn Tấn Phú', khoa_id='cntt', lop='26T_ATTT', diem=1420),
                   'B': dict(base, id='B', ten='Phạm Gia Huy', khoa_id='dtvt', lop='24DT2', diem=1300),
                   'C': dict(base, id='C', ten='Lê Minh Anh', khoa_id='cntt', lop='23T_DT1', diem=900)}
@@ -124,11 +124,17 @@ class Fake:
             for t in s.tb:
                 if t['user_id'] == u: t['da_doc'] = True
             return {'data': None}
+        if fn == 'luu_ho_so':                                 # giống public.luu_ho_so (bản 2.17.0)
+            sv = a.get('p_sinh_vien', True) is not False
+            if sv and not (a.get('p_khoa_id') and a.get('p_lop')): return err('Sinh viên Bách Khoa cần chọn khoa và nhập lớp')
+            s.prof[u].update(ten=a['p_ten'].strip(), sinh_vien=sv, khoa_id=a['p_khoa_id'] if sv else None,
+                             lop=a['p_lop'].strip().upper() if sv else None)
+            return {'data': None}
         if fn == 'tim_nguoi_choi':
             q = a['p_q'].lower()
-            res = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=next(k['ten'] for k in s.khoa if k['id'] == p['khoa_id']),
+            res = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']),
                         diem=p['diem'], elo=p['elo'], avatar_url=None)
-                   for p in s.prof.values() if p['id'] != u and (q in p['ten'].lower() or q in p['lop'].lower())]
+                   for p in s.prof.values() if p['id'] != u and (q in p['ten'].lower() or q in (p['lop'] or '').lower())]
             return {'data': res}
         if fn == 'bat_dau_luot':
             for k, v in s.runs.items():                       # giống _xu_ly_bo_cuoc: lượt cũ còn dở bị tính bỏ cuộc
@@ -206,6 +212,8 @@ class Fake:
             s.emit(r)
         return {'data': dict(r, **{k: None for k in ('a_ping', 'b_ping')}) | {'a_ping': None, 'b_ping': None}}
 
+    def khoa_ten(s, kid): return next((k['ten'] for k in s.khoa if k['id'] == kid), None)
+
     def select(s, u, q):
         t, f = q['table'], q['filters']
         if t == 'ban_be': return {'data': [dict(r) for r in s.bb.values() if u in (r['a'], r['b'])]}       # RLS: của mình
@@ -215,7 +223,8 @@ class Fake:
             uid = next((v for k, op, v in f if k == 'id'), None)
             gt = next((v for k, op, v in f if op == 'gt'), None)
             if gt is not None: return {'data': [dict(p) for p in s.prof.values() if p['elo'] > gt]}
-            if uid is None: return {'data': [dict(p) for p in s.prof.values()]}
+            sv = next((v for k, op, v in f if k == 'sinh_vien'), None)
+            if uid is None: return {'data': [dict(p) for p in s.prof.values() if sv is None or p['sinh_vien'] == sv]}
             if isinstance(uid, list): return {'data': [dict(s.prof[x]) for x in uid if x in s.prof]}
             p = s.prof.get(uid)
             return {'data': dict(p) if p else None}
@@ -243,14 +252,17 @@ class Fake:
             rows = [dict(r, a_ping=None, b_ping=None) for r in s.rows.values() if who in (r['a'], r['b']) and r['trang_thai'] in st and xem(r)]
             if st == ['xong']: return {'data': sorted(rows, key=lambda r: r['ket_thuc'], reverse=not q.get('asc'))}
             return {'data': sorted(rows, key=lambda r: -r['id'])}
-        if t == 'bxh_sinh_vien':
-            if q.get('single'): return {'data': {'hang': 2}}
+        if t == 'bxh_sinh_vien':                              # hang: trong mọi người chơi; hang_sv: chỉ trong sinh viên
+            if q.get('single'): return {'data': {'hang': 2, 'hang_sv': 2}}
             ps = sorted(s.prof.values(), key=lambda p: -p['diem'])
-            return {'data': [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=next(k['ten'] for k in s.khoa if k['id'] == p['khoa_id']),
-                                  diem=p['diem'], hang=i + 1, chuoi=0, avatar_url=None) for i, p in enumerate(ps)]}
+            svs = [p for p in ps if p['sinh_vien']]
+            rows = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']), sinh_vien=p['sinh_vien'],
+                         diem=p['diem'], hang=i + 1, hang_sv=svs.index(p) + 1 if p['sinh_vien'] else None, chuoi=0, avatar_url=None) for i, p in enumerate(ps)]
+            sv = next((v for k, op, v in f if k == 'sinh_vien'), None)
+            return {'data': [r for r in rows if sv is None or r['sinh_vien'] == sv]}
         if t == 'bxh_solo':
             ps = sorted([p for p in s.prof.values() if p['solo_thang'] + p['solo_thua'] + p['solo_hoa']], key=lambda p: -p['elo'])
-            return {'data': [dict(p, khoa=next(k['ten'] for k in s.khoa if k['id'] == p['khoa_id']), hang=i + 1) for i, p in enumerate(ps)]}
+            return {'data': [dict(p, khoa=s.khoa_ten(p['khoa_id']), hang=i + 1) for i, p in enumerate(ps)]}
         return {'data': []}
 
 
@@ -704,6 +716,33 @@ with sync_playwright() as pw:
     check(True, 'tải lại: vẫn ở màn Về game')
     C.click('#back'); C.wait_for_selector('#go', timeout=4000)
     check(C.locator('.ve-game').count() == 0, 'Đóng Về game về màn chính')
+
+    print('22d. Sinh viên BKĐN hay không: hồ sơ, nhãn "Ngoài BK", lọc bảng xếp hạng')
+    C.click('#edit'); C.wait_for_selector('#svFields', state='attached', timeout=4000)
+    check(C.locator('[data-sv="1"][aria-pressed="true"]').count() == 1 and C.is_visible('#svFields'), 'người chơi cũ mặc định là sinh viên, hiện ô khoa/lớp')
+    C.click('[data-sv="0"]')
+    check(not C.is_visible('#svFields') and 'Ngoài BK' in C.inner_text('#svNote'), 'chọn "Không": ẩn khoa/lớp, có lưu ý')
+    shot(C, 'ho-so-ngoai-bk')
+    C.click('#f button[type=submit]'); C.wait_for_selector('#go', timeout=5000)
+    check(F.prof['C']['sinh_vien'] is False and F.prof['C']['lop'] is None and F.prof['C']['khoa_id'] is None, 'lưu hồ sơ người ngoài BK: không còn khoa/lớp')
+    check('Ngoài BK' in C.inner_text('#edit'), 'thẻ tên màn chính hiện nhãn "Ngoài BK"')
+    C.click('#lb'); C.wait_for_selector('#lbBody .podium', timeout=5000)
+    check(C.locator('[data-t="sv"]').inner_text() == 'Cá nhân', 'tab đầu đổi tên thành "Cá nhân"')
+    check('Lê Minh Anh' in C.inner_text('#lbBody') and C.locator('#lbBody .ngoai-bk').count() == 1, 'tất cả người chơi: có Minh Anh kèm nhãn Ngoài BK')
+    C.click('[data-loc="sv"]'); C.wait_for_function("!document.querySelector('#lbBody').innerText.includes('Lê Minh Anh')", timeout=5000)
+    check(C.locator('#lbBody .ngoai-bk').count() == 0 and 'Nguyễn Tấn Phú' in C.inner_text('#lbBody'), 'lọc chỉ sinh viên BK: ẩn người ngoài BK')
+    shot(C, 'bxh-loc-sinh-vien')
+    C.click('[data-t="solo"]'); C.wait_for_selector('#lbBody .podium', timeout=5000)
+    check('Lê Minh Anh' not in C.inner_text('#lbBody') and C.locator('[data-loc="sv"][aria-pressed="true"]').count() == 1, 'tab Solo giữ bộ lọc chỉ sinh viên')
+    C.click('[data-loc="tat_ca"]'); C.wait_for_function("document.querySelector('#lbBody').innerText.includes('Lê Minh Anh')", timeout=5000)
+    check(True, 'bỏ lọc: Minh Anh trở lại bảng Solo')
+    C.click('#back'); C.wait_for_selector('#go', timeout=4000)
+    C.click('#edit'); C.wait_for_selector('#svFields', state='attached', timeout=4000)
+    C.click('[data-sv="1"]'); C.click('#f button[type=submit]')
+    C.wait_for_function("document.querySelector('#msg').textContent.includes('khoa')", timeout=3000)
+    check(True, 'chọn "Có" mà chưa chọn khoa thì báo lỗi')
+    C.select_option('#khoa', 'cntt'); C.fill('#lop', '23t_dt1'); C.click('#f button[type=submit]'); C.wait_for_selector('#go', timeout=5000)
+    check(F.prof['C']['sinh_vien'] is True and F.prof['C']['lop'] == '23T_DT1', 'đổi lại thành sinh viên: lưu khoa/lớp')
 
     print('23. Màn chính: bấm thẻ tên/avatar để sửa hồ sơ')
     A.click('#home'); A.wait_for_selector('#edit', timeout=4000)

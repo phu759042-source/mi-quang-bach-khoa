@@ -255,7 +255,7 @@ function soloView(r, uid = user.id){   // một trận nhìn từ phía người
   const kq = !r.thang ? 'hoa' : r.thang === uid ? 'thang' : 'thua';
   return {r, me, o, kq, opp: r[o], eloTruoc: r['elo_' + me], doi: r['doi_' + me] || 0, eloOpp: r['elo_' + o]};
 }
-const PROF_COT = 'id,ten,lop,khoa_id,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url,ngay_xa_nhat,chuoi,chuoi_dai_nhat,ngay_chuoi';
+const PROF_COT = 'id,ten,lop,khoa_id,sinh_vien,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url,ngay_xa_nhat,chuoi,chuoi_dai_nhat,ngay_chuoi';
 let HS = null;   // hồ sơ đang xem: {uid, who, back, self}
 // Chuỗi ngày của người khác: tính từ các cột trong profiles giống streakState()
 const chuoiCua = w => { const lit = w.ngay_chuoi === vnDate(), alive = lit || w.ngay_chuoi === vnDate(-1);
@@ -278,7 +278,7 @@ async function hoSoScreen(tab = 'stats', uid = null, back = null){
   const w = HS.who;
   openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Hồ sơ${self ? ' của bạn' : ''}</div><button class="link" id="back">Đóng</button></div>
     <div class="me has-av">${avatarHTML(w.avatar_url, w.ten, 48, 'me-av')}<div class="nm">${self ? '' : `<span class="dot" data-online="${w.id}" ${onlineSet.has(w.id) ? '' : 'hidden'}></span>`}${esc(w.ten)}${self ? '' : ' ' + stBadge(w.id)}</div>
-      <div class="sub">${esc(w.lop)} · ${esc(khoaTen(w.khoa_id))}</div>
+      <div class="sub">${lopKhoaHTML(w)}</div>
       <div class="pts2"><div><span class="hang-row">${hangLogo(w.diem, 34)}<b>${w.diem ?? 0}</b></span><small id="hsRkD">ĐBK${self && myRank ? ` · #${myRank}` : ''}</small><small>${hangDBK(w.diem).n}</small></div>
         <div><b>${w.elo ?? 1200}</b><small id="hsRkE">Elo solo</small><small>${eloTitle(w.elo, 1)}</small></div></div></div>
     ${self ? '' : `<div class="row hs-act"><button type="button" class="btn" id="hsThach" data-thach="${w.id}">Thách đấu</button>

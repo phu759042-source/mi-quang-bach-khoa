@@ -1,6 +1,6 @@
 /* Mì Quảng Bách Khoa · js/ve-game.js: màn "Về game" (bản 2.16.0) gồm thông tin game, chính sách dữ liệu và bảo mật,
    các bên liên quan và trách nhiệm. Sửa nội dung ở đây thì cập nhật cả VE_GAME_CAP_NHAT. */
-const VE_GAME_CAP_NHAT = '27/10/2026';
+const VE_GAME_CAP_NHAT = '28/10/2026';
 const VE_GAME_RA_MAT = '24/10/2026';
 function veGameScreen(back = home){
   nhoMan('vegame');
@@ -25,7 +25,7 @@ function veGameScreen(back = home){
     <p><b>Khi có tài khoản, game lưu trên máy chủ:</b></p>
     <ul>
       <li>Email và mật khẩu để đăng nhập. Mật khẩu được mã hoá một chiều (bcrypt) bởi Supabase, người làm game không xem được.</li>
-      <li>Hồ sơ: tên hiển thị, khoa, lớp, ảnh đại diện (nếu bạn tải lên). Game không hỏi MSSV, số điện thoại hay địa chỉ.</li>
+      <li>Hồ sơ: tên hiển thị, bạn có phải sinh viên Bách Khoa Đà Nẵng không, khoa và lớp (chỉ khi là sinh viên), ảnh đại diện (nếu bạn tải lên). Game không hỏi MSSV, số điện thoại hay địa chỉ.</li>
       <li>Kết quả chơi: từng lượt bán, ĐBK, chuỗi ngày, trận solo, Elo.</li>
       <li>Bản ghi thao tác để xem lại từng lượt bán và trận solo (giữ 50 lượt bán gần nhất, giữ hết các trận solo).</li>
       <li>Bạn bè, lời mời kết bạn và thông báo (giữ 100 thông báo gần nhất).</li>
@@ -37,7 +37,7 @@ function veGameScreen(back = home){
 
   <section class="card-s"><h3>Ai thấy được gì</h3>
     <ul>
-      <li><b>Mọi người, kể cả chưa đăng nhập:</b> tên hiển thị, khoa, lớp, ảnh đại diện, ĐBK, số lượt chơi, chuỗi ngày, Elo, thành tích solo và thứ hạng trên bảng xếp hạng.</li>
+      <li><b>Mọi người, kể cả chưa đăng nhập:</b> tên hiển thị, khoa, lớp hoặc nhãn "Ngoài BK", ảnh đại diện, ĐBK, số lượt chơi, chuỗi ngày, Elo, thành tích solo và thứ hạng trên bảng xếp hạng.</li>
       <li><b>Người đã đăng nhập:</b> thêm lịch sử các lượt bán và trận solo đã kết thúc, bản ghi xem lại, trạng thái đang mở game / đang bán / đang solo, và xem trực tiếp khi bạn đang chơi.</li>
       <li><b>Chỉ bạn:</b> email, danh sách bạn bè và lời mời, thông báo, trận đang đấu và lời thách đang chờ.</li>
     </ul>

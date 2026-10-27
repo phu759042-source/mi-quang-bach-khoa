@@ -1,6 +1,6 @@
 /* Mì Quảng Bách Khoa · js/cau-hinh.js: Cấu hình, dữ liệu game (nguyên liệu, khách, nâng cấp, độ khó) và biến trạng thái dùng chung.
    Script thường (không phải module): mọi file dùng chung biến toàn cục, nạp theo thứ tự trong index.html. */
-const PHIEN_BAN='2.16.0';   // nhớ đổi cả ?v= trong index.html
+const PHIEN_BAN='2.17.0';   // nhớ đổi cả ?v= trong index.html
 /* ================= Cấu hình ================= */
 const SB_URL = 'https://fvacenxojembebqqxgfp.supabase.co';
 const SB_KEY = 'sb_publishable_w4bY8tj9UT-6sFUlXBlOdA_XBEH76qD'; // khoá công khai, an toàn khi để ở client
@@ -9,7 +9,8 @@ try { sb = window.supabase.createClient(SB_URL, SB_KEY); } catch (e) { sb = null
 
 /* ================= Dữ liệu game ================= */
 const ING = {
-  mi:{n:'Mì',s:'<path d="M5 13c4-4 8 4 12 0s8 4 12 0 6-2 6-2M5 20c4-4 8 4 12 0s8 4 12 0 6-2 6-2M5 27c4-4 8 4 12 0s8 4 12 0 6-2 6-2" fill="none" stroke="#E8A317" stroke-width="3.4" stroke-linecap="round"/>'},
+  // Mì Quảng: sợi bánh phở dẹt, to bản, màu trắng ngà (bản 2.17.0; trước đây vẽ sợi vàng nhỏ trông như mì tôm)
+  mi:{n:'Mì',s:'<g fill="none" stroke-linecap="round"><path d="M5 12c6-4 11 4 15 0s9 4 15 0 M5 20.5c6-4 11 4 15 0s9 4 15 0 M5 29c6-4 11 4 15 0s9 4 15 0" stroke="#B49D74" stroke-width="9"/><path d="M5 12c6-4 11 4 15 0s9 4 15 0 M5 20.5c6-4 11 4 15 0s9 4 15 0 M5 29c6-4 11 4 15 0s9 4 15 0" stroke="#FFFDF5" stroke-width="6.6"/><path d="M9 10.6c2.5-1.3 4.5-1.1 6.5 0M9 19.1c2.5-1.3 4.5-1.1 6.5 0M9 27.6c2.5-1.3 4.5-1.1 6.5 0" stroke="#fff" stroke-width="1.3"/></g>'},
   tom:{n:'Tôm',s:'<path d="M11 27a10 10 0 1 1 17-13" fill="none" stroke="#E8622C" stroke-width="7" stroke-linecap="round"/><path d="M13 19l5 2M17 13l3 4M23 11l1 5" stroke="#F6A57E" stroke-width="1.6" stroke-linecap="round"/><path d="M28 14l7-4-2 9z" fill="#E8622C"/><circle cx="12" cy="25" r="1.6" fill="#3a1d10"/>'},
   thit:{n:'Thịt heo',s:'<rect x="5" y="12" width="30" height="16" rx="6" fill="#D98B7A" stroke="#8a4a3a" stroke-width="1.5"/><path d="M9 17h22" stroke="#F6E3D6" stroke-width="3" stroke-linecap="round"/>'},
   ga:{n:'Gà ta',s:'<ellipse cx="16" cy="17" rx="11" ry="9" fill="#B8692E"/><path d="M24 23l7 7" stroke="#F3E6CF" stroke-width="4" stroke-linecap="round"/><circle cx="33" cy="30" r="2.8" fill="#F3E6CF"/><circle cx="30" cy="33" r="2.8" fill="#F3E6CF"/>'},

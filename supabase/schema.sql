@@ -24,8 +24,8 @@ create table public.khoa (
 create table public.profiles (
   id             uuid primary key references auth.users(id) on delete cascade,
   ten            text not null check (char_length(ten) >= 2 and char_length(ten) <= 40),
-  khoa_id        text not null references public.khoa(id),
-  lop            text not null check (lop ~ '^[0-9]{2}[A-Z0-9_]{1,14}$'),
+  khoa_id        text references public.khoa(id),
+  lop            text check (lop ~ '^[0-9]{2}[A-Z0-9_]{1,14}$'),
   diem           integer not null default 0 check (diem >= 0),
   so_luot        integer not null default 0,
   ngay_xa_nhat   integer not null default 0,
@@ -38,7 +38,11 @@ create table public.profiles (
   elo            integer not null default 1200,
   solo_thang     integer not null default 0,
   solo_thua      integer not null default 0,
-  solo_hoa       integer not null default 0
+  solo_hoa       integer not null default 0,
+  -- bản 2.17.0: sinh viên BKĐN thì bắt buộc có khoa + lớp; người ngoài thì để trống cả hai
+  sinh_vien      boolean not null default true,
+  constraint profiles_sinh_vien_chk check (case when sinh_vien then khoa_id is not null and lop is not null
+                                                else khoa_id is null and lop is null end)
 );
 create index profiles_khoa_idx on public.profiles (khoa_id);
 create index profiles_diem_idx on public.profiles (diem desc);
@@ -187,9 +191,14 @@ create view public.bxh_sinh_vien with (security_invoker = on) as
             WHEN p.ngay_chuoi >= ((now() AT TIME ZONE 'Asia/Ho_Chi_Minh'::text)::date - 1) THEN p.chuoi
             ELSE 0
         END AS chuoi,
-    p.avatar_url
+    p.avatar_url,
+    p.sinh_vien,
+        CASE
+            WHEN p.sinh_vien THEN rank() OVER (PARTITION BY p.sinh_vien ORDER BY p.diem DESC)
+            ELSE NULL::bigint
+        END AS hang_sv
    FROM profiles p
-     JOIN khoa k ON k.id = p.khoa_id
+     LEFT JOIN khoa k ON k.id = p.khoa_id
   WHERE p.so_luot > 0;
 
 -- Điểm lớp = tổng ĐBK 10 bạn cao nhất / 10
@@ -200,7 +209,7 @@ create view public.bxh_lop with (security_invoker = on) as
             profiles.diem,
             row_number() OVER (PARTITION BY profiles.lop ORDER BY profiles.diem DESC) AS rn
            FROM profiles
-          WHERE profiles.so_luot > 0
+          WHERE profiles.so_luot > 0 AND profiles.sinh_vien
         )
  SELECT lop,
     max(khoa_id) AS khoa_id,
@@ -217,7 +226,7 @@ create view public.bxh_khoa with (security_invoker = on) as
             profiles.diem,
             row_number() OVER (PARTITION BY profiles.khoa_id ORDER BY profiles.diem DESC) AS rn
            FROM profiles
-          WHERE profiles.so_luot > 0
+          WHERE profiles.so_luot > 0 AND profiles.sinh_vien
         )
  SELECT k.id AS khoa_id,
     k.ten AS khoa,
@@ -242,7 +251,7 @@ create view public.bxh_solo with (security_invoker = on) as
     p.avatar_url,
     rank() OVER (ORDER BY p.elo DESC) AS hang
    FROM profiles p
-     JOIN khoa k ON k.id = p.khoa_id
+     LEFT JOIN khoa k ON k.id = p.khoa_id
   WHERE (p.solo_thang + p.solo_thua + p.solo_hoa) > 0;
 
 revoke all on public.bxh_sinh_vien, public.bxh_lop, public.bxh_khoa, public.bxh_solo from anon, authenticated;
@@ -341,18 +350,22 @@ begin
     'chuoi', v_chuoi, 'chuoi_moi', v_moi, 'chuoi_dai_nhat', v_dai);
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.luu_ho_so(p_ten text, p_khoa_id text, p_lop text)
+-- bản 2.17.0: thêm p_sinh_vien. Không phải sinh viên BKĐN thì bỏ qua khoa và lớp.
+CREATE OR REPLACE FUNCTION public.luu_ho_so(p_ten text, p_khoa_id text DEFAULT NULL, p_lop text DEFAULT NULL, p_sinh_vien boolean DEFAULT true)
  RETURNS void
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
-declare v_uid uuid := auth.uid();
+declare v_uid uuid := auth.uid(); v_sv boolean := coalesce(p_sinh_vien, true);
+  v_khoa text := case when v_sv then nullif(btrim(p_khoa_id), '') end;
+  v_lop text := case when v_sv then nullif(upper(btrim(p_lop)), '') end;
 begin
   if v_uid is null then raise exception 'Chưa đăng nhập'; end if;
-  insert into public.profiles (id, ten, khoa_id, lop)
-  values (v_uid, btrim(p_ten), p_khoa_id, upper(btrim(p_lop)))
-  on conflict (id) do update set ten = excluded.ten, khoa_id = excluded.khoa_id, lop = excluded.lop;
+  if v_sv and (v_khoa is null or v_lop is null) then raise exception 'Sinh viên Bách Khoa cần chọn khoa và nhập lớp'; end if;
+  insert into public.profiles (id, ten, khoa_id, lop, sinh_vien)
+  values (v_uid, btrim(p_ten), v_khoa, v_lop, v_sv)
+  on conflict (id) do update set ten = excluded.ten, khoa_id = excluded.khoa_id, lop = excluded.lop, sinh_vien = excluded.sinh_vien;
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.luu_avatar(p_url text, p_khung jsonb)
@@ -590,7 +603,7 @@ create or replace function public.tim_nguoi_choi(p_q text)
 returns table(id uuid, ten text, lop text, khoa text, diem int, elo int, avatar_url text)
 language sql stable security definer set search_path = '' as $$
   select p.id, p.ten, p.lop, k.ten, p.diem, p.elo, p.avatar_url
-  from public.profiles p join public.khoa k on k.id = p.khoa_id
+  from public.profiles p left join public.khoa k on k.id = p.khoa_id
   where p.id <> coalesce(auth.uid(), '00000000-0000-0000-0000-000000000000'::uuid)
     and length(trim(coalesce(p_q,''))) >= 1
     and (p.ten ilike '%' || replace(replace(trim(p_q),'%','\%'),'_','\_') || '%'
@@ -726,7 +739,7 @@ grant execute on function public.he_so(text)               to anon, authenticate
 grant execute on function public.ghi_luot_truy_cap(uuid)   to anon, authenticated;
 -- người đã đăng nhập
 grant execute on function
-  public.luu_ho_so(text, text, text), public.luu_avatar(text, jsonb),
+  public.luu_ho_so(text, text, text, boolean), public.luu_avatar(text, jsonb),
   public.bat_dau_luot(text), public.nop_ket_qua(bigint, integer, integer, integer),
   public.gui_thach_dau(uuid, text, text), public.tra_loi_thach_dau(bigint, boolean), public.huy_thach_dau(bigint),
   public.cap_nhat_solo(bigint, integer, integer, integer, boolean), public.kiem_tra_solo(bigint),

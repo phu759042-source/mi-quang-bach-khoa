@@ -7,7 +7,7 @@ function home(){
   setTimeout(refreshNotices,0); setTimeout(pushCard,0);
   const p=profile;
   const meCard=ranked&&p
-    ?`<button type="button" class="me has-av me-btn" id="edit" aria-label="Sửa hồ sơ: tên, lớp, khoa, avatar"><span class="me-av-w">${avatarHTML(p.avatar_url,p.ten,48,'me-av')}<span class="me-pen" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></span></span><span class="nm">${esc(p.ten)}</span><span class="sub">${esc(p.lop)} · ${esc(khoaTen(p.khoa_id))} · Elo ${p.elo??1200} ${eloTitle(p.elo,1)}</span>
+    ?`<button type="button" class="me has-av me-btn" id="edit" aria-label="Sửa hồ sơ: tên, lớp, khoa, avatar"><span class="me-av-w">${avatarHTML(p.avatar_url,p.ten,48,'me-av')}<span class="me-pen" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></span></span><span class="nm">${esc(p.ten)}</span><span class="sub">${lopKhoaHTML(p)} · Elo ${p.elo??1200} ${eloTitle(p.elo,1)}</span>
        <span class="pts">${hangLogo(p.diem,34)}${p.diem}<small>${hangDBK(p.diem).n} · ĐBK${myRank?` · hạng #${myRank}`:''}</small></span></button>`
     :`<div class="me"><div class="nm">Đang chơi thử</div><div class="sub">Không tính điểm${guestBest.day?` · kỷ lục ngày ${guestBest.day}`:''}</div>
        <div class="pts">—<small>ĐBK</small></div></div>`;
@@ -146,6 +146,8 @@ function donateScreen(back){
 }
 
 /* ================= Bảng xếp hạng ================= */
+// Bộ lọc tab Cá nhân và Solo (bản 2.17.0): 'tat_ca' = mọi người chơi, 'sv' = chỉ sinh viên BKĐN
+let lbLoc=(()=>{try{return localStorage.getItem('mqbk-loc')==='sv'?'sv':'tat_ca'}catch(e){return 'tat_ca'}})();
 async function leaderboard(tab,focus){
   nhoMan('bxh',tab);
   const canSolo=ranked&&!!sb;
@@ -153,16 +155,22 @@ async function leaderboard(tab,focus){
   <h2>Bảng xếp hạng</h2>
   ${canSolo?`<div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     <input id="q" type="search" placeholder="Tìm bạn theo tên hoặc lớp để solo" autocomplete="off" enterkeyhint="search" aria-label="Tìm người chơi để thách đấu"></div>`:''}
-  <div class="tabs t4" role="tablist">${[['sv','Sinh viên'],['lop','Lớp'],['khoa','Khoa'],['solo','Solo']].map(([k,n])=>`<button role="tab" data-t="${k}" aria-selected="${k===tab}">${n}</button>`).join('')}</div>
+  <div class="tabs t4" role="tablist">${[['sv','Cá nhân'],['lop','Lớp'],['khoa','Khoa'],['solo','Solo']].map(([k,n])=>`<button role="tab" data-t="${k}" aria-selected="${k===tab}">${n}</button>`).join('')}</div>
+  ${tab==='sv'||tab==='solo'?`<div class="lb-loc" role="group" aria-label="Lọc người chơi">${[['tat_ca','Tất cả người chơi'],['sv','Chỉ sinh viên BK']].map(([k,n])=>`<button type="button" data-loc="${k}" aria-pressed="${k===lbLoc}">${n}</button>`).join('')}</div>`:''}
   <div class="col" id="lbBody"><div class="empty-state">Đang tải bảng xếp hạng…</div></div>
   <div class="rule" id="rule"></div>`);
   $('back').onclick=home;
   document.querySelector('.tabs').onclick=e=>{const b=e.target.closest('[data-t]');if(b)leaderboard(b.dataset.t)};
+  const loc=document.querySelector('.lb-loc');
+  if(loc) loc.onclick=e=>{const b=e.target.closest('[data-loc]');if(!b||b.dataset.loc===lbLoc)return;lbLoc=b.dataset.loc;try{localStorage.setItem('mqbk-loc',lbLoc)}catch(e){}
+    loc.querySelectorAll('[data-loc]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.loc===lbLoc));
+    const q=$('q'); if(q&&q.value.trim()) return; loadBoard(tab,canSolo)};
   const hint=canSolo?' Bấm vào tên một bạn để xem hồ sơ, thách đấu solo, hoặc xem trực tiếp khi bạn ấy đang bán.':'';
-  $('rule').innerHTML=tab==='sv'?ruleText()+`<p style="margin-top:8px"><b>Hạng theo tổng ĐBK:</b></p>${hangBangDBK()}`+(hint?`<p style="margin-top:6px">${hint.trim()}</p>`:''):tab==='lop'
-    ?'Điểm lớp = tổng ĐBK của 10 bạn cao nhất lớp, chia 10. Lớp chưa đủ 10 người chơi thì phần thiếu tính là 0.'
-    :tab==='khoa'?'Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30.'
-    :'Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Ai chưa đấu trận nào đứng ở 1200. Solo không ảnh hưởng ĐBK.'+hint+`<p style="margin-top:8px"><b>Danh hiệu theo Elo:</b></p>${hangBangElo()}`;
+  const ngoaiBK=`<p style="margin-top:8px">Người chơi không phải sinh viên Bách Khoa Đà Nẵng có nhãn ${NGOAI_BK}: vẫn được xếp hạng cá nhân và solo, nhưng không tính vào bảng Lớp và Khoa. Chọn <b>Chỉ sinh viên BK</b> để xem thứ hạng riêng trong sinh viên.</p>`;
+  $('rule').innerHTML=tab==='sv'?ruleText()+ngoaiBK+`<p style="margin-top:8px"><b>Hạng theo tổng ĐBK:</b></p>${hangBangDBK()}`+(hint?`<p style="margin-top:6px">${hint.trim()}</p>`:''):tab==='lop'
+    ?'Điểm lớp = tổng ĐBK của 10 bạn cao nhất lớp, chia 10. Lớp chưa đủ 10 người chơi thì phần thiếu tính là 0. Chỉ tính sinh viên Bách Khoa.'
+    :tab==='khoa'?'Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30. Chỉ tính sinh viên Bách Khoa.'
+    :'Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Ai chưa đấu trận nào đứng ở 1200. Solo không ảnh hưởng ĐBK.'+hint+ngoaiBK+`<p style="margin-top:8px"><b>Danh hiệu theo Elo:</b></p>${hangBangElo()}`;
   if(!sb){$('lbBody').innerHTML='<div class="empty-state">Không kết nối được máy chủ bảng xếp hạng.</div>';return}
   const lbBack=()=>leaderboard(tab);
   $('lbBody').onclick=e=>{
@@ -178,21 +186,26 @@ async function leaderboard(tab,focus){
 }
 async function loadBoard(tab,canSolo){
   let rows=[],err=null;
-  if(tab==='sv'){({data:rows,error:err}=await sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,chuoi,avatar_url').order('diem',{ascending:false}).limit(50))}
+  const chiSV=lbLoc==='sv';
+  if(tab==='sv'){let q=sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,hang_sv,chuoi,avatar_url,sinh_vien').order('diem',{ascending:false}).limit(50);
+    if(chiSV) q=q.eq('sinh_vien',true);
+    ({data:rows,error:err}=await q); if(rows&&chiSV) rows=rows.map(r=>({...r,hang:r.hang_sv}))}
   else if(tab==='lop'){({data:rows,error:err}=await sb.from('bxh_lop').select('lop,khoa_id,so_nguoi,diem,hang').order('hang').limit(50))}
   else if(tab==='khoa'){({data:rows,error:err}=await sb.from('bxh_khoa').select('khoa_id,khoa,so_nguoi,diem,hang').order('hang'))}
-  else {({data:rows,error:err}=await sb.from('profiles').select('id,ten,lop,khoa_id,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url').order('elo',{ascending:false}).limit(300));
+  else {let q=sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url').order('elo',{ascending:false}).limit(300);
+    if(chiSV) q=q.eq('sinh_vien',true);
+    ({data:rows,error:err}=await q);
     if(rows){const all=rows, tr=x=>x.solo_thang+x.solo_thua+x.solo_hoa;
       all.sort((x,y)=>y.elo-x.elo||tr(y)-tr(x)||y.diem-x.diem);
       rows=all.slice(0,50).map(x=>({...x,khoa:khoaTen(x.khoa_id),hang:1+all.filter(z=>z.elo>x.elo).length}))}}
-  const body=$('lbBody'); if(!body||($('q')&&$('q').value.trim())) return;
+  const body=$('lbBody'); if(!body||($('q')&&$('q').value.trim())||(chiSV!==(lbLoc==='sv'))) return;
   if(err){body.innerHTML=`<div class="empty-state">Không tải được: ${esc(err.message)}</div>`;return}
   rows=rows||[];
   const norm=rows.map(r=>tab==='sv'
-    ?{rk:r.hang,nm:r.ten,sb:`${r.lop} · ${r.khoa}${r.chuoi>0?` · ${r.chuoi} ngày liên tiếp`:''}`,pt:r.diem,logo:hangLogo(r.diem,24),mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url}}
+    ?{rk:r.hang,nm:r.ten,sbH:`${lopKhoaHTML(r,r.khoa)}${r.chuoi>0?` · ${r.chuoi} ngày liên tiếp`:''}`,pt:r.diem,logo:hangLogo(r.diem,24),mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url}}
     :tab==='lop'?{rk:r.hang,nm:r.lop,sb:`${khoaTen(r.khoa_id)} · ${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.lop===profile.lop}
     :tab==='khoa'?{rk:r.hang,nm:r.khoa,sb:`${r.so_nguoi} người chơi`,pt:r.diem,mine:profile&&r.khoa_id===profile.khoa_id}
-    :{rk:r.hang,nm:r.ten,sb:r.solo_thang+r.solo_thua+r.solo_hoa?`${r.lop} · ${r.solo_thang} thắng ${r.solo_thua} thua${r.solo_hoa?` ${r.solo_hoa} hoà`:''}`:`${r.lop} · chưa đấu trận nào`,pt:r.elo,nmH:tenElo(r.ten,r.elo),tag:eloTitle(r.elo),mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url,elo:r.elo}});
+    :{rk:r.hang,nm:r.ten,sbH:`${lopKhoaHTML(r,false)} · ${r.solo_thang+r.solo_thua+r.solo_hoa?`${r.solo_thang} thắng ${r.solo_thua} thua${r.solo_hoa?` ${r.solo_hoa} hoà`:''}`:'chưa đấu trận nào'}`,pt:r.elo,nmH:tenElo(r.ten,r.elo),tag:eloTitle(r.elo),mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url,elo:r.elo}});
   norm.forEach(r=>{if(r.p)lbPeople.set(r.uid,r.p)});
   if(!norm.length){body.innerHTML=tab==='solo'
     ?`<div class="empty-state">Chưa có trận solo nào.${canSolo?' Tìm một bạn ở ô phía trên và thách đấu để mở màn.':' Đăng nhập để thách đấu bạn bè.'}</div>`
@@ -201,10 +214,13 @@ async function loadBoard(tab,canSolo){
   const dot=r=>r.uid?`<span class="dot" data-online="${r.uid}" ${onlineSet.has(r.uid)?'':'hidden'}></span>`:'';
   const stb=r=>r.uid&&!r.mine?stBadge(r.uid):'';
   const top=norm.slice(0,3), rest=norm.slice(3);
-  const pod=(r,i)=>r?`<div class="pod r${i+1}${r.mine?' mine':''}"${tap(r)}>${r.hasAv?avatarHTML(r.av,r.nm,i===0?60:46,'pod-av'):''}<div class="rk">${r.rk}</div><div class="nm">${dot(r)}${r.nmH||esc(r.nm)}</div>${stb(r)}<div class="sb">${r.tag?r.tag+' · ':''}${esc(r.sb)}</div><div class="pt">${r.logo||''}${r.pt}</div></div>`:'<div></div>';
+  const pod=(r,i)=>r?`<div class="pod r${i+1}${r.mine?' mine':''}"${tap(r)}>${r.hasAv?avatarHTML(r.av,r.nm,i===0?60:46,'pod-av'):''}<div class="rk">${r.rk}</div><div class="nm">${dot(r)}${r.nmH||esc(r.nm)}</div>${stb(r)}<div class="sb">${r.tag?r.tag+' · ':''}${r.sbH??esc(r.sb)}</div><div class="pt">${r.logo||''}${r.pt}</div></div>`:'<div></div>';
   let html=`<div class="podium">${pod(top[1],1)}${pod(top[0],0)}${pod(top[2],2)}</div>`;
-  if(rest.length) html+=`<div class="list">${rest.map(r=>`<div class="li${r.mine?' mine':''}"${tap(r)}><span class="rk">#${r.rk}</span><span class="nm${r.hasAv?' with-av':''}">${r.hasAv?avatarHTML(r.av,r.nm,34):''}<span>${dot(r)}${r.nmH||esc(r.nm)} ${stb(r)}<span class="sb">${r.tag?r.tag+' · ':''}${esc(r.sb)}</span></span></span><span class="pt">${r.logo||''}${r.pt}</span></div>`).join('')}</div>`;
-  if(tab==='sv'&&profile&&myRank&&!norm.some(r=>r.mine)) html+=`<div class="list"><div class="li mine"><span class="rk">#${myRank}</span><span class="nm with-av">${avatarHTML(profile.avatar_url,profile.ten,34)}<span>${esc(profile.ten)}<span class="sb">Bạn</span></span></span><span class="pt">${hangLogo(profile.diem,24)}${profile.diem}</span></div></div>`;
+  if(rest.length) html+=`<div class="list">${rest.map(r=>`<div class="li${r.mine?' mine':''}"${tap(r)}><span class="rk">#${r.rk}</span><span class="nm${r.hasAv?' with-av':''}">${r.hasAv?avatarHTML(r.av,r.nm,34):''}<span>${dot(r)}${r.nmH||esc(r.nm)} ${stb(r)}<span class="sb">${r.tag?r.tag+' · ':''}${r.sbH??esc(r.sb)}</span></span></span><span class="pt">${r.logo||''}${r.pt}</span></div>`).join('')}</div>`;
+  let rkCua=chiSV?null:myRank;
+  if(tab==='sv'&&chiSV&&profile&&laSV(profile)&&myRank&&!norm.some(r=>r.mine)) rkCua=(await sb.from('bxh_sinh_vien').select('hang_sv').eq('id',user.id).maybeSingle()).data?.hang_sv??null;
+  if(tab==='sv'&&profile&&rkCua&&!norm.some(r=>r.mine)) html+=`<div class="list"><div class="li mine"><span class="rk">#${rkCua}</span><span class="nm with-av">${avatarHTML(profile.avatar_url,profile.ten,34)}<span>${esc(profile.ten)}<span class="sb">Bạn</span></span></span><span class="pt">${hangLogo(profile.diem,24)}${profile.diem}</span></div></div>`;
+  if(!body.isConnected||chiSV!==(lbLoc==='sv')||($('q')&&$('q').value.trim())) return;
   body.innerHTML=html;
   body.querySelectorAll('[data-prof][role=button]').forEach(el=>el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click()}});
 }

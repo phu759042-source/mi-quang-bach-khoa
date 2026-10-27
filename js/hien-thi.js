@@ -42,7 +42,9 @@ function renderBowl(){
   <path d="M30 86 Q120 112 210 86" fill="none" stroke="#FBF3E3" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
   <path d="M40 106 Q120 128 200 106" fill="none" stroke="#5C7BB0" stroke-width="2"/>
   <ellipse cx="120" cy="52" rx="104" ry="33" fill="#FBF3E3" stroke="#1B3A6B" stroke-width="5"/><g clip-path="url(#in)">`;
-  if(b.items.has('mi')) for(let y=28;y<84;y+=7) s+=`<path d="M14 ${y} q10 -6 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0" fill="none" stroke="#E8A317" stroke-width="4" stroke-linecap="round"/>`;
+  // Mì Quảng: sợi dẹt to bản màu trắng ngà, có viền mảnh để nổi trên lòng tô màu kem
+  if(b.items.has('mi')){let d='';for(let y=25,i=0;y<88;y+=10,i++) d+=`M${4+(i%2)*14} ${y} q14 -5 28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 `;
+    s+=`<g fill="none" stroke-linecap="round"><path d="${d}" stroke="#B49D74" stroke-width="11"/><path d="${d}" stroke="#FFFDF5" stroke-width="8.4"/></g>`}
   if(b.broth) s+=`<ellipse cx="120" cy="58" rx="100" ry="26" fill="#D9822B" opacity=".55"/><ellipse cx="90" cy="44" rx="30" ry="4" fill="#fff" opacity=".25"/>`;
   s+=`</g>`;
   TOPS.forEach(k=>{if(b.items.has(k)){const [x,y]=POS[k];s+=`<g transform="translate(${x} ${y}) scale(.9)">${ING[k].s}</g>`}});

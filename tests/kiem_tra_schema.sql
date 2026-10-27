@@ -13,7 +13,8 @@ create or replace function pg_temp.dang_xuat() returns void language sql as $$
 $$;
 
 insert into auth.users (id) values
-  ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'), ('00000000-0000-0000-0000-00000000000c');
+  ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'), ('00000000-0000-0000-0000-00000000000c'),
+  ('00000000-0000-0000-0000-00000000000d');
 
 do $$
 declare A uuid := '00000000-0000-0000-0000-00000000000a'; B uuid := '00000000-0000-0000-0000-00000000000b';
@@ -26,6 +27,15 @@ begin
   begin perform public.luu_ho_so('X', 'cntt', '26T'); raise exception 'HONG: tên 1 ký tự vẫn lưu được';
   exception when check_violation then null; end;
   raise notice 'OK hồ sơ: lưu được, lớp tự viết hoa, chặn tên quá ngắn';
+  -- Bản 2.17.0: người ngoài BKĐN không cần khoa/lớp; sinh viên thì bắt buộc
+  perform pg_temp.dang_nhap('00000000-0000-0000-0000-00000000000d');
+  begin perform public.luu_ho_so('Người D', null, null); raise exception 'HONG: sinh viên thiếu khoa/lớp vẫn lưu được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform public.luu_ho_so('Người D', 'cntt', '26T', false);
+  if (select khoa_id is not null or lop is not null or sinh_vien from public.profiles where id = '00000000-0000-0000-0000-00000000000d')
+    then raise exception 'HONG: người ngoài BK vẫn giữ khoa/lớp'; end if;
+  if (select sinh_vien from public.profiles where id = A) is not true then raise exception 'HONG: mặc định phải là sinh viên'; end if;
+  raise notice 'OK hồ sơ: người ngoài BKĐN không cần khoa/lớp, sinh viên thì bắt buộc';
 
   -- Client không ghi thẳng vào bảng được
   ok := false;
@@ -168,6 +178,17 @@ begin
   -- Xếp hạng
   if (select hang from public.bxh_sinh_vien where id = A) <> 1 then raise exception 'HONG: bảng xếp hạng sinh viên sai'; end if;
   if (select count(*) from public.bxh_khoa) <> 14 then raise exception 'HONG: bảng khoa không đủ 14 khoa'; end if;
+  perform pg_temp.dang_xuat();
+  update public.profiles set so_luot = 1, diem = 999999 where id = '00000000-0000-0000-0000-00000000000d';
+  if (select hang from public.bxh_sinh_vien where id = '00000000-0000-0000-0000-00000000000d') <> 1
+    or (select hang_sv from public.bxh_sinh_vien where id = '00000000-0000-0000-0000-00000000000d') is not null
+    or (select hang_sv from public.bxh_sinh_vien where id = A) <> 1
+    then raise exception 'HONG: hạng chung / hạng sinh viên sai khi có người ngoài BK'; end if;
+  if exists (select 1 from public.bxh_lop where lop is null) or (select sum(so_nguoi) from public.bxh_khoa) <> (select count(*) from public.profiles where so_luot > 0 and sinh_vien)
+    then raise exception 'HONG: người ngoài BK lọt vào bảng lớp/khoa'; end if;
+  perform pg_temp.dang_nhap(A);
+  if not exists (select 1 from public.tim_nguoi_choi('Người D')) then raise exception 'HONG: không tìm được người ngoài BK'; end if;
+  perform pg_temp.dang_xuat();
   raise notice 'OK bảng xếp hạng sinh viên/lớp/khoa đọc được';
 end $$;
 

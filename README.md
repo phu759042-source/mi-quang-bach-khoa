@@ -69,7 +69,7 @@ flowchart LR
 
 ### Thao tác làm một tô mì
 
-1. Bấm **Mì** để cho vắt mì vào tô.
+1. Bấm **Mì** để cho vắt mì vào tô. Sợi mì Quảng vẽ đúng kiểu thật: dẹt, to bản, màu trắng ngà.
 2. Thêm **đúng các topping** khách gọi. Có 7 loại: tôm, thịt heo, gà ta, trứng cút, đậu phộng, bánh tráng, rau sống.
 3. Bấm **Chan nước lèo**.
 4. Bấm vào khách để bưng ra. Nếu làm sai, bấm **Đổ bỏ** để làm lại.
@@ -151,17 +151,19 @@ Cuối mỗi ngày, người chơi dùng tiền trong két để mua nâng cấp
 
 - **Chơi thử không cần tài khoản.** Lượt chơi thử không tính điểm, chỉ lưu kỷ lục trên máy.
 - **Đăng ký bằng email**, có xác nhận email và đặt lại mật khẩu. Email gửi qua Resend với mẫu HTML riêng.
-- **Hồ sơ**: tên, khoa, lớp, và **ảnh đại diện** có công cụ cắt và phóng to ngay trong game.
+- **Hồ sơ**: tên, câu hỏi **"Bạn có phải sinh viên Bách Khoa Đà Nẵng không?"**, khoa và lớp (bắt buộc nếu là sinh viên), và **ảnh đại diện** có công cụ cắt và phóng to ngay trong game. Người không phải sinh viên BKĐN vẫn chơi, tính ĐBK và solo như mọi người, có nhãn **Ngoài BK**, nhưng không được tính vào bảng lớp và khoa.
 - **Bảng xếp hạng ba cấp**:
-  - *Sinh viên*: tổng ĐBK của từng người.
+  - *Cá nhân*: tổng ĐBK của từng người. Có bộ lọc **Tất cả người chơi** / **Chỉ sinh viên BK** (hạng được tính lại trong nhóm đang xem); tab Solo cũng lọc được như vậy.
   - *Lớp*: tổng ĐBK của 10 bạn cao nhất lớp, chia 10.
   - *Khoa*: tổng ĐBK của 30 bạn cao nhất khoa, chia 30.
 
-  Cách tính này giúp lớp ít người vẫn cạnh tranh được, và một cá nhân "cày" nhiều không kéo cả lớp lên một mình.
+  Cách tính này giúp lớp ít người vẫn cạnh tranh được, và một cá nhân "cày" nhiều không kéo cả lớp lên một mình. Bảng lớp và khoa chỉ tính sinh viên Bách Khoa.
+
+<p align="center"><img src="docs/images/sinh-vien-hay-khong.png" width="820" alt="Chọn có phải sinh viên BKĐN không, nhãn Ngoài BK và bộ lọc Chỉ sinh viên BK trên bảng xếp hạng"></p>
 - **Streak kiểu Duolingo**: chốt sổ ít nhất một lượt mỗi ngày để giữ lửa, bỏ một ngày là chuỗi về 0. Ngày được tính theo giờ Việt Nam (Asia/Ho_Chi_Minh). Có hiệu ứng ngọn lửa bùng lên và lịch tuần.
 - **Bộ đếm truy cập** kiểu Facemash: đếm số lượt mở trang và số người đã ghé.
 
-<p align="center"><img src="docs/images/bang-xep-hang.png" width="820" alt="Bảng xếp hạng theo sinh viên, lớp và khoa"></p>
+<p align="center"><img src="docs/images/bang-xep-hang.png" width="820" alt="Bảng xếp hạng cá nhân, lớp và khoa"></p>
 
 <sub>Tên và điểm trong ảnh chụp màn hình là dữ liệu minh hoạ.</sub>
 
@@ -271,7 +273,7 @@ flowchart TB
 | Bảng hoặc view | Nội dung |
 |---|---|
 | `khoa` | Danh sách khoa |
-| `profiles` | Hồ sơ người chơi: tên, khoa, lớp, tổng điểm, số lượt, streak, avatar |
+| `profiles` | Hồ sơ người chơi: tên, có phải sinh viên BKĐN (`sinh_vien`), khoa và lớp (để trống nếu không phải sinh viên), tổng điểm, số lượt, streak, avatar |
 | `runs` | Từng lượt chơi: độ khó, trạng thái, số ngày, doanh thu, tim mất, điểm cộng/trừ, thời gian |
 | `thach_dau` | Lời thách và trận solo: hai người chơi, độ khó, luật, tiến độ từng bên, người thắng, Elo trước và sau |
 | `bxh_solo` | View xếp hạng Solo theo Elo |

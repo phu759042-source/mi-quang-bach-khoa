@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     const { data: subs } = await sb.from("push_sub").select("id,endpoint,p256dh,auth").eq("user_id", t.b);
     const payload = JSON.stringify({
       title: `${a?.ten ?? "Một bạn"} đang thách đấu bạn!`,
-      body: `${a?.lop ?? ""} · Elo ${a?.elo ?? "—"} · ${DIFF[t.do_kho]} · ${MODE[t.che_do]}. Bấm để mở game và trả lời trong 60 giây.`,
+      body: `${a?.lop ? a.lop + " · " : ""}Elo ${a?.elo ?? "—"} · ${DIFF[t.do_kho]} · ${MODE[t.che_do]}. Bấm để mở game và trả lời trong 60 giây.`,
       tag: `thach-${t.id}`,
       url: `${GAME}?thach=${t.id}`,
       id: t.id,

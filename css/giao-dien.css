@@ -562,3 +562,12 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .ve-game a{color:var(--heading);text-decoration:underline;overflow-wrap:anywhere}
 .ve-tt{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px}
 .ve-tt span{color:var(--muted,#6b7280)}
+/* Sinh viên BKĐN hay người ngoài (bản 2.17.0) */
+.sv-hoi{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+.sv-hoi legend{font-weight:700;color:var(--heading);margin-bottom:8px;padding:0;line-height:1.4}
+.sv-chon{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sv-note{margin:0;font-size:13px;line-height:1.5;padding:10px 12px;border-radius:10px;background:var(--soft);border:1px solid var(--line)}
+.ngoai-bk{display:inline-block;font-size:11px;font-weight:700;line-height:1;padding:3px 7px;border-radius:999px;border:1px solid currentColor;color:inherit;opacity:.85;vertical-align:middle;white-space:nowrap}
+.lb-loc{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px}
+.lb-loc button{font:inherit;font-size:13px;font-weight:600;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+.lb-loc button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}
