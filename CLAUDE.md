@@ -2,7 +2,7 @@
 
 Game web (điện thoại + laptop) cho sinh viên Đại học Bách Khoa Đà Nẵng. Người chơi bán mì Quảng, cảm hứng từ quán Mì Quảng Bích (1-3 Đặng Dung, Hòa Khánh Bắc). Tác giả: Nguyễn Tấn Phú (26T_ATTT). Trả lời bằng tiếng Việt, ngắn gọn.
 
-- Trang chạy: https://phu759042-source.github.io/mi-quang-bach-khoa/ (GitHub Pages, nhánh `main`, tự deploy 1–2 phút sau khi push)
+- Trang chạy: https://miquangbk.com/ (GitHub Pages, nhánh `main`, tự deploy 1–2 phút sau khi push)
 - Repo: `phu759042-source/mi-quang-bach-khoa`
 - Backend: Supabase project `fvacenxojembebqqxgfp` (https://fvacenxojembebqqxgfp.supabase.co). Thao tác DB bằng công cụ Supabase MCP, sandbox không gọi thẳng Supabase/CDN được.
 - Email: Supabase Auth gửi qua SMTP Resend (smtp.resend.com:465, user `resend`, domain campusstreak.com).

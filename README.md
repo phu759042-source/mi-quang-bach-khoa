@@ -7,7 +7,7 @@
 **Game quản lý quán mì Quảng trên web, viết cho sinh viên Đại học Bách Khoa Đà Nẵng.**
 Bán mì cho sinh viên các khoa, giữ uy tín quán, rồi đua điểm theo cá nhân, theo lớp và theo khoa.
 
-[**▶ Chơi ngay**](https://phu759042-source.github.io/mi-quang-bach-khoa/) · chạy trên điện thoại và laptop, cài được như ứng dụng (PWA)
+[**▶ Chơi ngay**](https://miquangbk.com/) · chạy trên điện thoại và laptop, cài được như ứng dụng (PWA)
 
 ![Màn chính, lúc đang bán và màn chốt sổ trên điện thoại](docs/images/tong-quan-dien-thoai.png)
 

@@ -7,7 +7,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
 });
-const GAME = "https://phu759042-source.github.io/mi-quang-bach-khoa/";
+const GAME = "https://miquangbk.com/";
 const DIFF: Record<string, string> = { thuong: "Thường", kho: "Khó", dianguc: "Địa ngục", bk: "Bách Khoa" };
 const MODE: Record<string, string> = { sinh_ton: "Sinh tồn", diem: "Điểm cao" };
 let cfg: { pub: string; priv: string; hook: string } | null = null;
