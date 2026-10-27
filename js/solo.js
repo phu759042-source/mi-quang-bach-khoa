@@ -141,9 +141,9 @@ async function answer(id,yes){
 
 /* ---- gửi lời thách ---- */
 const vsHTML=(opp)=>`<div class="vs">
-  <div class="p">${avatarHTML(profile?.avatar_url,profile?.ten||'Bạn',56)}<div class="nm">${esc(profile?.ten||'Bạn')}</div><div class="sb">Elo ${myElo()}</div></div>
+  <div class="p">${avatarHTML(profile?.avatar_url,profile?.ten||'Bạn',56)}<div class="nm">${esc(profile?.ten||'Bạn')}</div><div class="sb">Elo ${myElo()} · ${eloTitle(myElo())}</div></div>
   <div class="x">VS</div>
-  <div class="p">${avatarHTML(opp.avatar_url,opp.ten,56)}<div class="nm">${esc(opp.ten)}</div><div class="sb">${opp.lop?esc(opp.lop)+' · ':''}Elo ${opp.elo??'—'}</div></div></div>`;
+  <div class="p">${avatarHTML(opp.avatar_url,opp.ten,56)}<div class="nm">${esc(opp.ten)}</div><div class="sb">${opp.lop?esc(opp.lop)+' · ':''}Elo ${opp.elo??'—'}${opp.elo!=null?' · '+eloTitle(opp.elo):''}</div></div></div>`;
 async function challengeScreen(p,back,opt={}){
   if(!ranked||!sb){toast('Đăng nhập để solo');return}
   if(!p||p.id===user.id) return;
@@ -295,6 +295,7 @@ function soloEnd(r){
   if(REC){rec('O',S.day,S.total,S.lost||0); recUpload({thach_dau:r.id})}
   liveKet({id:r.id,a:r.a,b:r.b,thang:r.thang,ly_do:r.ly_do,doi_a:r.doi_a,doi_b:r.doi_b});
   const me=s.me, o=s.op, draw=!r.thang, win=r.thang===user.id, d=r['doi_'+me]??0, eloMoi=(r['elo_'+me]??myElo())+d;
+  const eloCu=myElo();
   if(profile){profile.elo=Math.max(100,eloMoi); const k=draw?'solo_hoa':win?'solo_thang':'solo_thua'; profile[k]=(profile[k]||0)+1}
   const ten=s.opp.ten||'Đối thủ', n=tenNgan(ten);
   const why={het_tim:win?`${ten} hết tim trước.`:draw?'Hai bạn hết tim cùng lúc.':'Bạn hết tim trước.',
@@ -307,7 +308,8 @@ function soloEnd(r){
     <h2>${draw?'Hoà!':win?'Bạn thắng!':'Bạn thua rồi'}</h2><p>${esc(why)}</p>
     <div><div class="eyebrow">Elo solo</div>
       <div class="big pop-in" style="color:${d>0?'var(--leaf)':d<0?'var(--chili)':'var(--heading)'}">${d>0?'+':d<0?'−':'±'}${Math.abs(d)}</div>
-      <p class="muted">Elo của bạn bây giờ là <b>${Math.max(100,eloMoi)}</b>.</p></div>
+      <p class="muted">Elo của bạn bây giờ là <b>${Math.max(100,eloMoi)}</b> · ${eloTitle(Math.max(100,eloMoi))}.</p></div>
+    ${doiHangHTML(eloCu,Math.max(100,eloMoi),'elo')}
     <div class="sum" style="display:block"><table class="tb"><tr><th></th><th>Bạn</th><th>${esc(n)}</th></tr>
       <tr><td>Số ngày</td>${cell(0,r[me+'_ngay'])}${cell(0,r[o+'_ngay'])}</tr>
       <tr><td>Doanh thu</td>${cell(0,r[me+'_doanh_thu']+'k')}${cell(0,r[o+'_doanh_thu']+'k')}</tr>
@@ -393,7 +395,7 @@ async function searchPlayers(q){
   const rows=[...data].sort((a,b)=>onlineSet.has(b.id)-onlineSet.has(a.id));
   rows.forEach(p=>lbPeople.set(p.id,p));
   body.innerHTML=`<div class="list">${rows.map(p=>`<div class="li" data-prof="${p.id}" role="button" tabindex="0" aria-label="Xem hồ sơ ${esc(p.ten)}"><span>${avatarHTML(p.avatar_url,p.ten,34)}</span>
-    <span class="nm"><span class="dot" data-online="${p.id}" ${onlineSet.has(p.id)?'':'hidden'}></span>${esc(p.ten)} ${stBadge(p.id)}<span class="sb">${esc(p.lop)} · ${esc(p.khoa)} · Elo ${p.elo}</span></span>
+    <span class="nm"><span class="dot" data-online="${p.id}" ${onlineSet.has(p.id)?'':'hidden'}></span>${esc(p.ten)} ${stBadge(p.id)}<span class="sb">${esc(p.lop)} · ${esc(p.khoa)} · Elo ${p.elo} ${eloTitle(p.elo)}</span></span>
     <button type="button" class="act" data-uid="${p.id}">Thách đấu</button></div>`).join('')}</div>
     <p class="muted"><span class="dot"></span>đang mở game · bấm tên để xem hồ sơ · <span class="st-badge">Đang solo</span> thì bấm "Xem trận" để xem trực tiếp</p>`;
   body.querySelectorAll('[data-prof]').forEach(el=>el.onkeydown=e=>{if(e.target===el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();el.click()}});

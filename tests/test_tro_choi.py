@@ -454,6 +454,7 @@ with sync_playwright() as pw:
     print('9. Bảng xếp hạng Solo')
     A.click('#lbs'); A.wait_for_timeout(600)
     check('Elo' in A.inner_text('#rule') and A.locator('.pod').count() >= 2, 'tab Solo hiện 2 người theo Elo')
+    check(A.locator('.pod .ten-elo.r-pupil').count() >= 2 and 'Legendary Grandmaster' in A.inner_text('#rule'), 'tab Solo: tên tô màu theo danh hiệu, luật có bảng danh hiệu')
     shot(A, 'solo-13-bxh-solo')
 
     def reload(P):
@@ -648,6 +649,8 @@ with sync_playwright() as pw:
 
     print('22. Hồ sơ người khác: thống kê, ván solo, lượt bán, xem lại')
     C.click('#xHoSo'); C.wait_for_selector('#hsBody .card-s', timeout=5000); C.wait_for_timeout(400)
+    check(C.locator('.me .hang-logo').count() == 1 and C.locator('.me .elo-t').count() == 1 and C.locator('#hsBody .hang-the .hang-bar').count() == 1,
+          'hồ sơ: huy hiệu hạng ĐBK, danh hiệu Elo, thanh tiến độ lên hạng')
     eA = F.prof['A']['elo']; hE = 1 + sum(1 for p in F.prof.values() if p['elo'] > eA)
     hd = C.inner_text('.me')
     check(f"{F.prof['A']['diem']}" in hd and 'hạng #2' in hd and f'{eA}' in hd and f'Elo · hạng #{hE}' in hd, f'đầu hồ sơ có ĐBK + hạng và Elo + hạng ({hd!r})')
@@ -685,6 +688,8 @@ with sync_playwright() as pw:
     check(A.locator('#edit .me-pen').count() == 1, 'avatar có biểu tượng bút chì')
     ids = A.evaluate("[...document.querySelectorAll('.split-b .col.grow > .btn')].map(b=>b.id)")
     check(ids[:3] == ['go', 'solo', 'lb'], f'thứ tự nút: Mở quán, Solo, Bảng xếp hạng ({ids})')
+    check(A.locator('#edit .hang-logo').count() == 1 and 'Đồng' in A.inner_text('#edit') and A.locator('#edit .elo-t').count() == 1,
+          f"thẻ tên có huy hiệu hạng ĐBK và danh hiệu Elo ({A.inner_text('#edit')!r})")
     shot(A, 'sua-ho-so-01-man-chinh')
     A.click('#edit .me-av-w'); A.wait_for_selector('#f #ten', timeout=3000)
     check(A.input_value('#ten') == 'Nguyễn Tấn Phú' and A.locator('#pClose').count() == 1, 'bấm avatar mở màn Sửa hồ sơ, có nút Đóng')

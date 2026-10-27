@@ -118,12 +118,15 @@ function showResult(head,why,summary,data){
   const cash=midClose;
   if(midClose){midClose=false;sfx.closeEnd()}
   const ov=$('ov');
+  const cu=profile?profile.diem:null;
   if(profile) profile.diem=data.diem; myRank=data.hang;
-  const d=data.delta;
+  const d=data.delta, doiHang=cu!=null&&data.diem!=null?doiHangHTML(cu,data.diem,'dbk'):'';
+  if(doiHang&&hangDBK(data.diem).i>hangDBK(cu).i) setTimeout(confetti,400);
   ov.innerHTML=`${head}<p>${esc(why)}</p>
     <div><div class="eyebrow">Điểm Bách Khoa</div>
       <div class="big pop-in" style="color:${d==null||d>=0?'var(--leaf)':'var(--chili)'}">${d==null?'Đã ghi nhận':(d>=0?'+':'−')+Math.abs(d)}</div>
       <p class="muted">Bây giờ bạn có <b>${data.diem}</b> ĐBK, hạng <b>#${data.hang}</b> toàn trường.</p></div>
+    ${doiHang}
     ${summary}
     <div class="col grow"><button class="btn" id="again">Chơi lượt mới</button>
       <button class="btn ghost" id="lb">Xem bảng xếp hạng</button>

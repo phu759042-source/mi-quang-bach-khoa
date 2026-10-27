@@ -115,7 +115,7 @@ async function banBeScreen(tab = 'ban', back = home){
   $('back').onclick = () => { BB.ve = null; back() };
   $('ov').querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-t]'); if(b) banBeScreen(b.dataset.t, back) };
   const dong = (p, phai) => `<div class="li" data-prof="${p.id}" role="button" tabindex="0"><span>${avatarHTML(p.avatar_url, p.ten, 36)}</span>
-    <span class="nm"><span class="dot" data-online="${p.id}" ${onlineSet.has(p.id) ? '' : 'hidden'}></span>${esc(p.ten)} ${stBadge(p.id)}<span class="sb">${esc(p.lop || '')} · Elo ${p.elo ?? 1200}</span></span>${phai}</div>`;
+    <span class="nm"><span class="dot" data-online="${p.id}" ${onlineSet.has(p.id) ? '' : 'hidden'}></span>${esc(p.ten)} ${stBadge(p.id)}<span class="sb">${esc(p.lop || '')} · Elo ${p.elo ?? 1200} ${eloTitle(p.elo)}</span></span>${phai}</div>`;
   const ve = () => {
     const body = $('bbBody'); if(!body){ BB.ve = null; return }
     if($('bbQ') && $('bbQ').value.trim()) return;               // đang hiện kết quả tìm kiếm

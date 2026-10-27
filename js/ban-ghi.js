@@ -279,7 +279,8 @@ async function hoSoScreen(tab = 'stats', uid = null, back = null){
   openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Hồ sơ${self ? ' của bạn' : ''}</div><button class="link" id="back">Đóng</button></div>
     <div class="me has-av">${avatarHTML(w.avatar_url, w.ten, 48, 'me-av')}<div class="nm">${self ? '' : `<span class="dot" data-online="${w.id}" ${onlineSet.has(w.id) ? '' : 'hidden'}></span>`}${esc(w.ten)}${self ? '' : ' ' + stBadge(w.id)}</div>
       <div class="sub">${esc(w.lop)} · ${esc(khoaTen(w.khoa_id))}</div>
-      <div class="pts2"><div><b>${w.diem ?? 0}</b><small id="hsRkD">ĐBK${self && myRank ? ` · #${myRank}` : ''}</small></div><div><b>${w.elo ?? 1200}</b><small id="hsRkE">Elo solo</small></div></div></div>
+      <div class="pts2"><div><span class="hang-row">${hangLogo(w.diem, 34)}<b>${w.diem ?? 0}</b></span><small id="hsRkD">ĐBK${self && myRank ? ` · #${myRank}` : ''}</small><small>${hangDBK(w.diem).n}</small></div>
+        <div><b>${w.elo ?? 1200}</b><small id="hsRkE">Elo solo</small><small>${eloTitle(w.elo, 1)}</small></div></div></div>
     ${self ? '' : `<div class="row hs-act"><button type="button" class="btn" id="hsThach" data-thach="${w.id}">Thách đấu</button>
       <button type="button" class="btn ghost live-btn" id="hsXem" data-xem="${w.id}" hidden><i class="live-dot" aria-hidden="true"></i>Xem trực tiếp</button>
       <span class="kb-row" data-kb-slot="${w.id}">${kbNut(w.id)}</span></div>`}
@@ -386,6 +387,7 @@ async function statsTab(body){
       <td>${Math.max(...xs.map(r => r.delta || 0))}</td><td>${Math.max(...xs.map(r => r.so_ngay || 0))}</td></tr>` }).join('');
   body.innerHTML = `
     <section class="card-s"><h3>Solo</h3>
+      <div class="hang-the elo"><div class="hang-tt"><b>${eloTitle(w.elo)}</b><span class="muted">${(() => { const h = hangElo(w.elo); return h.ke ? `Còn <b>${h.ke.tu - (w.elo ?? 1200)}</b> Elo nữa lên ${eloTitle(h.ke.tu)}` : 'Danh hiệu cao nhất' })()}</span></div></div>
       <div class="tiles"><div class="tile"><span>Elo hiện tại</span><b>${w.elo ?? 1200}</b></div><div class="tile"><span>Elo cao nhất</span><b>${eloMax}</b></div>
         <div class="tile"><span>Số trận</span><b>${games.length}</b></div></div>
       ${games.length ? `<div class="wdl" role="img" aria-label="Thắng ${pct(W)}%, hoà ${pct(Dr)}%, thua ${pct(L)}%">
@@ -395,6 +397,7 @@ async function statsTab(body){
         <div class="chart-t">Elo sau mỗi trận <span class="muted">· rê hoặc kéo ngang để xem từng trận</span></div><div class="chart" id="cElo"></div>` : '<p class="muted">Chưa có trận solo nào.</p>'}
     </section>
     <section class="card-s"><h3>Mở quán (chế độ thường)</h3>
+      ${hangTheDBK(w.diem)}
       <div class="tiles"><div class="tile"><span>ĐBK hiện có</span><b>${w.diem}</b></div><div class="tile"><span>Số lượt</span><b>${tot}</b></div>
         <div class="tile"><span>TB mỗi lượt</span><b>${avg > 0 ? '+' : avg < 0 ? '−' : ''}${Math.abs(avg)}</b></div>
         <div class="tile"><span>Lượt có lời</span><b>${tot ? Math.round(loi / tot * 100) : 0}%</b></div>

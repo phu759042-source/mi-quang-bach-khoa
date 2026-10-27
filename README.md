@@ -165,6 +165,13 @@ Cuối mỗi ngày, người chơi dùng tiền trong két để mua nâng cấp
 
 <sub>Tên và điểm trong ảnh chụp màn hình là dữ liệu minh hoạ.</sub>
 
+### Phân hạng
+
+- **Hạng ĐBK** theo tổng điểm, kiểu Liên Quân: Đồng (dưới 10.000), Bạc (10.000), Vàng (20.000), Bạch Kim (50.000), Kim Cương (100.000), Tinh Anh (500.000), Cao Thủ (1.000.000). Mỗi hạng có huy hiệu vẽ bằng SVG (khiên và tô mì, hạng cao có thêm cánh, ngọc, vương miện), hiện ở thẻ tên, bảng xếp hạng và hồ sơ, kèm thanh tiến độ lên hạng kế tiếp. Lên hạng sau một lượt thì có pháo giấy.
+- **Danh hiệu Elo solo** kiểu Codeforces, từ Newbie (dưới 1200) tới Legendary Grandmaster (3000+), chỉ là chữ có màu riêng; tên trên bảng Solo cũng tô theo màu đó. Màu được chỉnh lại cho giao diện tối để vẫn đọc rõ.
+
+<p align="center"><img src="docs/images/phan-hang.png" width="760" alt="Huy hiệu 7 hạng ĐBK và màu các danh hiệu Elo"></p>
+
 ### Solo: thách đấu bạn bè
 
 Chế độ đấu trực tiếp hai người, lấy cảm hứng từ chess.com:
@@ -300,6 +307,7 @@ mi-quang-bach-khoa/
 ├── index.html               # Khung trang: HTML của màn chơi, nạp CSS và các file JS theo thứ tự
 ├── css/giao-dien.css        # Toàn bộ giao diện, biến màu cho chế độ sáng/tối
 ├── js/                      # Mã game, mỗi file một phần (script thường, dùng chung biến toàn cục)
+│   ├── hang.js              # Hạng ĐBK (huy hiệu SVG) và danh hiệu Elo
 │   ├── cau-hinh.js          # Cấu hình Supabase, phiên bản, dữ liệu game, biến trạng thái
 │   ├── vong-choi.js         # Vòng chơi: khách, làm tô, bưng, hết ngày, mất tim
 │   ├── hien-thi.js          # Vẽ màn chơi

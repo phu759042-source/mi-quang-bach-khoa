@@ -530,3 +530,28 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .kb-on{display:inline-flex;align-items:center;justify-content:center;gap:4px;color:var(--win);font-weight:700;padding:8px 6px;white-space:nowrap}
 .hs-act .kb-row .kb-on{flex:1}
 .btn.kb-bo{color:var(--muted)}.btn.kb-bo.canh-bao{color:var(--loss);border-color:var(--loss)}
+
+/* ===== Phân hạng (bản 2.15.0): danh hiệu Elo màu kiểu Codeforces, huy hiệu ĐBK ===== */
+:root{--r-newbie:#808080;--r-pupil:#008000;--r-specialist:#03A89E;--r-expert:#0000FF;--r-cm:#AA00AA;--r-master:#E07800;--r-gm:#E00000}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--r-newbie:#A3A9B0;--r-pupil:#46B954;--r-specialist:#2CC7B8;--r-expert:#7E96FF;--r-cm:#D877D8;--r-master:#FFA347;--r-gm:#FF5C5C}}
+:root[data-theme="dark"]{--r-newbie:#A3A9B0;--r-pupil:#46B954;--r-specialist:#2CC7B8;--r-expert:#7E96FF;--r-cm:#D877D8;--r-master:#FFA347;--r-gm:#FF5C5C}
+.r-newbie{--rc:var(--r-newbie)}.r-pupil{--rc:var(--r-pupil)}.r-specialist{--rc:var(--r-specialist)}.r-expert{--rc:var(--r-expert)}
+.r-cm{--rc:var(--r-cm)}.r-master,.r-im{--rc:var(--r-master)}.r-gm,.r-igm,.r-lgm{--rc:var(--r-gm)}
+.elo-t{display:inline-block;color:var(--rc);font-weight:800;white-space:nowrap}
+.elo-t.r-lgm::first-letter,.ten-elo.r-lgm::first-letter{color:var(--ink)}
+.elo-t.chip{--r-newbie:#808080;--r-pupil:#008000;--r-specialist:#03A89E;--r-expert:#0000FF;--r-cm:#AA00AA;--r-master:#E07800;--r-gm:#E00000;
+  background:#fff;border-radius:999px;padding:0 8px;font-size:12px;line-height:1.6;vertical-align:1px}
+.elo-t.chip.r-lgm::first-letter{color:#000}
+.ten-elo{display:inline-block;color:var(--rc);font-weight:800}
+.hang-logo{display:inline-block;vertical-align:middle;flex:none;overflow:visible}
+.pt .hang-logo{margin-right:4px;vertical-align:-5px}
+.hang-the{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--soft)}
+.hang-tt{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}.hang-tt b{font-size:16px}
+.hang-bar{height:8px;border-radius:999px;background:var(--line);overflow:hidden}.hang-bar i{display:block;height:100%;border-radius:999px}
+.hang-ds{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px 10px;margin-top:8px}
+.hang-ds span{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.hang-ds small{color:var(--muted);flex-basis:100%;padding-left:32px;margin-top:-4px}
+.hang-ds.elo{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.hang-ds.elo small{padding-left:0;margin-top:0}
+.len-hang{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;background:var(--soft);font-size:15px;animation:rpKetIn .4s ease-out}
+.len-hang.xuong{opacity:.85}
+.me .pts .hang-logo{display:block;margin:0 0 2px auto}
+.pts2 .hang-row{display:flex;align-items:center;gap:6px}
