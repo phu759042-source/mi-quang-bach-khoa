@@ -5,7 +5,7 @@ Game web (điện thoại + laptop) cho sinh viên Đại học Bách Khoa Đà 
 - Trang chạy: https://miquangbk.com/ (GitHub Pages, nhánh `main`, tự deploy 1–2 phút sau khi push)
 - Repo: `phu759042-source/mi-quang-bach-khoa`
 - Backend: Supabase project `fvacenxojembebqqxgfp` (https://fvacenxojembebqqxgfp.supabase.co). Thao tác DB bằng công cụ Supabase MCP, sandbox không gọi thẳng Supabase/CDN được.
-- Email: Supabase Auth gửi qua SMTP Resend (smtp.resend.com:465, user `resend`, domain campusstreak.com).
+- Email: Supabase Auth gửi qua SMTP Resend (smtp.resend.com:465, user `resend`, gửi từ noreply@miquangbk.com từ 27/10/2026; trước đó dùng domain campusstreak.com).
 
 ## Cấu trúc file
 
