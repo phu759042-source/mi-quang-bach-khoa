@@ -157,10 +157,10 @@ async function leaderboard(tab,focus){
   $('back').onclick=home;
   document.querySelector('.tabs').onclick=e=>{const b=e.target.closest('[data-t]');if(b)leaderboard(b.dataset.t)};
   const hint=canSolo?' Bấm vào tên một bạn để xem hồ sơ, thách đấu solo, hoặc xem trực tiếp khi bạn ấy đang bán.':'';
-  $('rule').innerHTML=tab==='sv'?ruleText()+`<p style="margin-top:8px"><b>Hạng theo tổng ĐBK</b> (giống Liên Quân):</p>${hangBangDBK()}`+(hint?`<p style="margin-top:6px">${hint.trim()}</p>`:''):tab==='lop'
+  $('rule').innerHTML=tab==='sv'?ruleText()+`<p style="margin-top:8px"><b>Hạng theo tổng ĐBK:</b></p>${hangBangDBK()}`+(hint?`<p style="margin-top:6px">${hint.trim()}</p>`:''):tab==='lop'
     ?'Điểm lớp = tổng ĐBK của 10 bạn cao nhất lớp, chia 10. Lớp chưa đủ 10 người chơi thì phần thiếu tính là 0.'
     :tab==='khoa'?'Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30.'
-    :'Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Ai chưa đấu trận nào đứng ở 1200. Solo không ảnh hưởng ĐBK.'+hint+`<p style="margin-top:8px"><b>Danh hiệu theo Elo</b> (giống Codeforces, tên trên bảng tô theo màu danh hiệu):</p>${hangBangElo()}`;
+    :'Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Ai chưa đấu trận nào đứng ở 1200. Solo không ảnh hưởng ĐBK.'+hint+`<p style="margin-top:8px"><b>Danh hiệu theo Elo:</b></p>${hangBangElo()}`;
   if(!sb){$('lbBody').innerHTML='<div class="empty-state">Không kết nối được máy chủ bảng xếp hạng.</div>';return}
   const lbBack=()=>leaderboard(tab);
   $('lbBody').onclick=e=>{
