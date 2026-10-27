@@ -683,6 +683,8 @@ with sync_playwright() as pw:
     A.click('#home'); A.wait_for_selector('#edit', timeout=4000)
     check(A.locator('text=Sửa hồ sơ').count() == 0, 'không còn dòng "Sửa hồ sơ" ở cuối màn chính')
     check(A.locator('#edit .me-pen').count() == 1, 'avatar có biểu tượng bút chì')
+    ids = A.evaluate("[...document.querySelectorAll('.split-b .col.grow > .btn')].map(b=>b.id)")
+    check(ids[:3] == ['go', 'solo', 'lb'], f'thứ tự nút: Mở quán, Solo, Bảng xếp hạng ({ids})')
     shot(A, 'sua-ho-so-01-man-chinh')
     A.click('#edit .me-av-w'); A.wait_for_selector('#f #ten', timeout=3000)
     check(A.input_value('#ten') == 'Nguyễn Tấn Phú' and A.locator('#pClose').count() == 1, 'bấm avatar mở màn Sửa hồ sơ, có nút Đóng')

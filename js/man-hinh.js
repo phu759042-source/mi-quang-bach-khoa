@@ -30,8 +30,9 @@ function home(){
   <div class="msg" id="msg"></div>
   <div class="col grow">
     <button class="btn" id="go">${ranked?'Mở quán':'Mở quán (chơi thử)'}</button>
+    ${ranked?'<button class="btn warm" id="solo">Solo · thách đấu bạn bè</button>':''}
     <button class="btn ghost" id="lb">Bảng xếp hạng</button>
-    ${ranked?'<button class="btn warm" id="solo">Solo · thách đấu bạn bè</button><button class="btn ghost" id="hoso">Ván đấu &amp; thống kê</button><button class="btn ghost" id="banbe">Bạn bè <span class="bb-so" data-bb-badge="lm" hidden></span></button>':''}
+    ${ranked?'<button class="btn ghost" id="hoso">Ván đấu &amp; thống kê</button><button class="btn ghost" id="banbe">Bạn bè <span class="bb-so" data-bb-badge="lm" hidden></span></button>':''}
     <div class="row">${ranked?`<button class="link" id="out">Đăng xuất</button>`
       :`<button class="link" id="login">Đăng nhập để tính điểm</button>`}</div>
     <div class="row"><button class="link" id="contact">Liên hệ người làm game</button><button class="link" id="donate">Ủng hộ game</button></div>
@@ -243,9 +244,11 @@ window.addEventListener('beforeunload',e=>{if(solo||(ranked&&runId&&!submitting)
   const ov=$('ov'), ind=$('ptr'), PULL=80;
   let y0=null, dy=0;
   const setInd=(d)=>{const t=Math.min(d,110);ind.style.transform=`translateY(${t*.6-8}px)`;ind.style.opacity=Math.min(1,d/PULL);ind.classList.toggle('ready',d>=PULL)};
+  // Ngón tay bắt đầu trong một khung cuộn riêng (danh sách diễn biến, bảng...) thì đó là cuộn khung, không phải kéo tải lại
+  const trongKhungCuon=el=>{for(;el&&el!==ov;el=el.parentElement){const o=getComputedStyle(el).overflowY;if((o==='auto'||o==='scroll')&&el.scrollHeight>el.clientHeight+1)return true}return false};
   const reset=()=>{y0=null;dy=0;ind.style.transition='transform .2s, opacity .2s';setInd(0);setTimeout(()=>ind.style.transition='',220)};
   ov.addEventListener('touchstart',e=>{
-    if(midRun||running||submitting||ov.scrollTop>0||e.touches.length!==1){y0=null;return}
+    if(midRun||running||submitting||ov.scrollTop>0||e.touches.length!==1||$('xStage')||trongKhungCuon(e.target)){y0=null;return}
     y0=e.touches[0].clientY; dy=0; ind.style.transition='';
   },{passive:true});
   ov.addEventListener('touchmove',e=>{

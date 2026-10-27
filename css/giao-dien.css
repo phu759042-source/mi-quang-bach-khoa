@@ -423,7 +423,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .rp-days{position:absolute;left:0;right:0;bottom:0;height:12px}
 .rp-days i{position:absolute;transform:translateX(-50%);font:700 10px/1 var(--body);color:var(--muted);font-style:normal}
 .rp-time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.rp-moves{max-height:320px;overflow-y:auto}
+.rp-moves{max-height:320px;overflow-y:auto;overscroll-behavior:contain}
 .rp-mv{font:inherit;color:var(--muted);background:none;border:0;border-top:1px solid var(--line);text-align:left;cursor:pointer;width:100%;grid-template-columns:44px 1fr!important}
 .rp-mv.done{color:var(--ink)}.rp-mv.cur{background:var(--soft)}.rp-mv.good .nm{color:var(--leaf)}.rp-mv.bad .nm{color:var(--chili)}
 .rp-mv.done.good .nm,.rp-mv.done.bad .nm{font-weight:700}

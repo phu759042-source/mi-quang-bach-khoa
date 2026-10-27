@@ -51,6 +51,7 @@ Game web (điện thoại + laptop) cho sinh viên Đại học Bách Khoa Đà 
 - Biểu đồ (bản 2.14.0): `chartScrub` — dòng số liệu `.cread` nằm trên biểu đồ (không bị ngón tay che), mặc định điểm mới nhất; rê chuột / chạm rồi kéo ngang (setPointerCapture, `touch-action: pan-y`) để chọn, thả tay vẫn giữ; phím ← → Home End.
 - Tab Solo của bảng xếp hạng đọc thẳng `profiles` (mọi người, sắp theo elo, hạng = 1 + số người elo cao hơn), không dùng view `bxh_solo` nữa.
 - Bộ đếm truy cập kiểu Facemash: `countVisit` (hiện lượt + người).
+- Kéo xuống để tải lại (`pullToRefresh` trong `js/man-hinh.js`): bỏ qua khi đang chơi, khi ở màn xem trực tiếp (`#xStage`) và khi ngón tay bắt đầu trong khung cuộn riêng (`trongKhungCuon`, ví dụ danh sách diễn biến `.rp-moves` có `overscroll-behavior:contain`).
 - Giao diện: theme sáng/tối/tự động (`applyTheme`, `data-theme`, localStorage), phím tắt laptop (1–8, Space, Q/W/E/R, X), kéo để tải lại (tắt khi đang chơi).
 
 ## Supabase
