@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /tests/
+Disallow: /supabase/
+Disallow: /emails/
+
+Sitemap: https://miquangbk.com/sitemap.xml

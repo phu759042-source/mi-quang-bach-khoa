@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mì Quảng Bách Khoa</title>
-<meta name="description" content="Game quán mì Quảng của sinh viên Bách Khoa Đà Nẵng, lấy cảm hứng từ Mì Quảng Bích ở Hòa Khánh Bắc. Đua điểm theo lớp, theo khoa.">
+<meta name="description" content="Mì Quảng Bách Khoa: game web miễn phí của sinh viên Đại học Bách Khoa Đà Nẵng. Mở quán mì Quảng, phục vụ sinh viên các khoa, đua điểm theo lớp, theo khoa và solo tính Elo. Lấy cảm hứng từ Mì Quảng Bích, Hòa Khánh Bắc.">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -28,9 +28,21 @@ try{var t=localStorage.getItem('mqbk-theme');if(t==='light'||t==='dark')document
 <meta property="og:image:alt" content="Mì Quảng Bách Khoa: game bán mì Quảng của sinh viên Bách Khoa Đà Nẵng">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://miquangbk.com/">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"WebSite","@id":"https://miquangbk.com/#website","url":"https://miquangbk.com/","name":"Mì Quảng Bách Khoa","alternateName":["Mi Quang Bach Khoa","Mì Quảng BK","miquangbk","Bach Khoa Noodles"],"inLanguage":["vi","en"]},
+ {"@type":["VideoGame","WebApplication"],"@id":"https://miquangbk.com/#game","name":"Mì Quảng Bách Khoa","alternateName":"Bach Khoa Noodles","url":"https://miquangbk.com/","image":"https://miquangbk.com/icons/og-image.png",
+  "description":"Game web miễn phí của sinh viên Đại học Bách Khoa Đà Nẵng: mở quán mì Quảng, phục vụ sinh viên các khoa, đua Điểm Bách Khoa theo lớp, theo khoa và solo tính Elo. Lấy cảm hứng từ quán Mì Quảng Bích, 1-3 Đặng Dung, Hòa Khánh Bắc.",
+  "genre":["Simulation","Casual"],"gamePlatform":["Web browser","Mobile","Desktop"],"applicationCategory":"GameApplication","operatingSystem":"Any","playMode":["SinglePlayer","MultiPlayer"],
+  "inLanguage":["vi","en"],"datePublished":"2026-10-24","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"VND"},
+  "author":{"@type":"Person","name":"Nguyễn Tấn Phú","affiliation":{"@type":"CollegeOrUniversity","name":"Trường Đại học Bách Khoa – Đại học Đà Nẵng"}},
+  "sameAs":["https://github.com/phu759042-source/mi-quang-bach-khoa"]}
+]}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="css/giao-dien.css?v=2.19.2">
+<link rel="stylesheet" href="css/giao-dien.css?v=2.19.3">
 </head>
 <body>
 <div id="app">
@@ -56,7 +68,11 @@ try{var t=localStorage.getItem('mqbk-theme');if(t==='light'||t==='dark')document
       <button class="btn pour" id="pour" data-en="Add broth&lt;kbd&gt;Space&lt;/kbd&gt;">Chan nước lèo<kbd>Space</kbd></button>
     </div>
   </div>
-  <div class="ov" id="ov"></div>
+  <div class="ov" id="ov"><!-- nội dung tĩnh cho công cụ tìm kiếm; game thay ngay khi khởi động -->
+    <div class="split"><div class="split-a"><div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc</div>
+    <h1>Mì Quảng <em>Bách Khoa</em></h1>
+    <p>Game bán mì Quảng của sinh viên Đại học Bách Khoa Đà Nẵng. Mở quán, phục vụ sinh viên các khoa, đua Điểm Bách Khoa theo lớp, theo khoa và solo tính Elo. Đang tải game…</p>
+    <p><a href="gioi-thieu/">Giới thiệu game &amp; cách chơi</a></p></div></div></div>
   <div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></div>
   <div class="visits" id="visits" hidden aria-live="polite" title="Mỗi lần mở trang tính 1 lượt truy cập" data-en-title="Every page open counts as 1 visit">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -65,24 +81,24 @@ try{var t=localStorage.getItem('mqbk-theme');if(t==='light'||t==='dark')document
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="js/ngon-ngu.js?v=2.19.2"></script>
-<script src="js/ban-ghi.js?v=2.19.2"></script>
-<script src="js/cau-hinh.js?v=2.19.2"></script>
-<script src="js/hang.js?v=2.19.2"></script>
-<script src="js/vong-choi.js?v=2.19.2"></script>
-<script src="js/mang.js?v=2.19.2"></script>
-<script src="js/am-thanh.js?v=2.19.2"></script>
-<script src="js/nop-diem.js?v=2.19.2"></script>
-<script src="js/hien-thi.js?v=2.19.2"></script>
-<script src="js/tai-khoan.js?v=2.19.2"></script>
-<script src="js/man-hinh.js?v=2.19.2"></script>
-<script src="js/solo.js?v=2.19.2"></script>
-<script src="js/thong-bao.js?v=2.19.2"></script>
-<script src="js/hieu-ung.js?v=2.19.2"></script>
-<script src="js/giu-quan.js?v=2.19.2"></script>
-<script src="js/ban-be.js?v=2.19.2"></script>
-<script src="js/ve-game.js?v=2.19.2"></script>
-<script src="js/dieu-huong.js?v=2.19.2"></script>
-<script src="js/khoi-dong.js?v=2.19.2"></script>
+<script src="js/ngon-ngu.js?v=2.19.3"></script>
+<script src="js/ban-ghi.js?v=2.19.3"></script>
+<script src="js/cau-hinh.js?v=2.19.3"></script>
+<script src="js/hang.js?v=2.19.3"></script>
+<script src="js/vong-choi.js?v=2.19.3"></script>
+<script src="js/mang.js?v=2.19.3"></script>
+<script src="js/am-thanh.js?v=2.19.3"></script>
+<script src="js/nop-diem.js?v=2.19.3"></script>
+<script src="js/hien-thi.js?v=2.19.3"></script>
+<script src="js/tai-khoan.js?v=2.19.3"></script>
+<script src="js/man-hinh.js?v=2.19.3"></script>
+<script src="js/solo.js?v=2.19.3"></script>
+<script src="js/thong-bao.js?v=2.19.3"></script>
+<script src="js/hieu-ung.js?v=2.19.3"></script>
+<script src="js/giu-quan.js?v=2.19.3"></script>
+<script src="js/ban-be.js?v=2.19.3"></script>
+<script src="js/ve-game.js?v=2.19.3"></script>
+<script src="js/dieu-huong.js?v=2.19.3"></script>
+<script src="js/khoi-dong.js?v=2.19.3"></script>
 </body>
 </html>
