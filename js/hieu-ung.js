@@ -7,8 +7,9 @@
 function lockButtons(root,ms=900){
   if(!root) return;
   const bs=[...root.querySelectorAll('button')];
-  bs.forEach(b=>{b.dataset.lk=b.disabled?'1':'0';b.disabled=true;b.classList.add('locked')});
-  setTimeout(()=>bs.forEach(b=>{if(b.dataset.lk==='0')b.disabled=false;b.classList.remove('locked');delete b.dataset.lk}),ms);
+  // khoá chồng nhau (vd. endFx khoá thêm khi màn lên hạng đã tự khoá): nhớ trạng thái gốc ở lần khoá đầu, mở ở lần cuối
+  bs.forEach(b=>{if(!b._lk){b.dataset.lk=b.disabled?'1':'0'} b._lk=(b._lk||0)+1;b.disabled=true;b.classList.add('locked')});
+  setTimeout(()=>bs.forEach(b=>{if(--b._lk>0) return; if(b.dataset.lk==='0')b.disabled=false;b.classList.remove('locked');delete b.dataset.lk}),ms);
 }
 function particles(cv,kind){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches||kind==='draw'||!cv.getContext) return ()=>{};

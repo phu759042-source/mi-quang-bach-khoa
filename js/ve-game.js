@@ -5,7 +5,7 @@ const VE_GAME_RA_MAT = '24/10/2026';
 function veGameScreen(back = home){
   nhoMan('vegame');
   const a = (url, t) => `<a href="${url}" target="_blank" rel="noopener">${t}</a>`;
-  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Về game</div><button class="link" id="back">Đóng</button></div>
+  const vi = () => `<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Về game</div><button class="link" id="back">Đóng</button></div>
   <h2>Mì Quảng Bách Khoa</h2>
   <div class="ve-game">
   <section class="card-s"><h3>Thông tin chung</h3>
@@ -21,7 +21,7 @@ function veGameScreen(back = home){
   </section>
 
   <section class="card-s"><h3>Dữ liệu game thu thập</h3>
-    <p><b>Khi chơi thử (không đăng nhập):</b> không cần tài khoản. Game chỉ lưu trên máy bạn các cài đặt (giao diện, âm thanh, độ khó), quán đang mở dở và chuỗi ngày chơi. Để đếm số người ghé, game tạo một mã ngẫu nhiên lưu trên máy bạn. Mã này không gắn với tên hay email.</p>
+    <p><b>Khi chơi thử (không đăng nhập):</b> không cần tài khoản. Game chỉ lưu trên máy bạn các cài đặt (ngôn ngữ, giao diện, âm thanh, độ khó), quán đang mở dở và chuỗi ngày chơi. Để đếm số người ghé, game tạo một mã ngẫu nhiên lưu trên máy bạn. Mã này không gắn với tên hay email.</p>
     <p><b>Khi có tài khoản, game lưu trên máy chủ:</b></p>
     <ul>
       <li>Email và mật khẩu để đăng nhập. Mật khẩu được mã hoá một chiều (bcrypt) bởi Supabase, người làm game không xem được.</li>
@@ -77,7 +77,81 @@ function veGameScreen(back = home){
 
   <p class="muted">Chính sách có thể thay đổi khi game thêm tính năng mới. Mọi thay đổi được ghi ở trang này. Cập nhật lần cuối: ${VE_GAME_CAP_NHAT}.</p>
   </div>
-  <div class="col grow"><button class="btn ghost" id="lienHe2">Liên hệ người làm game</button></div>`);
+  <div class="col grow"><button class="btn ghost" id="lienHe2">Liên hệ người làm game</button></div>`;
+  const en = () => `<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">About</div><button class="link" id="back">Close</button></div>
+  <h2>Bach Khoa Noodles</h2>
+  <div class="ve-game">
+  <section class="card-s"><h3>Overview</h3>
+    <div class="ve-tt">
+      <span>Launch</span><b>First online on ${VE_GAME_RA_MAT} (DD/MM/YYYY)</b>
+      <span>Version</span><b>${PHIEN_BAN}</b>
+      <span>Website</span><b>miquangbk.com</b>
+      <span>Made by</span><b>${CONTACT.ten}, student, ${CONTACT.lop}, University of Science and Technology, University of Da Nang</b>
+    </div>
+    <p>A browser game about running a mì Quảng noodle shop, for phones and laptops, made for students of Bach Khoa Da Nang. The shop is inspired by Mì Quảng Bích (1-3 Dang Dung, Hoa Khanh Bac). Mì Quảng is a central Vietnamese dish of wide rice noodles with a little rich broth.</p>
+    <p>The game is free, has no ads and sells nothing. "Support the game" is voluntary and never buys any advantage.</p>
+    <p class="muted">This is a personal student project. It is not an official product of the University of Science and Technology (University of Da Nang) and has no commercial link with Mì Quảng Bích.</p>
+  </section>
+
+  <section class="card-s"><h3>What data the game collects</h3>
+    <p><b>Trial play (not signed in):</b> no account needed. The game only stores on your device your settings (language, theme, sound, difficulty), an unfinished shop and your streak. To count visitors it creates a random ID on your device, not tied to any name or email.</p>
+    <p><b>With an account, the server stores:</b></p>
+    <ul>
+      <li>Your email and password for signing in. The password is one-way hashed (bcrypt) by Supabase; the developer cannot see it.</li>
+      <li>Profile: display name, whether you are a Bach Khoa Da Nang student, faculty and class (students only), avatar (if you upload one). No student ID, phone number or address is asked.</li>
+      <li>Results: each run, Bach Khoa Points, streak, solo matches, Elo.</li>
+      <li>Action recordings for replays of runs and solo matches (the latest 50 runs and all solo matches are kept).</li>
+      <li>Friends, friend requests and notifications (the latest 100 notifications are kept).</li>
+      <li>If you turn on challenge notifications: the push address your browser provides. It is deleted when you turn notifications off or sign out.</li>
+    </ul>
+    <p><b>Anti-bot for the visit counter:</b> when a new visitor arrives the server stores a hash of the network address (never the raw IP) and deletes it after 1 day.</p>
+    <p>The game uses no third-party tracking or analytics, and never sells or rents data.</p>
+  </section>
+
+  <section class="card-s"><h3>Who can see what</h3>
+    <ul>
+      <li><b>Everyone, even signed out:</b> display name, faculty, class or the "Non-BK" tag, avatar, BKP, number of runs, streak, Elo, solo record and leaderboard rank.</li>
+      <li><b>Signed-in players:</b> also your finished runs and solo matches, replays, whether you are online / selling / in solo, and live view while you play.</li>
+      <li><b>Only you:</b> your email, friends and requests, notifications, your current match and pending challenges.</li>
+    </ul>
+  </section>
+
+  <section class="card-s"><h3>Security</h3>
+    <ul>
+      <li>All connections use HTTPS.</li>
+      <li>Browsers can only read data allowed by the database access rules. Every write (submitting scores, solo, friends) goes through server functions that check who is calling and block impossible numbers.</li>
+      <li>Server secret keys are never in the page code.</li>
+      <li>The developer will never ask for your password by message or email. Use a password just for this game.</li>
+    </ul>
+  </section>
+
+  <section class="card-s"><h3>Parties involved and their responsibilities</h3>
+    <p><b>The developer (${CONTACT.ten})</b> decides what data is collected and why, runs the game, and answers and handles your data requests.</p>
+    <p>The game uses the services below. Each one is responsible for its own systems under its own policy:</p>
+    <ul class="ve-ben">
+      <li><b>Supabase</b>: database, sign-in, avatars, realtime updates and push notifications. Servers in Singapore. ${a('https://supabase.com/privacy', 'Supabase privacy policy')}</li>
+      <li><b>GitHub Pages</b>: serves the website files. GitHub may log visitor IP addresses for security. ${a('https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement', 'GitHub privacy statement')}</li>
+      <li><b>Resend</b>: sends account confirmation and password reset emails, so it receives your email address. ${a('https://resend.com/legal/privacy-policy', 'Resend privacy policy')}</li>
+      <li><b>jsDelivr</b> and <b>Google Fonts</b>: deliver a library and fonts. Your browser loads them directly, so they see your IP address. ${a('https://jsdelivr.com/privacy-policy-jsdelivr-net', 'jsDelivr privacy policy')} · ${a('https://policies.google.com/privacy', 'Google privacy policy')}</li>
+      <li><b>Browser push services</b> (Google for Chrome and Android, Apple for Safari and iPhone, Mozilla for Firefox): deliver challenge notifications to your device, including the challenger's name, class, Elo and the difficulty. Only used if you turn notifications on.</li>
+    </ul>
+    <p><b>Players</b> are responsible for their display name and avatar (nothing offensive, no impersonation) and must not cheat or attack the system. Violating accounts may have their points or account removed.</p>
+  </section>
+
+  <section class="card-s"><h3>Your rights</h3>
+    <ul>
+      <li>Change your name, faculty, class or avatar any time: tap your name card on the home screen.</li>
+      <li>Turn off challenge notifications in Edit profile; unfriend someone from their profile.</li>
+      <li>Delete your account and all its data (points, Elo, history, friends, avatar) right in the game: tap your name card, scroll to the bottom, choose <b>Delete account</b>. This cannot be undone.</li>
+      <li>To see your data or get help deleting it, email ${a('mailto:' + CONTACT.email, CONTACT.email)} from the email you signed up with. I will handle it and reply.</li>
+      <li>You can play a trial run without an account.</li>
+    </ul>
+  </section>
+
+  <p class="muted">This policy may change as the game grows. Every change is recorded on this page. Last updated: ${VE_GAME_CAP_NHAT} (DD/MM/YYYY).</p>
+  </div>
+  <div class="col grow"><button class="btn ghost" id="lienHe2">Contact the developer</button></div>`;
+  openOv(EN ? en() : vi());
   $('back').onclick = back;
   $('lienHe2').onclick = () => contactScreen(() => veGameScreen(back));
 }

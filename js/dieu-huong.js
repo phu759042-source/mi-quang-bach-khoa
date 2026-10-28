@@ -17,7 +17,7 @@ async function moLaiMan(){
       case 'bxh': await leaderboard(a || 'sv'); return true;
       case 'hoso': if(!ranked) return false; await hoSoScreen(a || 'stats', b || null, b ? bxh : home); return true;
       case 'xemlai': if(!ranked) return false;
-        await replayScreen({[a === 'td' ? 'thach_dau' : 'run']: b, first: c || null, title: d || 'Xem lại', sub: e || '',
+        await replayScreen({[a === 'td' ? 'thach_dau' : 'run']: b, first: c || null, title: d || tl('Xem lại','Replay'), sub: e || '',
           back: hoSo(a === 'td' ? 'games' : 'runs', c || null)}); return true;
       case 'xem': if(!ranked || !a) return false; await watchScreen(a, hoSo('stats', a)); return true;
       case 'thach': if(!ranked) return false; await challengeScreen({id: a}, hoSo('stats', a)); return true;

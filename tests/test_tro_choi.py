@@ -14,7 +14,7 @@ Các bước: tab Solo trước khi có trận, hiệu ứng thua + khoá nút �
 thông báo góc dưới phải có âm thanh, đếm ngược, thanh đối thủ, Sinh tồn, từ chối, Điểm cao 3 ngày,
 bảng xếp hạng Solo, tải lại trang lúc đang chờ và giữa trận, xem lại, thống kê, trạng thái bận,
 xem trực tiếp (trình duyệt thứ ba xem trận solo và lượt bán thường đến lúc chốt sổ), hồ sơ người khác."""
-import sys, os, json, time, itertools, subprocess, threading
+import re, sys, os, json, time, itertools, subprocess, threading
 from datetime import datetime, timezone, timedelta
 from playwright.sync_api import sync_playwright
 
@@ -358,6 +358,12 @@ def make(b, uid, w, h, scheme='light'):
     return p
 
 
+DOI_HANG = []
+def ketQua(P, chu, ms):                              # màn kết quả solo; nếu đổi danh hiệu Elo thì có màn lên/xuống hạng chen trước (bản 2.19.0)
+    P.wait_for_selector(f'#ov :text("{chu}"), #ov .dh-stage', timeout=ms)
+    if P.locator('.dh-stage').count():
+        DOI_HANG.append(P.inner_text('.dh-stage h2')); P.wait_for_timeout(1500); P.click('#dhNext')
+    P.wait_for_selector(f'#ov >> text={chu}', timeout=ms)
 def shot(p, name): p.wait_for_timeout(250); p.screenshot(path=f'{OUT}/{name}.png'); print('  ảnh', name)
 def check(cond, msg): print(('  OK   ' if cond else '  LỖI  ') + msg); cond or errors.append(f'kiểm tra (bước {buoc[0].split(".")[0]}): ' + msg)
 
@@ -449,8 +455,10 @@ with sync_playwright() as pw:
     check(A.locator('#re').count() == 0 and B.locator('#re').count() == 0, 'đang hiệu ứng: chưa có nút nào trên màn')
     shot(A, 'fx-03-thang-solo'); shot(B, 'fx-04-thua-solo-laptop')
     A.mouse.click(195, 1500); A.mouse.click(195, 1450)
-    A.wait_for_selector('#ov >> text=Bạn thắng!', timeout=5000); B.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=5000)
+    ketQua(A, 'Bạn thắng!', 5000)
     check(A.locator('#re').is_disabled() and A.locator('#lbs').is_disabled(), 'nút Tái đấu / Bảng xếp hạng bị khoá lúc mới hiện')
+    ketQua(B, 'Bạn thua rồi', 5000)
+    check(any('Xuống danh hiệu' in h for h in DOI_HANG), f'B tụt từ Pupil xuống Newbie: có màn xuống danh hiệu trước kết quả ({DOI_HANG})')
     shot(A, 'fx-05-ket-qua-solo-co-phao-giay')
     check('+16' in A.inner_text('#ov') and '16' in B.inner_text('#ov'), 'A +16 Elo, B −16 Elo')
     check(F.prof['A']['elo'] == 1216 and F.prof['B']['elo'] == 1184, 'Elo trên server: 1216 / 1184')
@@ -476,7 +484,7 @@ with sync_playwright() as pw:
     A.wait_for_selector('#oppShop', timeout=12000)
     check(A.locator('#buyHeart').is_hidden() and 'Bỏ trận' in A.inner_text('#cash'), 'cửa hàng solo: không mua tim, có nút bỏ trận')
     shot(A, 'solo-12-cua-hang')
-    A.wait_for_selector('#ov >> text=Bạn thắng!', timeout=45000); B.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=8000)
+    ketQua(A, 'Bạn thắng!', 45000); ketQua(B, 'Bạn thua rồi', 8000)
     r = list(F.rows.values())[-1]
     check(r['ly_do'] == 'diem' and r['a_ngay'] == 3 and r['b_ngay'] == 3, f"thắng theo điểm sau 3 ngày ({r['a_doanh_thu']}k vs {r['b_doanh_thu']}k)")
     check(A.evaluate('diff') == 'thuong', 'độ khó của A trả về như cũ sau trận')
@@ -516,7 +524,7 @@ with sync_playwright() as pw:
     A.evaluate("()=>{S.total+=50;S.money+=50;D.earned+=50;renderStats()}"); A.wait_for_timeout(1500)
     check(r['a_doanh_thu'] == 350, f"server nhận tiếp tiến độ sau khi vào lại ({r['a_doanh_thu']}k)")
     B.evaluate("()=>{for(let i=0;i<5;i++)loseHeart('Sai món')}")
-    A.wait_for_selector('#ov >> text=Bạn thắng!', timeout=8000)
+    ketQua(A, 'Bạn thắng!', 8000)
     check(True, 'trận kết thúc bình thường, A thắng')
 
     print('12. Chế độ thường: tải lại trang giữa ngày → tự quay lại quán')
@@ -562,7 +570,7 @@ with sync_playwright() as pw:
     B.wait_for_selector('#drawOffer', timeout=4000)
     shot(B, 'solo-hoa-02-loi-xin-hoa-laptop')
     B.click('#drawOffer [data-yes]')
-    A.wait_for_selector('#ov >> text=Hoà!', timeout=8000); B.wait_for_selector('#ov >> text=Hoà!', timeout=8000)
+    ketQua(A, 'Hoà!', 8000); ketQua(B, 'Hoà!', 8000)
     check('Hai bạn đồng ý hoà' in A.inner_text('#ov'), 'cả hai thấy "Hoà!" với lý do đồng ý hoà')
 
     print('15. Solo: tải lại giữa trận → tự vào lại, giữ nâng cấp')
@@ -577,7 +585,7 @@ with sync_playwright() as pw:
 
     print('16. Solo: bỏ cuộc')
     A.click('#pauseBtn'); A.click('#smQuit'); A.wait_for_timeout(450); A.click('#smQuit')
-    A.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=8000); B.wait_for_selector('#ov >> text=Bạn thắng!', timeout=8000)
+    ketQua(A, 'Bạn thua rồi', 8000); ketQua(B, 'Bạn thắng!', 8000)
     check('Bạn đã bỏ cuộc' in A.inner_text('#ov'), 'bỏ cuộc: A thua, B thắng')
 
     print('17. Bản ghi được gửi lên khi kết thúc')
@@ -650,7 +658,7 @@ with sync_playwright() as pw:
     check('120k' in C.inner_text('#xStage'), 'thấy tiền bán của Phú cập nhật gần như ngay')
     shot(C, 'xem-truc-tiep-01-solo')
     A.click('#pauseBtn'); A.click('#smQuit'); A.wait_for_timeout(450); A.click('#smQuit')
-    A.wait_for_selector('#ov >> text=Bạn thua rồi', timeout=8000)
+    ketQua(A, 'Bạn thua rồi', 8000)
     C.wait_for_selector('#xEnd .xem-ket', timeout=8000)
     check('Huy thắng' in C.inner_text('#xEnd') and 'bỏ cuộc' in C.inner_text('#xEnd'), f"hết trận: báo kết quả ({C.inner_text('#xEnd')!r})")
     check(C.locator('[data-thach-xem="B"]').count() == 1 and C.locator('[data-thach-xem="A"]').count() == 1, 'có nút thách đấu cả hai người')
@@ -849,6 +857,62 @@ with sync_playwright() as pw:
     C.click('#xoaOk'); C.wait_for_selector('#em', timeout=5000)
     check('C' not in F.prof and not any('C' in (r['a'], r['b']) for r in F.bb.values()), 'xoá tài khoản: hồ sơ, bạn bè của Minh Anh biến mất trên server')
     check(C.locator('#em').count() == 1, 'xoá xong về màn đăng nhập')
+
+    print('29. Màn lên / xuống hạng (ĐBK và danh hiệu Elo)')
+    A.evaluate('home()'); A.wait_for_selector('#go', timeout=4000)
+    A.evaluate("window.__dh=0; doiHangScreen('dbk', 9900, 10150, ()=>{window.__dh=1})")
+    A.wait_for_selector('.dh-stage.len', timeout=3000)
+    check('Lên hạng Bạc' in A.inner_text('.dh-stage') and A.locator('.dh-huy.moi .hang-logo').count() == 1, 'lên hạng ĐBK: màn riêng "Lên hạng Bạc" có huy hiệu mới')
+    check(A.locator('#dhNext[disabled]').count() == 1, 'nút Tiếp tục khoá một nhịp chống bấm nhầm')
+    A.wait_for_timeout(1500); shot(A, 'len-hang-dbk'); A.click('#dhNext'); A.wait_for_timeout(200)
+    check(A.evaluate('window.__dh') == 1, 'bấm Tiếp tục thì đi tiếp')
+    A.evaluate("doiHangScreen('elo', 1210, 1190, ()=>{window.__dh=2})"); A.wait_for_selector('.dh-stage.xuong', timeout=3000)
+    check('Xuống danh hiệu' in A.inner_text('.dh-stage') and 'Newbie' in A.inner_text('.dh-stage'), 'xuống danh hiệu Elo: Pupil → Newbie, có lời động viên')
+    A.wait_for_timeout(1500); shot(A, 'xuong-hang-elo'); A.click('#dhNext')
+    A.evaluate("window.__dh=0; doiHangScreen('dbk', 500, 900, ()=>{window.__dh=3})"); A.wait_for_timeout(100)
+    check(A.evaluate('window.__dh') == 3 and A.locator('.dh-stage').count() == 0, 'không đổi hạng thì bỏ qua màn này')
+    A.evaluate("profile.diem=9980; showResult('<h2>Kết quả</h2>','test','',{delta:60,diem:10040,hang:2})")
+    A.wait_for_selector('.dh-stage', timeout=3000); A.wait_for_timeout(1500); A.click('#dhNext'); A.wait_for_selector('#again', timeout=3000)
+    check(A.locator('.len-hang').count() == 1, 'sau màn lên hạng mới tới màn kết quả (vẫn có dòng tóm tắt đổi hạng)')
+
+    print('30. Tiếng Anh: chuyển ngôn ngữ, không sót chữ tiếng Việt')
+    VI = re.compile('[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', re.I)
+    OK_VI = ['nguyễn tấn phú', 'phạm gia huy', 'lê minh anh', 'mì quảng bích', 'mì quảng', 'tiếng việt', 'phú']   # tên riêng, giữ nguyên
+    def sot(P, sel='#ov'):
+        t = P.inner_text(sel).lower()
+        for w in OK_VI: t = t.replace(w, '')
+        return [l.strip() for l in t.split('\n') if VI.search(l)][:4]
+    A.evaluate('home()'); A.wait_for_selector('.lang-sw', timeout=4000)
+    check(A.locator('.lang-sw [data-lang="vi"][aria-pressed="true"]').count() == 1, 'màn chính có nút chuyển Tiếng Việt / English')
+    A.click('.lang-sw [data-lang="en"]'); A.wait_for_timeout(1500); A.add_style_tag(content=":root{--display:'Inter',system-ui,sans-serif!important;--body:'Inter',system-ui,sans-serif!important}")
+    A.wait_for_selector('#go', timeout=8000)
+    h1 = A.inner_text('.ov h1')
+    check('Bach Khoa' in h1 and 'Noodles' in h1 and A.locator('.ov h1 em', has_text='Bach Khoa').count() == 1, f'tiêu đề tiếng Anh: "Bach Khoa" (vàng) + "Noodles" (xanh) ({h1!r})')
+    check(A.inner_text('#go') == 'Open the shop' and A.evaluate('document.documentElement.lang') == 'en', 'chuyển sang English: nút và thuộc tính lang đổi theo')
+    m = sot(A); check(not m, f'màn chính không sót tiếng Việt {m}')
+    shot(A, 'tieng-anh-01-man-chinh')
+    man = [("leaderboard('sv')", '#lbBody .podium', 'bảng xếp hạng Cá nhân'), ("leaderboard('lop')", '#lbBody', 'bảng Lớp'),
+           ("leaderboard('khoa')", '#lbBody', 'bảng Khoa'), ("leaderboard('solo')", '#lbBody .podium', 'bảng Solo'),
+           ('profileScreen()', '#svFields', 'sửa hồ sơ'), ("hoSoScreen('stats',null,home)", '#cRuns', 'hồ sơ · thống kê'),
+           ("hoSoScreen('games',null,home)", '#gList', 'hồ sơ · ván solo'), ("hoSoScreen('runs',null,home)", '#rList', 'hồ sơ · lượt bán'),
+           ("banBeScreen('ban',home)", '#bbBody .list, #bbBody .empty-state', 'bạn bè'), ("banBeScreen('loi_moi',home)", '#bbBody .eyebrow', 'lời mời'),
+           ('thongBaoScreen(home)', '#tbBody .list, #tbBody .empty-state', 'thông báo'), ('veGameScreen(home)', '.ve-game', 'về game'),
+           ('contactScreen(home)', '#donate', 'liên hệ'), ('donateScreen(home)', '.donate', 'ủng hộ'), ('xoaTaiKhoanScreen()', '#xoaOk', 'xoá tài khoản')]
+    for js, sel, ten in man:
+        A.evaluate(js); A.wait_for_selector(sel, timeout=6000); A.wait_for_timeout(500)
+        m = sot(A); check(not m, f'{ten}: không sót tiếng Việt {m}')
+    shot(A, 'tieng-anh-02-xoa-tai-khoan')
+    A.evaluate("hoSoScreen('runs',null,home)"); A.wait_for_selector('#rList .li.game', timeout=6000); A.click('#rList .li.game'); A.wait_for_selector('#rpStage .rp-view', timeout=6000)
+    A.click('#rpCuoi'); A.wait_for_timeout(600)
+    m = sot(A); check(not m, f'xem lại lượt bán: không sót tiếng Việt {m}')
+    A.evaluate('home()'); A.wait_for_selector('#go', timeout=4000); A.click('#go'); A.wait_for_selector('#pad .ing', timeout=8000); A.wait_for_timeout(2500)
+    m = sot(A, '#app'); check(not m, f'đang bán: không sót tiếng Việt {m}')
+    check(A.inner_text('#pad').split('\n')[0] in ('Noodles', '1') and 'Add broth' in A.inner_text('#pour'), 'bếp tiếng Anh: Noodles, Add broth')
+    shot(A, 'tieng-anh-03-dang-ban')
+    A.evaluate("doiHangScreen('dbk', 19900, 20100, ()=>{})"); A.wait_for_selector('.dh-stage', timeout=3000)
+    check('Promoted to Gold' in A.inner_text('.dh-stage'), 'màn lên hạng tiếng Anh: "Promoted to Gold"')
+    A.wait_for_timeout(1500); shot(A, 'tieng-anh-04-len-hang')
+    A.evaluate("localStorage.setItem('mqbk-lang','vi')")
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

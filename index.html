@@ -30,58 +30,59 @@ try{var t=localStorage.getItem('mqbk-theme');if(t==='light'||t==='dark')document
 <link rel="canonical" href="https://miquangbk.com/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="css/giao-dien.css?v=2.18.0">
+<link rel="stylesheet" href="css/giao-dien.css?v=2.19.0">
 </head>
 <body>
 <div id="app">
   <div class="bar">
-    <div class="stat"><span>Ngày</span><b id="sDay">1</b></div>
-    <div class="stat time"><span>Giờ</span><b id="sTime">75s</b></div>
-    <div class="stat"><span>Hôm nay</span><b id="sEarn">0k</b></div>
-    <div class="stat"><span>Uy tín</span><b id="sRep" class="hearts"></b></div>
+    <div class="stat"><span data-en="Day">Ngày</span><b id="sDay">1</b></div>
+    <div class="stat time"><span data-en="Time">Giờ</span><b id="sTime">75s</b></div>
+    <div class="stat"><span data-en="Today">Hôm nay</span><b id="sEarn">0k</b></div>
+    <div class="stat"><span data-en="Rep">Uy tín</span><b id="sRep" class="hearts"></b></div>
   </div>
   <div class="event" id="sEvent"></div>
   <div class="tables" id="tables"></div>
   <div class="station">
     <div class="pause-slot" id="pauseSlot"></div>
     <div class="snd-slot" id="sndSlot"></div>
-    <svg id="bowl" viewBox="0 0 240 150" aria-label="Tô mì"></svg>
+    <svg id="bowl" viewBox="0 0 240 150" aria-label="Tô mì" data-en-aria="Noodle bowl"></svg>
     <div class="hint" id="hint"></div>
   </div>
   <div class="kitchen">
-    <div class="k-head desk"><b>Bếp</b><span>Phím 1–8 chọn món · Q W E R bưng cho bàn</span></div>
+    <div class="k-head desk"><b data-en="Kitchen">Bếp</b><span data-en="Keys 1–8 pick items · Q W E R serve a table">Phím 1–8 chọn món · Q W E R bưng cho bàn</span></div>
     <div class="pad" id="pad"></div>
     <div class="acts">
-      <button class="btn ghost" id="trash">Đổ bỏ<kbd>X</kbd></button>
-      <button class="btn pour" id="pour">Chan nước lèo<kbd>Space</kbd></button>
+      <button class="btn ghost" id="trash" data-en="Dump&lt;kbd&gt;X&lt;/kbd&gt;">Đổ bỏ<kbd>X</kbd></button>
+      <button class="btn pour" id="pour" data-en="Add broth&lt;kbd&gt;Space&lt;/kbd&gt;">Chan nước lèo<kbd>Space</kbd></button>
     </div>
   </div>
   <div class="ov" id="ov"></div>
   <div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></div>
-  <div class="visits" id="visits" hidden aria-live="polite" title="Mỗi lần mở trang tính 1 lượt truy cập">
+  <div class="visits" id="visits" hidden aria-live="polite" title="Mỗi lần mở trang tính 1 lượt truy cập" data-en-title="Every page open counts as 1 visit">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-    <span><b id="vTong">—</b> lượt truy cập · <b id="vNguoi">—</b> người</span>
+    <span data-en="&lt;b id=&quot;vTong&quot;&gt;—&lt;/b&gt; visits · &lt;b id=&quot;vNguoi&quot;&gt;—&lt;/b&gt; people"><b id="vTong">—</b> lượt truy cập · <b id="vNguoi">—</b> người</span>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="js/ban-ghi.js?v=2.18.0"></script>
-<script src="js/cau-hinh.js?v=2.18.0"></script>
-<script src="js/hang.js?v=2.18.0"></script>
-<script src="js/vong-choi.js?v=2.18.0"></script>
-<script src="js/mang.js?v=2.18.0"></script>
-<script src="js/am-thanh.js?v=2.18.0"></script>
-<script src="js/nop-diem.js?v=2.18.0"></script>
-<script src="js/hien-thi.js?v=2.18.0"></script>
-<script src="js/tai-khoan.js?v=2.18.0"></script>
-<script src="js/man-hinh.js?v=2.18.0"></script>
-<script src="js/solo.js?v=2.18.0"></script>
-<script src="js/thong-bao.js?v=2.18.0"></script>
-<script src="js/hieu-ung.js?v=2.18.0"></script>
-<script src="js/giu-quan.js?v=2.18.0"></script>
-<script src="js/ban-be.js?v=2.18.0"></script>
-<script src="js/ve-game.js?v=2.18.0"></script>
-<script src="js/dieu-huong.js?v=2.18.0"></script>
-<script src="js/khoi-dong.js?v=2.18.0"></script>
+<script src="js/ngon-ngu.js?v=2.19.0"></script>
+<script src="js/ban-ghi.js?v=2.19.0"></script>
+<script src="js/cau-hinh.js?v=2.19.0"></script>
+<script src="js/hang.js?v=2.19.0"></script>
+<script src="js/vong-choi.js?v=2.19.0"></script>
+<script src="js/mang.js?v=2.19.0"></script>
+<script src="js/am-thanh.js?v=2.19.0"></script>
+<script src="js/nop-diem.js?v=2.19.0"></script>
+<script src="js/hien-thi.js?v=2.19.0"></script>
+<script src="js/tai-khoan.js?v=2.19.0"></script>
+<script src="js/man-hinh.js?v=2.19.0"></script>
+<script src="js/solo.js?v=2.19.0"></script>
+<script src="js/thong-bao.js?v=2.19.0"></script>
+<script src="js/hieu-ung.js?v=2.19.0"></script>
+<script src="js/giu-quan.js?v=2.19.0"></script>
+<script src="js/ban-be.js?v=2.19.0"></script>
+<script src="js/ve-game.js?v=2.19.0"></script>
+<script src="js/dieu-huong.js?v=2.19.0"></script>
+<script src="js/khoi-dong.js?v=2.19.0"></script>
 </body>
 </html>

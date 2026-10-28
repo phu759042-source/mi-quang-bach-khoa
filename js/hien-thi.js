@@ -6,20 +6,20 @@ function renderStats(){
   $('sDay').textContent=S.day; $('sEarn').textContent=solo?`${D.earned}k`:`${D.earned}/${target(S.day)}k`;
   const hp=(on)=>`<svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21C5 15.5 1 12 1 7a5.5 5.5 0 0 1 11-1 5.5 5.5 0 0 1 11 1c0 5-4 8.5-11 14z" fill="${on?'currentColor':'none'}" stroke="currentColor" stroke-width="2"/></svg>`;
   $('sRep').innerHTML=Array.from({length:TIM_MAX},(_,i)=>hp(i<S.rep)).join('');
-  $('sRep').setAttribute('aria-label',`Còn ${Math.max(0,S.rep)} trên 5 tim`);
+  $('sRep').setAttribute('aria-label',tl(`Còn ${Math.max(0,S.rep)} trên 5 tim`,`${Math.max(0,S.rep)} of 5 hearts left`));
   const q=D.queue||[];
-  const rush=inRush()?`<span class="tag rush">Giờ cao điểm</span>`:'';
-  const queue=q.length?`<span class="queue" aria-label="${q.length} khách đang xếp hàng">Xếp hàng ${q.map(c=>`<i style="--c:${c.kh[2]}"></i>`).join('')}</span>`:'';
+  const rush=inRush()?`<span class="tag rush">${tl('Giờ cao điểm','Rush hour')}</span>`:'';
+  const queue=q.length?`<span class="queue" aria-label="${tl(`${q.length} khách đang xếp hàng`,`${q.length} customers in line`)}">${tl('Xếp hàng','Queue')} ${q.map(c=>`<i style="--c:${c.kh[2]}"></i>`).join('')}</span>`:'';
   $('sEvent').innerHTML=`<span class="tag" style="background:${DIFF[diff].color}">${DIFF[diff].n}</span>${rush}<span class="evn">${esc(D.ev.n)} · ${esc(D.ev.d)}</span>${queue}${soloHud()}`;
   if(solo&&running) soloPush();
 }
 function renderTables(){
   const t=$('tables'); t.style.setProperty('--n',D.slots.length);
   t.innerHTML=D.slots.map((c,i)=>{
-    if(!c) return `<div class="cust empty">Bàn trống</div>`;
-    const name=c.teacher?`Thầy khoa ${c.kh[1]}`:`SV ${c.kh[1]}`;
-    return `<div class="cust${c.teacher?' teacher':''}" data-i="${i}" role="button" tabindex="0" aria-label="Phục vụ ${name}">
-      <div class="ava" style="background:${c.kh[2]}">${c.teacher?'Thầy':c.kh[0]}</div>
+    if(!c) return `<div class="cust empty">${tl('Bàn trống','Empty table')}</div>`;
+    const name=c.teacher?tl(`Thầy khoa ${c.kh[1]}`,`${c.kh[1]} lecturer`):tl(`SV ${c.kh[1]}`,`${c.kh[1]} student`);
+    return `<div class="cust${c.teacher?' teacher':''}" data-i="${i}" role="button" tabindex="0" aria-label="${tl('Phục vụ','Serve')} ${name}">
+      <div class="ava" style="background:${c.kh[2]}">${c.teacher?tl('Thầy','Prof'):c.kh[0]}</div>
       <div class="who">${name}</div><div class="order">${c.order.map(icon).join('')}</div>
       <div class="quote">${c.line}</div><div class="pat"><i></i></div><kbd class="k-table">${'QWER'[i]}</kbd></div>`}).join('');
   updateBars();
@@ -62,9 +62,9 @@ function renderBowl(){
   if(b.broth) s+=`<g fill="#F2C14E" opacity=".9"><circle cx="40" cy="58" r="2.2"/><circle cx="200" cy="54" r="1.8"/><circle cx="60" cy="72" r="1.6"/><circle cx="185" cy="70" r="2"/></g>`;
   s+=`</g>`;
   TOPS.forEach(k=>{if(b.items.has(k)){const [x,y]=POS[k];s+=`<g transform="translate(${x} ${y}) scale(.9)">${ING[k].s}</g>`}});
-  if(!b.items.size) s+=`<text x="120" y="57" text-anchor="middle" font-family="Be Vietnam Pro, sans-serif" font-size="12" fill="#7A6A55">Tô trống</text>`;
+  if(!b.items.size) s+=`<text x="120" y="57" text-anchor="middle" font-family="Be Vietnam Pro, sans-serif" font-size="12" fill="#7A6A55">${tl('Tô trống','Empty bowl')}</text>`;
   $('bowl').innerHTML=s;
-  $('hint').textContent=!b.items.has('mi')?'Bắt đầu bằng một vắt mì':!b.broth?(lv('noi')?'Thêm topping, rồi chạm vào khách. Nước lèo tự chan':'Thêm topping, rồi chan nước lèo'):'Chạm vào khách để bưng ra';
+  $('hint').textContent=!b.items.has('mi')?tl('Bắt đầu bằng một vắt mì','Start with a portion of noodles'):!b.broth?(lv('noi')?tl('Thêm topping, rồi chạm vào khách. Nước lèo tự chan','Add toppings, then tap a customer. Broth is added automatically'):tl('Thêm topping, rồi chan nước lèo','Add toppings, then add the broth')):tl('Chạm vào khách để bưng ra','Tap a customer to serve');
   $('pour').disabled=!b.items.has('mi')||b.broth;
 }
 function renderPad(){

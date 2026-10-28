@@ -10,9 +10,9 @@ let visitCount=null;
 function hienSoTruyCap(data){
   if(!data) return;
   visitCount=data.luot??data.tong;
-  $('vTong').textContent=Number(visitCount).toLocaleString('vi-VN');
-  $('vNguoi').textContent=Number(data.nguoi??0).toLocaleString('vi-VN');
-  $('visits').title=`Lượt truy cập: mỗi lần mở trang tính 1 lượt. Người: số trình duyệt khác nhau đã ghé. Hôm nay có ${data.hom_nay} người ghé.`;
+  $('vTong').textContent=soVN(visitCount);
+  $('vNguoi').textContent=soVN(data.nguoi??0);
+  $('visits').title=tl(`Lượt truy cập: mỗi lần mở trang tính 1 lượt. Người: số trình duyệt khác nhau đã ghé. Hôm nay có ${data.hom_nay} người ghé.`,`Visits: every page open counts once. People: distinct browsers that visited. ${data.hom_nay} people today.`);
   showOv(!$('ov').hidden);
 }
 const laBot=()=>navigator.webdriver===true||/bot|crawl|spider|slurp|headless|lighthouse|preview|scan|fetch/i.test(navigator.userAgent||'');
@@ -32,32 +32,33 @@ async function countVisit(){
   EV.forEach(ev=>addEventListener(ev,ghi,{capture:true,passive:true}));
 }
 function openOv(html){const ov=$('ov');showOv(true);ov.innerHTML=html;ov.scrollTop=0;return ov}
-const khoaTen=id=>(khoaList.find(k=>k.id===id)||{}).ten||'';
+const khoaTen=id=>tKhoa((khoaList.find(k=>k.id===id)||{}).ten||'');
 // Bản 2.17.0: người chơi không phải sinh viên BKĐN để trống khoa/lớp (cột profiles.sinh_vien = false)
 const laSV=p=>!!p&&(p.sinh_vien??!!p.lop);
-const NGOAI_BK='<span class="ngoai-bk" title="Không phải sinh viên Bách Khoa Đà Nẵng">Ngoài BK</span>';
-const lopKhoaHTML=(p,khoa)=>laSV(p)?esc(p.lop)+(khoa===false?'':' · '+esc(khoa??khoaTen(p.khoa_id))):NGOAI_BK;
+const NGOAI_BK=`<span class="ngoai-bk" title="${tl('Không phải sinh viên Bách Khoa Đà Nẵng','Not a Bach Khoa Da Nang student')}">${tl('Ngoài BK','Non-BK')}</span>`;
+const lopKhoaHTML=(p,khoa)=>laSV(p)?esc(p.lop)+(khoa===false?'':' · '+esc(tKhoa(khoa??khoaTen(p.khoa_id)))):NGOAI_BK;
 
 function authScreen(mode='login'){
   openOv(`<div class="split"><div class="split-a">
   <img class="hero-icon desk" src="icons/favicon.svg" alt="" width="88" height="88">
-  <div class="eyebrow">Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc</div>
-  <h1>Mì Quảng <em>Bách Khoa</em></h1>
-  <p>Mở quán mì Quảng ở Hòa Khánh Bắc, nơi sinh viên Bách Khoa Đà Nẵng hay ghé ăn, và bán cho sinh viên các khoa. Mỗi lượt chơi cộng hoặc trừ <b>Điểm Bách Khoa</b> cho bạn, cho lớp và cho khoa của bạn.</p>
+  <div class="eyebrow">${tl('Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc','Inspired by Mì Quảng Bích · 1-3 Dang Dung, Hoa Khanh Bac')}</div>
+  <h1>${TEN_H1}</h1>
+  <p>${tl('Mở quán mì Quảng ở Hòa Khánh Bắc, nơi sinh viên Bách Khoa Đà Nẵng hay ghé ăn, và bán cho sinh viên các khoa. Mỗi lượt chơi cộng hoặc trừ <b>Điểm Bách Khoa</b> cho bạn, cho lớp và cho khoa của bạn.','Run a mì Quảng noodle shop in Hoa Khanh Bac, where Da Nang University of Science and Technology (Bach Khoa) students eat, and serve students from every faculty. Every run adds or subtracts <b>Bach Khoa Points</b> for you, your class and your faculty.')}</p>
   </div><div class="split-b">
   <form class="col" id="f" novalidate>
-    <label>Email<input id="em" type="email" autocomplete="email" required placeholder="ban@email.com"></label>
-    <label>Mật khẩu<input id="pw" type="password" autocomplete="${mode==='login'?'current-password':'new-password'}" minlength="6" required placeholder="Ít nhất 6 ký tự"></label>
+    <label>Email<input id="em" type="email" autocomplete="email" required placeholder="${tl('ban@email.com','you@email.com')}"></label>
+    <label>${tl('Mật khẩu','Password')}<input id="pw" type="password" autocomplete="${mode==='login'?'current-password':'new-password'}" minlength="6" required placeholder="${tl('Ít nhất 6 ký tự','At least 6 characters')}"></label>
     <div class="msg" id="msg"></div>
-    ${mode==='signup'?'<p class="muted" style="margin:0;font-size:13px">Tạo tài khoản là bạn đồng ý với cách game lưu và dùng dữ liệu ở mục "Về game &amp; chính sách dữ liệu" bên dưới.</p>':''}
-    <button class="btn" type="submit">${mode==='login'?'Đăng nhập':'Tạo tài khoản'}</button>
+    ${mode==='signup'?`<p class="muted" style="margin:0;font-size:13px">${tl('Tạo tài khoản là bạn đồng ý với cách game lưu và dùng dữ liệu ở mục "Về game &amp; chính sách dữ liệu" bên dưới.','By creating an account you agree to how the game stores and uses data, described in "About &amp; data policy" below.')}</p>`:''}
+    <button class="btn" type="submit">${mode==='login'?tl('Đăng nhập','Sign in'):tl('Tạo tài khoản','Create account')}</button>
   </form>
-  <button class="link" id="sw">${mode==='login'?'Chưa có tài khoản? Đăng ký':'Đã có tài khoản? Đăng nhập'}</button>
-  ${mode==='login'?'<button class="link" id="forgot">Quên mật khẩu?</button>':''}
-  <button class="link" id="guest">Chơi thử, không tính điểm</button>
+  <button class="link" id="sw">${mode==='login'?tl('Chưa có tài khoản? Đăng ký','No account? Sign up'):tl('Đã có tài khoản? Đăng nhập','Have an account? Sign in')}</button>
+  ${mode==='login'?`<button class="link" id="forgot">${tl('Quên mật khẩu?','Forgot password?')}</button>`:''}
+  <button class="link" id="guest">${tl('Chơi thử, không tính điểm','Play a trial run (no points)')}</button>
   ${themeHTML()}
-  <button class="link" id="contact">Liên hệ người làm game</button>
-  <button class="link" id="vegame">Về game &amp; chính sách dữ liệu</button>
+  ${langHTML()}
+  <button class="link" id="contact">${tl('Liên hệ người làm game','Contact the developer')}</button>
+  <button class="link" id="vegame">${tl('Về game &amp; chính sách dữ liệu','About &amp; data policy')}</button>
   </div></div>`);
   $('contact').onclick=()=>contactScreen(()=>authScreen(mode));
   $('vegame').onclick=()=>veGameScreen(()=>authScreen(mode));
@@ -68,58 +69,59 @@ function authScreen(mode='login'){
   $('f').onsubmit=async e=>{
     e.preventDefault();
     const email=$('em').value.trim(), pw=$('pw').value, msg=$('msg');
-    if(!/^\S+@\S+\.\S+$/.test(email)){msg.textContent='Email chưa đúng định dạng.';return}
-    if(pw.length<6){msg.textContent='Mật khẩu cần ít nhất 6 ký tự.';return}
-    msg.className='msg ok'; msg.textContent=mode==='login'?'Đang đăng nhập…':'Đang tạo tài khoản…';
+    if(!/^\S+@\S+\.\S+$/.test(email)){msg.textContent=tl('Email chưa đúng định dạng.','That email does not look right.');return}
+    if(pw.length<6){msg.textContent=tl('Mật khẩu cần ít nhất 6 ký tự.','Password needs at least 6 characters.');return}
+    msg.className='msg ok'; msg.textContent=mode==='login'?tl('Đang đăng nhập…','Signing in…'):tl('Đang tạo tài khoản…','Creating account…');
     const res=mode==='login'
       ? await sb.auth.signInWithPassword({email,password:pw})
       : await sb.auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname}});
     if(res.error){msg.className='msg';msg.textContent=viErr(res.error.message);return}
-    if(mode==='signup'&&!res.data.session){msg.textContent='Đã gửi email xác nhận. Mở email, bấm link xác nhận rồi quay lại đăng nhập.';return}
+    if(mode==='signup'&&!res.data.session){msg.textContent=tl('Đã gửi email xác nhận. Mở email, bấm link xác nhận rồi quay lại đăng nhập.','Confirmation email sent. Open it, tap the link, then come back and sign in.');return}
     user=res.data.user; await afterLogin();
   };
 }
 const BACK_URL=location.origin+location.pathname;
 function forgotScreen(email=''){
-  openOv(`<div class="eyebrow">Tài khoản</div><h2>Quên mật khẩu</h2>
-  <p class="muted">Nhập email bạn đã đăng ký. Mình sẽ gửi link để bạn đặt mật khẩu mới.</p>
+  openOv(`<div class="eyebrow">${tl('Tài khoản','Account')}</div><h2>${tl('Quên mật khẩu','Forgot password')}</h2>
+  <p class="muted">${tl('Nhập email bạn đã đăng ký. Mình sẽ gửi link để bạn đặt mật khẩu mới.','Enter the email you signed up with. We will send a link to set a new password.')}</p>
   <form class="col" id="f" novalidate>
-    <label>Email<input id="em" type="email" autocomplete="email" value="${esc(email)}" placeholder="ban@email.com"></label>
+    <label>Email<input id="em" type="email" autocomplete="email" value="${esc(email)}" placeholder="${tl('ban@email.com','you@email.com')}"></label>
     <div class="msg" id="msg"></div>
-    <button class="btn" type="submit">Gửi link đặt lại mật khẩu</button>
+    <button class="btn" type="submit">${tl('Gửi link đặt lại mật khẩu','Send reset link')}</button>
   </form>
-  <button class="link" id="back">Quay lại đăng nhập</button>`);
+  <button class="link" id="back">${tl('Quay lại đăng nhập','Back to sign in')}</button>`);
   $('back').onclick=()=>authScreen('login');
   $('f').onsubmit=async e=>{
     e.preventDefault();
     const em=$('em').value.trim(), msg=$('msg');
-    if(!/^\S+@\S+\.\S+$/.test(em)){msg.className='msg';msg.textContent='Email chưa đúng định dạng.';return}
-    msg.className='msg ok';msg.textContent='Đang gửi…';
+    if(!/^\S+@\S+\.\S+$/.test(em)){msg.className='msg';msg.textContent=tl('Email chưa đúng định dạng.','That email does not look right.');return}
+    msg.className='msg ok';msg.textContent=tl('Đang gửi…','Sending…');
     const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:BACK_URL});
     if(error){msg.className='msg';msg.textContent=viErr(error.message);return}
-    msg.textContent='Đã gửi. Mở email từ Mì Quảng Bách Khoa và bấm nút Đặt mật khẩu mới. Nhớ xem cả mục Spam.';
+    msg.textContent=tl('Đã gửi. Mở email từ Mì Quảng Bách Khoa và bấm nút Đặt mật khẩu mới. Nhớ xem cả mục Spam.','Sent. Open the email from Mì Quảng Bách Khoa and tap the reset button. Check Spam too.');
   };
 }
 function newPasswordScreen(){
-  openOv(`<div class="eyebrow">Tài khoản</div><h2>Đặt mật khẩu mới</h2>
+  openOv(`<div class="eyebrow">${tl('Tài khoản','Account')}</div><h2>${tl('Đặt mật khẩu mới','Set a new password')}</h2>
   <form class="col" id="f" novalidate>
-    <label>Mật khẩu mới<input id="pw" type="password" autocomplete="new-password" placeholder="Ít nhất 6 ký tự"></label>
-    <label>Nhập lại mật khẩu<input id="pw2" type="password" autocomplete="new-password"></label>
+    <label>${tl('Mật khẩu mới','New password')}<input id="pw" type="password" autocomplete="new-password" placeholder="${tl('Ít nhất 6 ký tự','At least 6 characters')}"></label>
+    <label>${tl('Nhập lại mật khẩu','Repeat password')}<input id="pw2" type="password" autocomplete="new-password"></label>
     <div class="msg" id="msg"></div>
-    <button class="btn" type="submit">Lưu mật khẩu</button>
+    <button class="btn" type="submit">${tl('Lưu mật khẩu','Save password')}</button>
   </form>`);
   $('f').onsubmit=async e=>{
     e.preventDefault();
     const pw=$('pw').value, msg=$('msg');
-    if(pw.length<6){msg.className='msg';msg.textContent='Mật khẩu cần ít nhất 6 ký tự.';return}
-    if(pw!==$('pw2').value){msg.className='msg';msg.textContent='Hai mật khẩu chưa giống nhau.';return}
-    msg.className='msg ok';msg.textContent='Đang lưu…';
+    if(pw.length<6){msg.className='msg';msg.textContent=tl('Mật khẩu cần ít nhất 6 ký tự.','Password needs at least 6 characters.');return}
+    if(pw!==$('pw2').value){msg.className='msg';msg.textContent=tl('Hai mật khẩu chưa giống nhau.','The passwords do not match.');return}
+    msg.className='msg ok';msg.textContent=tl('Đang lưu…','Saving…');
     const {data,error}=await sb.auth.updateUser({password:pw});
     if(error){msg.className='msg';msg.textContent=viErr(error.message);return}
-    recovering=false; user=data.user; toast('Đã đổi mật khẩu'); await afterLogin();
+    recovering=false; user=data.user; toast(tl('Đã đổi mật khẩu','Password changed')); await afterLogin();
   };
 }
 function viErr(m){
+  if(EN) return m;
   if(/should be different/i.test(m)) return 'Mật khẩu mới phải khác mật khẩu cũ.';
   if(/session missing|expired|invalid.*(link|token)/i.test(m)) return 'Link đã hết hạn hoặc đã dùng rồi. Hãy gửi lại link mới.';
   if(/Invalid login/i.test(m)) return 'Sai email hoặc mật khẩu.';
@@ -151,89 +153,92 @@ async function loadProfile(){
 }
 function profileScreen(){
   const p=profile||{}; if(profile) nhoMan('suahoso');
-  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${profile?'Sửa hồ sơ':'Bước cuối'}</div>${profile?'<button type="button" class="link" id="pClose">Đóng</button>':''}</div><h2>${profile?'Thông tin của bạn':'Giới thiệu một chút về bạn'}</h2>
-  <p class="muted">Tên${profile&&!laSV(p)?'':', lớp và khoa'} sẽ hiện công khai trên bảng xếp hạng. Không cần nhập MSSV.</p>
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${profile?tl('Sửa hồ sơ','Edit profile'):tl('Bước cuối','Last step')}</div>${profile?`<button type="button" class="link" id="pClose">${tl('Đóng','Close')}</button>`:''}</div><h2>${profile?tl('Thông tin của bạn','Your details'):tl('Giới thiệu một chút về bạn','Tell us about you')}</h2>
+  <p class="muted">${profile&&!laSV(p)?tl('Tên sẽ hiện công khai trên bảng xếp hạng.','Your name is shown publicly on the leaderboard.'):tl('Tên, lớp và khoa sẽ hiện công khai trên bảng xếp hạng.','Your name, class and faculty are shown publicly on the leaderboard.')} ${tl('Không cần nhập MSSV.','No student ID needed.')}</p>
   ${profile?`<div class="av-edit">${avatarHTML(p.avatar_url,p.ten,72)}
-    <div class="col" style="gap:4px"><b>Avatar</b><span class="muted">Hiện cạnh tên bạn trên bảng xếp hạng sinh viên.</span>
-    <div class="row">${p.avatar_url?`<button type="button" class="link" id="avAdjust">Chỉnh lại khung</button><button type="button" class="link" id="avNew">Đổi ảnh</button><button type="button" class="link" id="avDel">Xoá</button>`
-      :`<button type="button" class="link" id="avNew">Thêm avatar</button>`}</div></div></div>`
-    :`<p class="muted">Lưu hồ sơ xong, bấm vào thẻ tên của bạn ở màn chính để thêm avatar.</p>`}
+    <div class="col" style="gap:4px"><b>Avatar</b><span class="muted">${tl('Hiện cạnh tên bạn trên bảng xếp hạng sinh viên.','Shown next to your name on the leaderboard.')}</span>
+    <div class="row">${p.avatar_url?`<button type="button" class="link" id="avAdjust">${tl('Chỉnh lại khung','Adjust crop')}</button><button type="button" class="link" id="avNew">${tl('Đổi ảnh','Change photo')}</button><button type="button" class="link" id="avDel">${tl('Xoá','Remove')}</button>`
+      :`<button type="button" class="link" id="avNew">${tl('Thêm avatar','Add avatar')}</button>`}</div></div></div>`
+    :`<p class="muted">${tl('Lưu hồ sơ xong, bấm vào thẻ tên của bạn ở màn chính để thêm avatar.','After saving, tap your name card on the home screen to add an avatar.')}</p>`}
   <form class="col" id="f" novalidate>
-    <label>Tên hiển thị<input id="ten" maxlength="40" autocomplete="nickname" value="${esc(p.ten)}" placeholder="Ví dụ: Phú 26T"></label>
-    <fieldset class="sv-hoi"><legend>Bạn có phải sinh viên Trường Đại học Bách Khoa, Đại học Đà Nẵng không?</legend>
-      <div class="sv-chon" role="radiogroup" aria-label="Có phải sinh viên Bách Khoa Đà Nẵng">
-        <button type="button" class="diff" role="radio" data-sv="1" aria-pressed="false" aria-checked="false"><b>Có</b><small>Mình là sinh viên BKĐN</small></button>
-        <button type="button" class="diff" role="radio" data-sv="0" aria-pressed="false" aria-checked="false"><b>Không</b><small>Mình chơi cho vui</small></button></div>
+    <label>${tl('Tên hiển thị','Display name')}<input id="ten" maxlength="40" autocomplete="nickname" value="${esc(p.ten)}" placeholder="${tl('Ví dụ: Phú 26T','e.g. Phu 26T')}"></label>
+    <fieldset class="sv-hoi"><legend>${tl('Bạn có phải sinh viên Trường Đại học Bách Khoa, Đại học Đà Nẵng không?','Are you a student at the University of Science and Technology, University of Da Nang (Bach Khoa)?')}</legend>
+      <div class="sv-chon" role="radiogroup" aria-label="${tl('Có phải sinh viên Bách Khoa Đà Nẵng','Bach Khoa Da Nang student')}">
+        <button type="button" class="diff" role="radio" data-sv="1" aria-pressed="false" aria-checked="false"><b>${tl('Có','Yes')}</b><small>${tl('Mình là sinh viên BKĐN','I am a BK student')}</small></button>
+        <button type="button" class="diff" role="radio" data-sv="0" aria-pressed="false" aria-checked="false"><b>${tl('Không','No')}</b><small>${tl('Mình chơi cho vui','Just playing for fun')}</small></button></div>
       <p class="sv-note" id="svNote" hidden></p></fieldset>
     <div class="col" id="svFields" hidden>
-    <label>Khoa<select id="khoa"><option value="">Chọn khoa</option>${khoaList.map(k=>`<option value="${k.id}"${k.id===p.khoa_id?' selected':''}>${esc(k.ten)}</option>`).join('')}</select></label>
-    <label>Lớp sinh hoạt<input id="lop" maxlength="16" value="${esc(p.lop)}" placeholder="Ví dụ: 26T_ATTT" autocapitalize="characters"></label></div>
+    <label>${tl('Khoa','Faculty')}<select id="khoa"><option value="">${tl('Chọn khoa','Pick a faculty')}</option>${khoaList.map(k=>`<option value="${k.id}"${k.id===p.khoa_id?' selected':''}>${esc(EN?tKhoa(k.id):k.ten)}</option>`).join('')}</select></label>
+    <label>${tl('Lớp sinh hoạt','Class')}<input id="lop" maxlength="16" value="${esc(p.lop)}" placeholder="${tl('Ví dụ: 26T_ATTT','e.g. 26T_ATTT')}" autocapitalize="characters"></label></div>
     <div class="msg" id="msg"></div>
-    <button class="btn" type="submit">Lưu và vào quán</button>
+    <button class="btn" type="submit">${tl('Lưu và vào quán','Save and open the shop')}</button>
   </form>
-  <button class="link" id="out">Đăng xuất</button>
-  ${profile?'<button type="button" class="link nguy" id="xoaTK">Xoá tài khoản</button>':''}`);
+  <button class="link" id="out">${tl('Đăng xuất','Sign out')}</button>
+  ${profile?`<button type="button" class="link nguy" id="xoaTK">${tl('Xoá tài khoản','Delete account')}</button>`:''}`);
   if(profile){(async()=>{const st=await pushState(),el=document.createElement('div');el.className='push-row';
-    el.innerHTML=`${BELL}<span><b>Thông báo thách đấu</b><br>${st==='on'?'Đang bật trên máy này.':st==='ios'?'Cần thêm game vào Màn hình chính trước.':st==='denied'?'Đang bị chặn trong cài đặt trình duyệt.':st==='unsupported'?'Trình duyệt này chưa hỗ trợ.':'Đang tắt trên máy này.'}</span>
-      ${st==='unsupported'?'':`<button type="button" class="link" id="pushTg">${st==='on'?'Tắt':st==='ios'||st==='denied'?'Xem cách làm':'Bật'}</button>`}`;
+    el.innerHTML=`${BELL}<span><b>${tl('Thông báo thách đấu','Challenge notifications')}</b><br>${st==='on'?tl('Đang bật trên máy này.','On for this device.'):st==='ios'?tl('Cần thêm game vào Màn hình chính trước.','Add the game to your Home Screen first.'):st==='denied'?tl('Đang bị chặn trong cài đặt trình duyệt.','Blocked in browser settings.'):st==='unsupported'?tl('Trình duyệt này chưa hỗ trợ.','Not supported by this browser.'):tl('Đang tắt trên máy này.','Off for this device.')}</span>
+      ${st==='unsupported'?'':`<button type="button" class="link" id="pushTg">${st==='on'?tl('Tắt','Turn off'):st==='ios'||st==='denied'?tl('Xem cách làm','How to'):tl('Bật','Turn on')}</button>`}`;
     const f=$('f'); if(f) f.before(el);
     const b=$('pushTg'); if(b) b.onclick=async()=>{if(st==='on'){await disablePush()}else{await enablePush()} profileScreen()};})()}
   $('out').onclick=logout; if($('pClose')) $('pClose').onclick=home;
   if($('xoaTK')) $('xoaTK').onclick=xoaTaiKhoanScreen;
   if($('avNew')) $('avNew').onclick=chooseAvatar;
   if($('avAdjust')) $('avAdjust').onclick=readjustAvatar;
-  if($('avDel')) $('avDel').onclick=e=>{if(e.target.dataset.sure){removeAvatar()}else{e.target.dataset.sure=1;e.target.textContent='Bấm lần nữa để xoá'}};
+  if($('avDel')) $('avDel').onclick=e=>{if(e.target.dataset.sure){removeAvatar()}else{e.target.dataset.sure=1;e.target.textContent=tl('Bấm lần nữa để xoá','Tap again to remove')}};
   // Có / Không phải sinh viên BKĐN. Người đã có hồ sơ giữ lựa chọn cũ (tài khoản trước bản 2.17.0 đều là sinh viên).
   let sv=profile?laSV(p):null;
   const chonSV=v=>{sv=v;
     $('f').querySelectorAll('[data-sv]').forEach(b=>{const on=String(+v)===b.dataset.sv;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)});
     $('svFields').hidden=!v; const n=$('svNote'); n.hidden=false; n.className='sv-note '+(v?'co':'khong');
-    n.innerHTML=v?'<b>Lưu ý:</b> sinh viên Bách Khoa cần chọn khoa và nhập lớp. Điểm của bạn được cộng vào bảng xếp hạng lớp và khoa.'
-      :'<b>Lưu ý:</b> không cần khoa và lớp. Bạn vẫn chơi, tính ĐBK, solo và lên bảng xếp hạng chung như mọi người, chỉ không được tính vào bảng lớp và khoa. Tên bạn sẽ có nhãn "Ngoài BK".'};
+    n.innerHTML=v?tl('<b>Lưu ý:</b> sinh viên Bách Khoa cần chọn khoa và nhập lớp. Điểm của bạn được cộng vào bảng xếp hạng lớp và khoa.','<b>Note:</b> Bach Khoa students must pick a faculty and enter a class. Your points also count for your class and faculty.')
+      :tl('<b>Lưu ý:</b> không cần khoa và lớp. Bạn vẫn chơi, tính ĐBK, solo và lên bảng xếp hạng chung như mọi người, chỉ không được tính vào bảng lớp và khoa. Tên bạn sẽ có nhãn "Ngoài BK".','<b>Note:</b> no faculty or class needed. You still play, earn BKP, play solo and appear on the overall leaderboard, but you are not counted in the class and faculty boards. Your name gets a "Non-BK" tag.')};
   $('f').querySelector('.sv-chon').onclick=e=>{const b=e.target.closest('[data-sv]');if(b){chonSV(b.dataset.sv==='1');$('msg').textContent=''}};
   if(sv!==null) chonSV(sv);
   $('f').onsubmit=async e=>{
     e.preventDefault();
     const ten=$('ten').value.trim(), kh=$('khoa').value, lop=$('lop').value.trim().toUpperCase().replace(/\s+/g,'_'), msg=$('msg');
     msg.className='msg';
-    if(ten.length<2){msg.textContent='Tên cần từ 2 ký tự.';return}
-    if(sv===null){msg.textContent='Chọn bạn có phải sinh viên Bách Khoa Đà Nẵng không.';return}
-    if(sv&&!kh){msg.textContent='Chọn khoa của bạn.';return}
-    if(sv&&!/^[0-9]{2}[A-Z0-9_]{1,14}$/.test(lop)){msg.textContent='Lớp bắt đầu bằng 2 số khoá, ví dụ 26T_ATTT.';return}
-    msg.className='msg ok'; msg.textContent='Đang lưu…';
+    if(ten.length<2){msg.textContent=tl('Tên cần từ 2 ký tự.','Name needs at least 2 characters.');return}
+    if(sv===null){msg.textContent=tl('Chọn bạn có phải sinh viên Bách Khoa Đà Nẵng không.','Choose whether you are a Bach Khoa Da Nang student.');return}
+    if(sv&&!kh){msg.textContent=tl('Chọn khoa của bạn.','Pick your faculty.');return}
+    if(sv&&!/^[0-9]{2}[A-Z0-9_]{1,14}$/.test(lop)){msg.textContent=tl('Lớp bắt đầu bằng 2 số khoá, ví dụ 26T_ATTT.','Class starts with the 2-digit intake year, e.g. 26T_ATTT.');return}
+    msg.className='msg ok'; msg.textContent=tl('Đang lưu…','Saving…');
     const {error}=await sb.rpc('luu_ho_so',sv?{p_ten:ten,p_khoa_id:kh,p_lop:lop,p_sinh_vien:true}:{p_ten:ten,p_khoa_id:null,p_lop:null,p_sinh_vien:false});
-    if(error){msg.className='msg';msg.textContent='Không lưu được: '+error.message;return}
+    if(error){msg.className='msg';msg.textContent=tl('Không lưu được: ','Could not save: ')+error.message;return}
     await loadProfile(); ranked=true; soloConnect(); home();
   };
 }
 /* Xoá tài khoản (bản 2.18.0): xoá ảnh đại diện trong Storage, thôi nhận thông báo đẩy, rồi RPC xoa_tai_khoan
    xoá dòng auth.users (mọi bảng khác tự xoá theo). Phải gõ XOÁ để mở khoá nút. */
 function xoaTaiKhoanScreen(){
-  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Xoá tài khoản</div><button type="button" class="link" id="back">Huỷ</button></div>
-  <h2>Xoá vĩnh viễn tài khoản?</h2>
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${tl('Xoá tài khoản','Delete account')}</div><button type="button" class="link" id="back">${tl('Huỷ','Cancel')}</button></div>
+  <h2>${tl('Xoá vĩnh viễn tài khoản?','Delete your account forever?')}</h2>
   <div class="xoa-tk">
-    <p>Tài khoản <b>${esc(profile?.ten||'')}</b>${user?.email?` (${esc(user.email)})`:''} và toàn bộ dữ liệu sẽ bị xoá ngay, <b>không khôi phục được</b>:</p>
-    <ul><li>Điểm Bách Khoa, hạng, chuỗi ngày, Elo và thành tích solo. Bạn biến mất khỏi mọi bảng xếp hạng.</li>
+    <p>${tl(`Tài khoản <b>${esc(profile?.ten||'')}</b>${user?.email?` (${esc(user.email)})`:''} và toàn bộ dữ liệu sẽ bị xoá ngay, <b>không khôi phục được</b>:`,`The account <b>${esc(profile?.ten||'')}</b>${user?.email?` (${esc(user.email)})`:''} and all its data will be deleted right away and <b>cannot be recovered</b>:`)}</p>
+    <ul>${tl(`<li>Điểm Bách Khoa, hạng, chuỗi ngày, Elo và thành tích solo. Bạn biến mất khỏi mọi bảng xếp hạng.</li>
       <li>Lịch sử lượt bán, các trận solo và bản ghi xem lại (trận đã đấu cũng mất khỏi lịch sử của đối thủ; Elo của họ giữ nguyên).</li>
       <li>Hồ sơ, ảnh đại diện, bạn bè, lời mời, thông báo và đăng ký thông báo đẩy.</li>
-      <li>Email đăng nhập. Sau này muốn chơi tiếp thì đăng ký lại từ đầu.</li></ul>
+      <li>Email đăng nhập. Sau này muốn chơi tiếp thì đăng ký lại từ đầu.</li>`,`<li>Bach Khoa Points, rank, streak, Elo and solo record. You disappear from every leaderboard.</li>
+      <li>Run history, solo matches and replays (matches also vanish from your opponents' history; their Elo stays).</li>
+      <li>Profile, avatar, friends, requests, notifications and push subscriptions.</li>
+      <li>Your sign-in email. To play again later you would sign up from scratch.</li>`)}</ul>
   </div>
-  <label><span>Gõ <b>XOÁ</b> để xác nhận</span><input id="xnXoa" autocomplete="off" autocapitalize="characters" placeholder="XOÁ"></label>
+  <label><span>${tl('Gõ <b>XOÁ</b> để xác nhận','Type <b>DELETE</b> to confirm')}</span><input id="xnXoa" autocomplete="off" autocapitalize="characters" placeholder="${tl('XOÁ','DELETE')}"></label>
   <div class="msg" id="msg"></div>
-  <button type="button" class="btn nguy" id="xoaOk" disabled>Xoá vĩnh viễn tài khoản</button>
-  <button type="button" class="btn ghost" id="xoaHuy">Giữ lại tài khoản</button>`);
-  const ok=()=>$('xnXoa').value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase()==='XOA';
+  <button type="button" class="btn nguy" id="xoaOk" disabled>${tl('Xoá vĩnh viễn tài khoản','Delete account forever')}</button>
+  <button type="button" class="btn ghost" id="xoaHuy">${tl('Giữ lại tài khoản','Keep my account')}</button>`);
+  const ok=()=>{const v=$('xnXoa').value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase(); return v==='XOA'||(EN&&v==='DELETE')};
   $('back').onclick=$('xoaHuy').onclick=profileScreen;
   $('xnXoa').oninput=()=>{$('xoaOk').disabled=!ok()};
   $('xoaOk').onclick=async()=>{
-    if(!ok()) return; const b=$('xoaOk'), msg=$('msg'); b.disabled=true; msg.className='msg ok'; msg.textContent='Đang xoá…';
+    if(!ok()) return; const b=$('xoaOk'), msg=$('msg'); b.disabled=true; msg.className='msg ok'; msg.textContent=tl('Đang xoá…','Deleting…');
     if(profile?.avatar_url) try{await sb.storage.from('avatars').remove([user.id+'/goc.jpg',user.id+'/avatar.jpg'])}catch(e){}
     await pushUnlink();
     const {error}=await sb.rpc('xoa_tai_khoan',{p_xac_nhan:'XOA'});
-    if(error){msg.className='msg';msg.textContent='Chưa xoá được: '+error.message;b.disabled=false;return}
+    if(error){msg.className='msg';msg.textContent=tl('Chưa xoá được: ','Could not delete: ')+error.message;b.disabled=false;return}
     ['mqbk-run','mqbk-pending','mqbk-rec-cho'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
     nhoMan(null);bbReset();soloDisconnect();try{await sb.auth.signOut()}catch(e){}
-    user=null;profile=null;ranked=false;myRank=null;authScreen();toast('Đã xoá tài khoản và toàn bộ dữ liệu');
+    user=null;profile=null;ranked=false;myRank=null;authScreen();toast(tl('Đã xoá tài khoản và toàn bộ dữ liệu','Your account and all data were deleted'));
   };
 }
 async function logout(){nhoMan(null);bbReset();soloDisconnect();await pushUnlink();await sb.auth.signOut();user=null;profile=null;ranked=false;authScreen()}
@@ -246,7 +251,7 @@ function avatarHTML(url,name,size=36,cls=''){
   return url?`<img class="av ${cls}" src="${esc(url)}" alt="" width="${size}" height="${size}" loading="lazy" style="width:${size}px;height:${size}px">`
     :`<span class="av av-txt ${cls}" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.38)}px;background:${avColor(name)}" aria-hidden="true">${esc(initials(name))}</span>`;
 }
-function loadImg(src){return new Promise((ok,no)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>ok(i);i.onerror=()=>no(new Error('Không mở được ảnh'));i.src=src})}
+function loadImg(src){return new Promise((ok,no)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>ok(i);i.onerror=()=>no(new Error(tl('Không mở được ảnh','Could not open the image')));i.src=src})}
 function canvasBlob(cv,q=.88){return new Promise(ok=>cv.toBlob(ok,'image/jpeg',q))}
 // Ảnh gốc thu nhỏ tối đa 1080px để lưu nhẹ, giữ lại để chỉnh khung sau này
 async function shrink(file){
@@ -259,26 +264,26 @@ async function shrink(file){
 function pickFile(){return new Promise(ok=>{const f=document.createElement('input');f.type='file';f.accept='image/*';f.onchange=()=>ok(f.files[0]||null);f.click()})}
 async function chooseAvatar(){
   const file=await pickFile(); if(!file) return;
-  if(!/^image\//.test(file.type)){toast('Hãy chọn một file ảnh');return}
-  try{const cv=await shrink(file); avatarEditor(cv,{x:.5,y:.5,z:1},true)}catch(e){toast('Không mở được ảnh này, thử ảnh khác')}
+  if(!/^image\//.test(file.type)){toast(tl('Hãy chọn một file ảnh','Please pick an image file'));return}
+  try{const cv=await shrink(file); avatarEditor(cv,{x:.5,y:.5,z:1},true)}catch(e){toast(tl('Không mở được ảnh này, thử ảnh khác','Could not open this image, try another'))}
 }
 async function readjustAvatar(){
   const k=profile&&profile.avatar_khung; if(!k){chooseAvatar();return}
-  toast('Đang mở ảnh gốc…');
+  toast(tl('Đang mở ảnh gốc…','Opening original photo…'));
   try{const img=await loadImg(AV_BASE+user.id+'/goc.jpg?v='+(k.v||0)); avatarEditor(img,k,false)}
-  catch(e){toast('Không tải được ảnh gốc, hãy chọn lại ảnh')}
+  catch(e){toast(tl('Không tải được ảnh gốc, hãy chọn lại ảnh','Could not load the original, pick the photo again'))}
 }
 // Trình cắt: kéo để di chuyển, thanh trượt / lăn chuột / chụm 2 ngón để phóng to
 function avatarEditor(src,khung,isNew){
   const W=src.naturalWidth||src.width, H=src.naturalHeight||src.height, M=Math.min(W,H);
   const st={x:khung.x??.5,y:khung.y??.5,z:Math.min(4,Math.max(1,khung.z??1))};
-  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Avatar</div><button class="link" id="cancel">Huỷ</button></div>
-  <h2>Căn khung avatar</h2>
-  <p class="muted">Kéo ảnh để chọn phần nằm trong vòng tròn, kéo thanh trượt để phóng to hoặc thu nhỏ.</p>
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Avatar</div><button class="link" id="cancel">${tl('Huỷ','Cancel')}</button></div>
+  <h2>${tl('Căn khung avatar','Crop your avatar')}</h2>
+  <p class="muted">${tl('Kéo ảnh để chọn phần nằm trong vòng tròn, kéo thanh trượt để phóng to hoặc thu nhỏ.','Drag the photo to choose what sits in the circle, use the slider to zoom.')}</p>
   <div class="crop" id="crop"><canvas id="cv"></canvas><div class="ring"></div></div>
-  <label class="zoom">Thu nhỏ<input type="range" id="zm" min="1" max="4" step="0.01" value="${st.z}" aria-label="Phóng to">Phóng to</label>
+  <label class="zoom">${tl('Thu nhỏ','Zoom out')}<input type="range" id="zm" min="1" max="4" step="0.01" value="${st.z}" aria-label="${tl('Phóng to','Zoom')}">${tl('Phóng to','Zoom in')}</label>
   <div class="msg" id="msg"></div>
-  <div class="col grow"><button class="btn" id="save">Lưu avatar</button><button class="btn ghost" id="other">Chọn ảnh khác</button></div>`);
+  <div class="col grow"><button class="btn" id="save">${tl('Lưu avatar','Save avatar')}</button><button class="btn ghost" id="other">${tl('Chọn ảnh khác','Pick another photo')}</button></div>`);
   const box=$('crop'), cv=$('cv'), ctx=cv.getContext('2d');
   const size=()=>box.clientWidth, dpr=Math.min(2,devicePixelRatio||1);
   const clamp=()=>{const h=M/st.z/2; st.x=Math.min(1-h/W,Math.max(h/W,st.x)); st.y=Math.min(1-h/H,Math.max(h/H,st.y))};
@@ -301,7 +306,7 @@ function avatarEditor(src,khung,isNew){
   $('cancel').onclick=leave;
   $('other').onclick=()=>{removeEventListener('resize',draw);chooseAvatar()};
   $('save').onclick=async()=>{
-    const msg=$('msg'); msg.className='msg ok'; msg.textContent='Đang lưu avatar…'; $('save').disabled=true;
+    const msg=$('msg'); msg.className='msg ok'; msg.textContent=tl('Đang lưu avatar…','Saving avatar…'); $('save').disabled=true;
     try{
       const v=isNew?Date.now():(khung.v||Date.now());
       const out=document.createElement('canvas'); out.width=out.height=256; const [sx,sy,sw,sh]=rect();
@@ -311,13 +316,13 @@ function avatarEditor(src,khung,isNew){
       const a=await bucket.upload(user.id+'/avatar.jpg',await canvasBlob(out,.9),{upsert:true,contentType:'image/jpeg',cacheControl:'31536000'}); if(a.error) throw a.error;
       const url=AV_BASE+user.id+'/avatar.jpg?v='+Date.now(), k={x:+st.x.toFixed(4),y:+st.y.toFixed(4),z:+st.z.toFixed(3),v};
       const r=await sb.rpc('luu_avatar',{p_url:url,p_khung:k}); if(r.error) throw r.error;
-      profile.avatar_url=url; profile.avatar_khung=k; toast('Đã lưu avatar'); leave();
-    }catch(e){msg.className='msg';msg.textContent='Chưa lưu được: '+(e.message||e);$('save').disabled=false}
+      profile.avatar_url=url; profile.avatar_khung=k; toast(tl('Đã lưu avatar','Avatar saved')); leave();
+    }catch(e){msg.className='msg';msg.textContent=tl('Chưa lưu được: ','Could not save: ')+(e.message||e);$('save').disabled=false}
   };
 }
 async function removeAvatar(){
   const r=await sb.rpc('luu_avatar',{p_url:null,p_khung:null});
-  if(r.error){toast('Chưa xoá được, thử lại');return}
+  if(r.error){toast(tl('Chưa xoá được, thử lại','Could not remove, try again'));return}
   sb.storage.from('avatars').remove([user.id+'/goc.jpg',user.id+'/avatar.jpg']);
-  profile.avatar_url=null; profile.avatar_khung=null; toast('Đã xoá avatar'); profileScreen();
+  profile.avatar_url=null; profile.avatar_khung=null; toast(tl('Đã xoá avatar','Avatar removed')); profileScreen();
 }

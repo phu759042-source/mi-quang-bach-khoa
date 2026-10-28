@@ -170,8 +170,10 @@ Cuối mỗi ngày, người chơi dùng tiền trong két để mua nâng cấp
 
 ### Phân hạng
 
-- **Hạng ĐBK** theo tổng điểm, kiểu Liên Quân: Đồng (dưới 10.000), Bạc (10.000), Vàng (20.000), Bạch Kim (50.000), Kim Cương (100.000), Tinh Anh (500.000), Cao Thủ (1.000.000). Mỗi hạng có huy hiệu vẽ bằng SVG (khiên và tô mì, hạng cao có thêm cánh, ngọc, vương miện), hiện ở thẻ tên, bảng xếp hạng và hồ sơ, kèm thanh tiến độ lên hạng kế tiếp. Lên hạng sau một lượt thì có pháo giấy.
+- **Hạng ĐBK** theo tổng điểm, kiểu Liên Quân: Đồng (dưới 10.000), Bạc (10.000), Vàng (20.000), Bạch Kim (50.000), Kim Cương (100.000), Tinh Anh (500.000), Cao Thủ (1.000.000). Mỗi hạng có huy hiệu vẽ bằng SVG (khiên và tô mì, hạng cao có thêm cánh, ngọc, vương miện), hiện ở thẻ tên, bảng xếp hạng và hồ sơ, kèm thanh tiến độ lên hạng kế tiếp.
 - **Danh hiệu Elo solo** kiểu Codeforces, từ Newbie (dưới 1200) tới Legendary Grandmaster (3000+), chỉ là chữ có màu riêng; tên trên bảng Solo cũng tô theo màu đó. Màu được chỉnh lại cho giao diện tối để vẫn đọc rõ.
+
+- **Màn lên / xuống hạng**: bán xong mà đổi hạng ĐBK, hoặc xong trận solo mà đổi danh hiệu Elo, game hiện một màn riêng trước màn kết quả. Lên hạng thì huy hiệu cũ mờ đi, huy hiệu mới phóng ra giữa vầng sáng xoay, kèm pháo giấy, tiếng kèn và rung máy; xuống hạng thì huy hiệu rơi nhẹ, xám dần, kèm lời động viên (còn bao nhiêu điểm nữa để lấy lại hạng cũ).
 
 <p align="center"><img src="docs/images/phan-hang.png" width="760" alt="Huy hiệu 7 hạng ĐBK và màu các danh hiệu Elo"></p>
 
@@ -213,6 +215,10 @@ Giống mục Games và Stats của chess.com:
 <p align="center"><img src="docs/images/ho-so-dien-thoai.png" width="820" alt="Thống kê, xem lại và danh sách lượt bán trên điện thoại"></p>
 
 ## 6. Giao diện và trải nghiệm
+
+- **Hai ngôn ngữ, tiếng Việt và tiếng Anh**, chuyển ở màn chính và màn đăng nhập (lưu trên máy). Bản tiếng Anh có tên **Bach Khoa Noodles** ("Bach Khoa" màu vàng, "Noodles" màu xanh), dịch toàn bộ chữ trong game, tên khoa, độ khó, nâng cấp, câu thoại khách, lỗi từ máy chủ và màn chính sách dữ liệu. Mọi chuỗi trong code viết dạng `tl('tiếng Việt', 'English')`; test tự động mở từng màn ở chế độ tiếng Anh và báo lỗi nếu còn sót chữ tiếng Việt.
+
+<p align="center"><img src="docs/images/tieng-anh-va-len-hang.png" width="820" alt="Giao diện tiếng Anh: màn chính, lúc đang bán và màn lên hạng"></p>
 
 - **Responsive**: trên điện thoại bố cục một cột, bếp nằm dưới; trên laptop chia hai cột, có thêm phím tắt.
 - **Theme sáng, tối và theo máy**. Giao diện được đặt trước khi trang vẽ, nên không bị nháy trắng khi mở ở chế độ tối.
@@ -325,6 +331,7 @@ mi-quang-bach-khoa/
 │   ├── thong-bao.js         # Thông báo đẩy
 │   ├── hieu-ung.js          # Hiệu ứng thắng/thua, khoá nút chống bấm nhầm
 │   ├── giu-quan.js          # Giữ quán khi tải lại, tạm dừng, đóng quán
+│   ├── ngon-ngu.js          # Song ngữ Việt / Anh: tl(), tên khoa, dịch lỗi máy chủ (nạp đầu tiên)
 │   ├── ban-ghi.js           # Ghi thao tác, xem lại, hồ sơ, biểu đồ, xem trực tiếp
 │   ├── ban-be.js            # Bạn bè, lời mời kết bạn, chuông thông báo
 │   ├── ve-game.js           # Màn "Về game": thông tin, chính sách dữ liệu và bảo mật

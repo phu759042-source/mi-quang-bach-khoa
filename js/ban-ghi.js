@@ -56,7 +56,7 @@ function rpApply(st, e){
   const base = () => { st.bowl = st.upg.phubep ? ['mi'] : []; st.broth = false };
   switch(c){
     case 'D': st.day = e[2]; st.ev = e[3]; st.n = e[4]; st.target = e[5]; st.slots = Array(st.n).fill(null); st.queue = [];
-      st.earned = 0; st.rem0 = DAYLEN; st.tRef = t; st.running = true; st.shop = false; base(); say(`Mở quán ngày ${e[2]}`, 'day'); break;
+      st.earned = 0; st.rem0 = DAYLEN; st.tRef = t; st.running = true; st.shop = false; base(); say(tl(`Mở quán ngày ${e[2]}`, `Opened day ${e[2]}`), 'day'); break;
     case 'S': { const k = {id:e[2], kh:KHACH[e[3]] || KHACH[0], teacher:!!e[4], order:String(e[5]).split('').map(d => ks[+d]),
         max:e[6], qmax:e[7], price:e[8], at:t, r:1, qat:t, qr:1};
       st.cust.set(k.id, k);
@@ -65,28 +65,32 @@ function rpApply(st, e){
     case 'A': if(!st.bowl.includes(ks[e[2]])) st.bowl.push(ks[e[2]]); break;
     case 'R': st.bowl = st.bowl.filter(x => x !== ks[e[2]]); break;
     case 'P': st.broth = true; break;
-    case 'X': base(); say('Đổ bỏ tô', 'bad'); break;
-    case 'V': { st.earned += e[4]; st.total += e[4]; free(e[2]); base(); say(`Bưng bàn ${e[3] + 1}: +${e[4]}k`, 'good'); break }
-    case 'W': free(e[2]); base(); say(`Sai món ở bàn ${e[3] + 1}`, 'bad'); break;
-    case 'L': free(e[2]); say(`Khách bàn ${e[3] + 1} bỏ về`, 'bad'); break;
-    case 'J': st.queue = st.queue.filter(x => x.id !== e[2]); say('Khách xếp hàng bỏ về', 'bad'); break;
-    case 'G': { const k = st.cust.get(e[2]); if(k){ if(e[3]){ k.qat = t; k.qr = .5 } else { k.at = t; k.r = .5 } } say('Thẻ tích điểm giữ chân khách', 'good'); break }
+    case 'X': base(); say(tl('Đổ bỏ tô', 'Dumped the bowl'), 'bad'); break;
+    case 'V': { st.earned += e[4]; st.total += e[4]; free(e[2]); base(); say(tl(`Bưng bàn ${e[3] + 1}: +${e[4]}k`, `Served table ${e[3] + 1}: +${e[4]}k`), 'good'); break }
+    case 'W': free(e[2]); base(); say(tl(`Sai món ở bàn ${e[3] + 1}`, `Wrong order at table ${e[3] + 1}`), 'bad'); break;
+    case 'L': free(e[2]); say(tl(`Khách bàn ${e[3] + 1} bỏ về`, `Customer at table ${e[3] + 1} left`), 'bad'); break;
+    case 'J': st.queue = st.queue.filter(x => x.id !== e[2]); say(tl('Khách xếp hàng bỏ về', 'A queued customer left'), 'bad'); break;
+    case 'G': { const k = st.cust.get(e[2]); if(k){ if(e[3]){ k.qat = t; k.qr = .5 } else { k.at = t; k.r = .5 } } say(tl('Thẻ tích điểm giữ chân khách', 'Loyalty card kept a customer'), 'good'); break }
     case 'H': st.rep = e[2]; st.lost = e[3]; break;
     case 'E': st.rem0 = 0; st.running = false; st.earned = e[2]; st.shop = true;
       st.slots = Array(st.n).fill(null); st.queue = []; base();   // hết ngày: khách còn ngồi / xếp hàng đều về (bản 2.18.0)
-      say(`Hết ngày ${st.day}: ${e[2]}k`, 'day'); break;
+      say(tl(`Hết ngày ${st.day}: ${e[2]}k`, `End of day ${st.day}: ${e[2]}k`), 'day'); break;
     case 'B': st.upg[e[2]] = e[3]; say(`Mua ${upgName(e[2], e[3])}`, 'shop'); break;
     case 'K': st.rep++; say('Mua 1 tim', 'shop'); break;
-    case 'Z': st.rem0 = rpRem(st, t); st.running = false; say('Tạm dừng', 'day'); break;
-    case 'U': st.rem0 = e[2]; st.tRef = t; st.running = true; st.shop = false; if(e[3]) st.n = e[3]; say('Bán tiếp', 'day'); break;
-    case 'Y': st.rem0 = rpRem(st, t); st.running = false; st.slots = Array(st.n).fill(null); st.queue = []; base(); say('Tải lại trang', 'bad'); break;
-    case 'O': st.rem0 = rpRem(st, t); st.running = false; st.ended = true; say('Kết thúc', 'day'); break;
+    case 'Z': st.rem0 = rpRem(st, t); st.running = false; say(tl('Tạm dừng', 'Paused'), 'day'); break;
+    case 'U': st.rem0 = e[2]; st.tRef = t; st.running = true; st.shop = false; if(e[3]) st.n = e[3]; say(tl('Bán tiếp', 'Resumed'), 'day'); break;
+    case 'Y': st.rem0 = rpRem(st, t); st.running = false; st.slots = Array(st.n).fill(null); st.queue = []; base(); say(tl('Tải lại trang', 'Page reloaded'), 'bad'); break;
+    case 'O': st.rem0 = rpRem(st, t); st.running = false; st.ended = true; say(tl('Kết thúc', 'Finished'), 'day'); break;
   }
 }
 const upgName = (id, lvl) => { const u = UPG.find(x => x.id === id); return u ? (u.lv[lvl - 1] || u.lv[0]).n : id };
 // Dòng diễn biến cho danh sách bên dưới (chỉ những việc đáng xem)
 function rpLine(e, ks){
   const c = e[1];
+  if(EN) return c === 'D' ? `Opened day ${e[2]}` : c === 'V' ? `Served table ${e[3] + 1}, +${e[4]}k` : c === 'W' ? `Wrong order at table ${e[3] + 1}, lost 1 heart`
+    : c === 'L' ? `Customer at table ${e[3] + 1} waited too long, lost 1 heart` : c === 'J' ? 'A queued customer left, lost 1 heart'
+    : c === 'E' ? `End of day, sold ${e[2]}k` : c === 'B' ? `Bought ${upgName(e[2], e[3])}` : c === 'K' ? 'Bought 1 heart'
+    : c === 'Z' ? 'Paused' : c === 'Y' ? 'Page reloaded' : c === 'O' ? 'Finished' : null;
   return c === 'D' ? `Mở quán ngày ${e[2]}` : c === 'V' ? `Bưng bàn ${e[3] + 1}, +${e[4]}k` : c === 'W' ? `Sai món ở bàn ${e[3] + 1}, mất 1 tim`
     : c === 'L' ? `Khách bàn ${e[3] + 1} chờ lâu bỏ về, mất 1 tim` : c === 'J' ? 'Khách xếp hàng bỏ về, mất 1 tim'
     : c === 'E' ? `Hết ngày, bán được ${e[2]}k` : c === 'B' ? `Mua ${upgName(e[2], e[3])}` : c === 'K' ? 'Mua 1 tim'
@@ -100,15 +104,15 @@ function rpStop(){ if(RP){ RP.playing = false; cancelAnimationFrame(RP.raf); cle
 async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, first: id người hiện bên trái}
   rpStop(); xemStop();
   nhoMan('xemlai', o.thach_dau ? 'td' : 'run', o.thach_dau || o.run, o.first || null, o.title || '', o.sub || '');
-  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Xem lại</div><button class="link" id="back">Đóng</button></div>
-    <h2>${esc(o.title || 'Xem lại')}</h2><div class="empty-state">Đang tải bản ghi…</div>`);
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${tl('Xem lại', 'Replay')}</div><button class="link" id="back">${tl('Đóng', 'Close')}</button></div>
+    <h2>${esc(o.title || tl('Xem lại', 'Replay'))}</h2><div class="empty-state">${tl('Đang tải bản ghi…', 'Loading recording…')}</div>`);
   $('back').onclick = () => { rpStop(); (o.back || home)() };
   const q = sb.from('ban_ghi').select('user_id,du_lieu');
   const {data, error} = await (o.thach_dau ? q.eq('thach_dau_id', o.thach_dau) : q.eq('run_id', o.run));
   if(!$('back')) return;
   if(error || !data || !data.length){
-    $('ov').querySelector('.empty-state').textContent = error ? 'Không tải được bản ghi: ' + error.message
-      : 'Trận này chưa có bản ghi. Bản ghi chỉ có từ bản 2.11.0, và được gửi lên ngay khi trận kết thúc.';
+    $('ov').querySelector('.empty-state').textContent = error ? tl('Không tải được bản ghi: ', 'Could not load the recording: ') + error.message
+      : tl('Trận này chưa có bản ghi. Bản ghi chỉ có từ bản 2.11.0, và được gửi lên ngay khi trận kết thúc.', 'No recording for this one. Recordings exist from version 2.11.0 and are uploaded when a match ends.');
     return;
   }
   const ids = data.map(d => d.user_id);
@@ -116,7 +120,7 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, firs
   const pmap = new Map((ps || []).map(p => [p.id, p]));
   const first = o.first || user.id;
   data.sort((a, b) => (a.user_id === first ? -1 : b.user_id === first ? 1 : 0));
-  const players = data.map(d => ({id: d.user_id, ten: pmap.get(d.user_id)?.ten || 'Người chơi', av: pmap.get(d.user_id)?.avatar_url,
+  const players = data.map(d => ({id: d.user_id, ten: pmap.get(d.user_id)?.ten || tl('Người chơi', 'Player'), av: pmap.get(d.user_id)?.avatar_url,
     ev: d.du_lieu.ev || [], st: rpNew(), dk: d.du_lieu.diff}));
   const dur = Math.max(...players.map(p => p.ev.length ? p.ev[p.ev.length - 1][0] : 0)) + 1000;
   const {data: kr} = o.thach_dau ? await sb.from('thach_dau').select('id,a,b,thang,ly_do,doi_a,doi_b,a_doanh_thu,b_doanh_thu,a_tim_mat,b_tim_mat,do_kho').eq('id', o.thach_dau).maybeSingle()
@@ -134,28 +138,28 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, firs
   const moves = [];
   players.forEach((p, pi) => p.ev.forEach(e => { const l = rpLine(e, ks); if(l) moves.push({t: e[0], pi, l, kind: e[1]}) }));
   moves.sort((a, b) => a.t - b.t);
-  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${esc(o.sub || 'Xem lại')}</div><button class="link" id="back">Đóng</button></div>
-    <h2>${esc(o.title || 'Xem lại')}</h2>
-    ${khac.length ? `<div class="row rp-act">${khac.map(id => `<button type="button" class="btn ghost" data-rp-thach="${id}">Thách đấu ${esc(tenNgan(bbTen(id)))}</button><span class="kb-row" data-kb-slot="${id}" data-kb-an="ban">${kbNut(id, 'ban')}</span>`).join('')}</div>` : ''}
-    ${players.length < 2 && o.thach_dau ? '<p class="muted">Chỉ có bản ghi của một bên (bên kia đang dùng bản game cũ hoặc chưa gửi kịp).</p>' : ''}
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${esc(o.sub || tl('Xem lại', 'Replay'))}</div><button class="link" id="back">${tl('Đóng', 'Close')}</button></div>
+    <h2>${esc(o.title || tl('Xem lại', 'Replay'))}</h2>
+    ${khac.length ? `<div class="row rp-act">${khac.map(id => `<button type="button" class="btn ghost" data-rp-thach="${id}">${tl('Thách đấu', 'Challenge')} ${esc(tenNgan(bbTen(id)))}</button><span class="kb-row" data-kb-slot="${id}" data-kb-an="ban">${kbNut(id, 'ban')}</span>`).join('')}</div>` : ''}
+    ${players.length < 2 && o.thach_dau ? `<p class="muted">${tl('Chỉ có bản ghi của một bên (bên kia đang dùng bản game cũ hoặc chưa gửi kịp).', 'Only one side was recorded (the other player is on an old version or has not uploaded yet).')}</p>` : ''}
     <div class="rp-stage n${players.length}" id="rpStage">${players.map((p, i) => `<div class="rp-view" id="rpv${i}"></div>`).join('')}</div>
     <div class="rp-ket" id="rpKet" role="status" hidden></div>
     <div class="rp-ctl">
       <div class="rp-btns">
-        <button type="button" class="pz rp-ic" id="rpDau" aria-label="Về đầu trận" title="Về đầu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h2.5v16H5zM20 4v16L8.5 12z" fill="currentColor"/></svg></button>
-        <button type="button" class="pz" id="rpBack10" aria-label="Lùi 10 giây">−10s</button>
-        <button type="button" class="btn rp-play" id="rpPlay" aria-label="Phát">Phát</button>
-        <button type="button" class="pz" id="rpFwd10" aria-label="Tiến 10 giây">+10s</button>
-        <button type="button" class="pz rp-ic" id="rpCuoi" aria-label="Đến cuối trận, xem kết quả" title="Đến cuối"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 4H19v16h-2.5zM4 4v16l11.5-8z" fill="currentColor"/></svg></button>
-        <span class="rp-speed" role="group" aria-label="Tốc độ">${[1,2,4,8].map(s => `<button type="button" data-s="${s}" aria-pressed="${s === 1}">${s}×</button>`).join('')}</span>
+        <button type="button" class="pz rp-ic" id="rpDau" aria-label="${tl('Về đầu trận', 'Back to start')}" title="${tl('Về đầu', 'Start')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h2.5v16H5zM20 4v16L8.5 12z" fill="currentColor"/></svg></button>
+        <button type="button" class="pz" id="rpBack10" aria-label="${tl('Lùi 10 giây', 'Back 10 seconds')}">−10s</button>
+        <button type="button" class="btn rp-play" id="rpPlay" aria-label="${tl('Phát', 'Play')}">${tl('Phát', 'Play')}</button>
+        <button type="button" class="pz" id="rpFwd10" aria-label="${tl('Tiến 10 giây', 'Forward 10 seconds')}">+10s</button>
+        <button type="button" class="pz rp-ic" id="rpCuoi" aria-label="${tl('Đến cuối trận, xem kết quả', 'Skip to the end and see the result')}" title="${tl('Đến cuối', 'End')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 4H19v16h-2.5zM4 4v16l11.5-8z" fill="currentColor"/></svg></button>
+        <span class="rp-speed" role="group" aria-label="${tl('Tốc độ', 'Speed')}">${[1,2,4,8].map(s => `<button type="button" data-s="${s}" aria-pressed="${s === 1}">${s}×</button>`).join('')}</span>
       </div>
-      <div class="rp-bar"><input type="range" id="rpSeek" min="0" max="${dur}" step="100" value="0" aria-label="Thời điểm trong trận">
-        <div class="rp-days">${days.map(([t, d]) => `<i style="left:${t / dur * 100}%" title="Ngày ${d}">${d}</i>`).join('')}</div></div>
+      <div class="rp-bar"><input type="range" id="rpSeek" min="0" max="${dur}" step="100" value="0" aria-label="${tl('Thời điểm trong trận', 'Position in the match')}">
+        <div class="rp-days">${days.map(([t, d]) => `<i style="left:${t / dur * 100}%" title="${tl('Ngày', 'Day')} ${d}">${d}</i>`).join('')}</div></div>
       <div class="rp-time"><b id="rpNow">0:00</b> / ${mmss(dur)}</div>
     </div>
-    <div class="eyebrow">Diễn biến</div>
+    <div class="eyebrow">${tl('Diễn biến', 'Timeline')}</div>
     <div class="list rp-moves" id="rpMoves">${moves.map((m, k) => `<button type="button" class="li rp-mv ${m.kind === 'V' ? 'good' : /[WLJ]/.test(m.kind) ? 'bad' : ''}" data-t="${m.t}" data-k="${k}">
-      <span class="rk">${mmss(m.t)}</span><span class="nm">${players.length > 1 ? `<b>${esc(tenNgan(players[m.pi].ten))}</b> · ` : ''}${esc(m.l)}</span></button>`).join('') || '<div class="empty-state">Không có diễn biến.</div>'}</div>`);
+      <span class="rk">${mmss(m.t)}</span><span class="nm">${players.length > 1 ? `<b>${esc(tenNgan(players[m.pi].ten))}</b> · ` : ''}${esc(m.l)}</span></button>`).join('') || `<div class="empty-state">${tl('Không có diễn biến.', 'Nothing happened.')}</div>`}</div>`);
   $('back').onclick = () => { rpStop(); (o.back || home)() };
   $('rpPlay').onclick = () => { RP.playing ? rpPause() : rpPlay() };
   $('rpBack10').onclick = () => rpSeek(RP.T - 10000);
@@ -173,8 +177,8 @@ async function replayScreen(o){   // o = {thach_dau, run, back, title, sub, firs
   $('rpMoves').onclick = e => { const b = e.target.closest('[data-t]'); if(b) rpSeek(+b.dataset.t) };
   rpSeek(0); rpPlay();
 }
-function rpPlay(){ if(!RP) return; if(RP.T >= RP.dur) rpSeek(0); RP.playing = true; RP.last = performance.now(); $('rpPlay').textContent = 'Dừng'; RP.raf = requestAnimationFrame(rpFrame) }
-function rpPause(){ if(!RP) return; RP.playing = false; cancelAnimationFrame(RP.raf); const b = $('rpPlay'); if(b) b.textContent = 'Phát' }
+function rpPlay(){ if(!RP) return; if(RP.T >= RP.dur) rpSeek(0); RP.playing = true; RP.last = performance.now(); $('rpPlay').textContent = tl('Dừng', 'Pause'); RP.raf = requestAnimationFrame(rpFrame) }
+function rpPause(){ if(!RP) return; RP.playing = false; cancelAnimationFrame(RP.raf); const b = $('rpPlay'); if(b) b.textContent = tl('Phát', 'Play') }
 function rpFrame(now){
   if(!RP || !RP.playing || !$('rpStage')) return;
   let T = RP.T + (now - RP.last) * RP.speed; RP.last = now;
@@ -209,18 +213,18 @@ function rpKet(on){
   on = !!on; if(RP.ketOn === on) return; RP.ketOn = on;
   RP.players.forEach(p => p.ketTag = on && p.kq ? `<span class="rp-kq ${KQ[p.kq].c}">${KQ[p.kq].n}</span>` : '');
   box.hidden = !on; if(!on){ box.innerHTML = ''; return }
-  const r = RP.kr, ps = RP.players, ten = id => esc(tenNgan((ps.find(p => p.id === id) || {}).ten || 'Đối thủ'));
+  const r = RP.kr, ps = RP.players, ten = id => esc(tenNgan((ps.find(p => p.id === id) || {}).ten || tl('Đối thủ', 'Opponent')));
   if(RP.o.thach_dau){
     const doi = id => { const s = r.a === id ? 'a' : 'b', d = r['doi_' + s] || 0, dk = diemSolo(r.do_kho, r[s + '_doanh_thu'] || 0, r[s + '_tim_mat'] || 0);
-      return `<span>${ten(id)}: ${dk} ĐBK · <b>${d > 0 ? '+' : d < 0 ? '−' : '±'}${Math.abs(d)} Elo</b></span>` };
+      return `<span>${ten(id)}: ${dk} ${tl('ĐBK', 'BKP')} · <b>${d > 0 ? '+' : d < 0 ? '−' : '±'}${Math.abs(d)} Elo</b></span>` };
     box.className = 'rp-ket ' + (r.thang ? 'win' : 'even');
-    box.innerHTML = `<div class="rp-ket-t">${r.thang ? `${kqIcon('thang')} <b>${ten(r.thang)} thắng</b>${(() => { const l = r.thang === r.a ? r.b : r.a; return ` · ${ten(l)} thua` })()}`
-      : `${kqIcon('hoa')} <b>Hoà</b>`}<small>${LY_DO[r.ly_do] || ''}</small></div><div class="rp-ket-s">${doi(r.a)}${doi(r.b)}</div>`;
+    box.innerHTML = `<div class="rp-ket-t">${r.thang ? `${kqIcon('thang')} <b>${ten(r.thang)} ${tl('thắng', 'wins')}</b>${(() => { const l = r.thang === r.a ? r.b : r.a; return ` · ${ten(l)} ${tl('thua', 'loses')}` })()}`
+      : `${kqIcon('hoa')} <b>${tl('Hoà', 'Draw')}</b>`}<small>${LY_DO[r.ly_do] || ''}</small></div><div class="rp-ket-s">${doi(r.a)}${doi(r.b)}</div>`;
   } else {
     const p = ps[0], d = r.delta || 0;
     box.className = 'rp-ket ' + KQ[p.kq].c;
-    box.innerHTML = `<div class="rp-ket-t">${kqIcon(p.kq)} <b>${r.trang_thai === 'bo_cuoc' ? 'Bỏ dở' : `Trụ ${r.so_ngay} ngày`}</b><small>${d > 0 ? 'có lời' : d < 0 ? 'lỗ' : 'hoà vốn'}</small></div>
-      <div class="rp-ket-s"><span>${r.doanh_thu || 0}k doanh thu · mất ${r.tim_mat || 0} tim</span><span><b>${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d)} ĐBK</b></span></div>`;
+    box.innerHTML = `<div class="rp-ket-t">${kqIcon(p.kq)} <b>${r.trang_thai === 'bo_cuoc' ? tl('Bỏ dở', 'Abandoned') : tl(`Trụ ${r.so_ngay} ngày`, `Lasted ${r.so_ngay} days`)}</b><small>${d > 0 ? tl('có lời', 'profit') : d < 0 ? tl('lỗ', 'loss') : tl('hoà vốn', 'break-even')}</small></div>
+      <div class="rp-ket-s"><span>${tl(`${r.doanh_thu || 0}k doanh thu · mất ${r.tim_mat || 0} tim`, `${r.doanh_thu || 0}k revenue · ${r.tim_mat || 0} hearts lost`)}</span><span><b>${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d)} ${tl('ĐBK', 'BKP')}</b></span></div>`;
   }
 }
 function rpDraw(p, i, T){
@@ -232,26 +236,27 @@ function rpDraw(p, i, T){
   // Đầu quán (avatar + tên) dựng một lần và giữ nguyên, để bấm vào mở hồ sơ không bị mất khi khung hình vẽ lại
   if(el.dataset.who !== String(p.id)){
     el.dataset.who = p.id;
-    el.innerHTML = `<div class="rp-head"><button type="button" class="rp-who" data-hs="${p.id || ''}" aria-label="Xem hồ sơ ${esc(p.ten)}">${avatarHTML(p.av, p.ten, 28)}<b>${esc(tenNgan(p.ten))}</b></button><span class="rp-hr"></span></div><div class="rp-body"></div>`;
+    el.innerHTML = `<div class="rp-head"><button type="button" class="rp-who" data-hs="${p.id || ''}" aria-label="${tl('Xem hồ sơ', 'View profile:')} ${esc(p.ten)}">${avatarHTML(p.av, p.ten, 28)}<b>${esc(tenNgan(p.ten))}</b></button><span class="rp-hr"></span></div><div class="rp-body"></div>`;
   }
   el.querySelector('.rp-hr').innerHTML = `${p.ketTag || ''}<span class="hearts">${hearts}</span>`;
   el.querySelector('.rp-body').innerHTML = `
-    <div class="rp-stats"><span>Ngày <b>${st.day || 1}</b></span><span>${st.shop ? 'Cửa hàng' : st.ended ? 'Đã xong' : `<b>${Math.ceil(rem)}</b>s`}</span>
-      <span>Hôm nay <b>${st.earned}${st.target ? '/' + st.target : ''}k</b></span><span>Tổng <b>${st.total}k</b></span>${rush ? '<span class="tag rush">Cao điểm</span>' : ''}</div>
-    <div class="rp-tables" style="--n:${st.n}">${st.slots.map((k, j) => k ? `<div class="rp-c${k.teacher ? ' teacher' : ''}"><span class="ava" style="background:${k.kh[2]}">${k.teacher ? 'Thầy' : k.kh[0]}</span>
-      <span class="order">${k.order.map(icon).join('')}</span>${bar(ratio(k))}</div>` : `<div class="rp-c empty">Bàn ${j + 1}</div>`).join('')}</div>
-    <div class="rp-q">${st.queue.length ? `Xếp hàng ${st.queue.map(k => `<i style="--c:${k.kh[2]};box-shadow:0 0 0 2px ${qratio(k) > .5 ? 'var(--leaf)' : qratio(k) > .25 ? 'var(--turmeric)' : 'var(--chili)'}"></i>`).join('')}` : '&nbsp;'}</div>
-    <div class="rp-bowl"><span class="rp-b">${st.bowl.length ? st.bowl.map(icon).join('') : '<em>Tô trống</em>'}</span>${st.broth ? '<span class="tag broth">Đã chan</span>' : ''}</div>
+    <div class="rp-stats"><span>${tl('Ngày', 'Day')} <b>${st.day || 1}</b></span><span>${st.shop ? tl('Cửa hàng', 'Shop') : st.ended ? tl('Đã xong', 'Done') : `<b>${Math.ceil(rem)}</b>s`}</span>
+      <span>${tl('Hôm nay', 'Today')} <b>${st.earned}${st.target ? '/' + st.target : ''}k</b></span><span>${tl('Tổng', 'Total')} <b>${st.total}k</b></span>${rush ? `<span class="tag rush">${tl('Cao điểm', 'Rush')}</span>` : ''}</div>
+    <div class="rp-tables" style="--n:${st.n}">${st.slots.map((k, j) => k ? `<div class="rp-c${k.teacher ? ' teacher' : ''}"><span class="ava" style="background:${k.kh[2]}">${k.teacher ? tl('Thầy', 'Prof') : k.kh[0]}</span>
+      <span class="order">${k.order.map(icon).join('')}</span>${bar(ratio(k))}</div>` : `<div class="rp-c empty">${tl('Bàn', 'Table')} ${j + 1}</div>`).join('')}</div>
+    <div class="rp-q">${st.queue.length ? `${tl('Xếp hàng', 'Queue')} ${st.queue.map(k => `<i style="--c:${k.kh[2]};box-shadow:0 0 0 2px ${qratio(k) > .5 ? 'var(--leaf)' : qratio(k) > .25 ? 'var(--turmeric)' : 'var(--chili)'}"></i>`).join('')}` : '&nbsp;'}</div>
+    <div class="rp-bowl"><span class="rp-b">${st.bowl.length ? st.bowl.map(icon).join('') : `<em>${tl('Tô trống', 'Empty bowl')}</em>`}</span>${st.broth ? `<span class="tag broth">${tl('Đã chan', 'Broth in')}</span>` : ''}</div>
     <div class="rp-log">${st.log.slice().reverse().map((l, k) => `<span class="${l.kind}" style="opacity:${1 - k * .25}">${esc(l.txt)}</span>`).join('')}</div>`;
 }
 
 /* ================= 3. Hồ sơ: Thống kê · Ván solo · Lượt bán (của mình hoặc của bất kỳ ai) ================= */
 const fmtNgay = iso => { if(!iso) return ''; const d = new Date(iso);
-  return d.toLocaleDateString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh', day:'2-digit', month:'2-digit', year:'numeric'}) + ' · ' +
-    d.toLocaleTimeString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh', hour:'2-digit', minute:'2-digit'}) };
-const KQ = {thang:{c:'win', s:'+', n:'Thắng'}, thua:{c:'loss', s:'−', n:'Thua'}, hoa:{c:'even', s:'=', n:'Hoà'}};
+  return d.toLocaleDateString(EN ? 'en-GB' : 'vi-VN', {timeZone:'Asia/Ho_Chi_Minh', day:'2-digit', month:'2-digit', year:'numeric'}) + ' · ' +
+    d.toLocaleTimeString(EN ? 'en-GB' : 'vi-VN', {timeZone:'Asia/Ho_Chi_Minh', hour:'2-digit', minute:'2-digit'}) };
+const KQ = {thang:{c:'win', s:'+', n:tl('Thắng', 'Win')}, thua:{c:'loss', s:'−', n:tl('Thua', 'Loss')}, hoa:{c:'even', s:'=', n:tl('Hoà', 'Draw')}};
 const kqIcon = k => `<span class="kq ${KQ[k].c}" role="img" aria-label="${KQ[k].n}">${KQ[k].s}</span>`;
-const LY_DO = {het_tim:'hết tim', diem:'so điểm', roi_tran:'rời trận', bo_cuoc:'bỏ cuộc', ca_hai_roi:'cả hai rời', hoa_thoa_thuan:'đồng ý hoà'};
+const LY_DO = EN ? {het_tim:'out of hearts', diem:'on points', roi_tran:'left the match', bo_cuoc:'resigned', ca_hai_roi:'both left', hoa_thoa_thuan:'agreed draw'}
+  : {het_tim:'hết tim', diem:'so điểm', roi_tran:'rời trận', bo_cuoc:'bỏ cuộc', ca_hai_roi:'cả hai rời', hoa_thoa_thuan:'đồng ý hoà'};
 function soloView(r, uid = user.id){   // một trận nhìn từ phía người chơi uid
   const me = r.a === uid ? 'a' : 'b', o = me === 'a' ? 'b' : 'a';
   const kq = !r.thang ? 'hoa' : r.thang === uid ? 'thang' : 'thua';
@@ -263,31 +268,31 @@ let HS = null;   // hồ sơ đang xem: {uid, who, back, self}
 const chuoiCua = w => { const lit = w.ngay_chuoi === vnDate(), alive = lit || w.ngay_chuoi === vnDate(-1);
   return {n: alive ? w.chuoi || 0 : 0, lit, best: w.chuoi_dai_nhat || 0} };
 async function hoSoScreen(tab = 'stats', uid = null, back = null){
-  if(!ranked || !sb){ toast('Đăng nhập để xem hồ sơ'); return }
+  if(!ranked || !sb){ toast(tl('Đăng nhập để xem hồ sơ', 'Sign in to view profiles')); return }
   rpStop(); xemStop();
   const self = !uid || uid === user.id; uid = self ? user.id : uid;
   nhoMan('hoso', tab, self ? null : uid);
   if(back || !HS || HS.uid !== uid) HS = {uid, self, back: back || home, who: self ? profile : null};
   if(self) HS.who = profile;
   if(!HS.who){
-    openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Hồ sơ</div><button class="link" id="back">Đóng</button></div><div class="empty-state">Đang tải hồ sơ…</div>`);
+    openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${tl('Hồ sơ', 'Profile')}</div><button class="link" id="back">${tl('Đóng', 'Close')}</button></div><div class="empty-state">${tl('Đang tải hồ sơ…', 'Loading profile…')}</div>`);
     $('back').onclick = HS.back;
     const h = HS, {data, error} = await sb.from('profiles').select(PROF_COT).eq('id', uid).maybeSingle();
     if(HS !== h || !$('back')) return;
-    if(!data){ $('ov').querySelector('.empty-state').textContent = error ? 'Không tải được: ' + error.message : 'Không tìm thấy người chơi này.'; return }
+    if(!data){ $('ov').querySelector('.empty-state').textContent = error ? tl('Không tải được: ', 'Could not load: ') + error.message : tl('Không tìm thấy người chơi này.', 'Player not found.'); return }
     h.who = data;
   }
   const w = HS.who;
-  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Hồ sơ${self ? ' của bạn' : ''}</div><button class="link" id="back">Đóng</button></div>
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${self ? tl('Hồ sơ của bạn', 'Your profile') : tl('Hồ sơ', 'Profile')}</div><button class="link" id="back">${tl('Đóng', 'Close')}</button></div>
     <div class="me has-av">${avatarHTML(w.avatar_url, w.ten, 48, 'me-av')}<div class="nm">${self ? '' : `<span class="dot" data-online="${w.id}" ${onlineSet.has(w.id) ? '' : 'hidden'}></span>`}${esc(w.ten)}${self ? '' : ' ' + stBadge(w.id)}</div>
       <div class="sub">${lopKhoaHTML(w)}</div>
-      <div class="pts2"><div><span class="hang-row">${hangLogo(w.diem, 34)}<b>${w.diem ?? 0}</b></span><small id="hsRkD">ĐBK${self && myRank ? ` · #${myRank}` : ''}</small><small>${hangDBK(w.diem).n}</small></div>
-        <div><b>${w.elo ?? 1200}</b><small id="hsRkE">Elo solo</small><small>${eloTitle(w.elo, 1)}</small></div></div></div>
-    ${self ? '' : `<div class="row hs-act"><button type="button" class="btn" id="hsThach" data-thach="${w.id}">Thách đấu</button>
-      <button type="button" class="btn ghost live-btn" id="hsXem" data-xem="${w.id}" hidden><i class="live-dot" aria-hidden="true"></i>Xem trực tiếp</button>
+      <div class="pts2"><div><span class="hang-row">${hangLogo(w.diem, 34)}<b>${w.diem ?? 0}</b></span><small id="hsRkD">${tl('ĐBK', 'BKP')}${self && myRank ? ` · #${myRank}` : ''}</small><small>${hangDBK(w.diem).n}</small></div>
+        <div><b>${w.elo ?? 1200}</b><small id="hsRkE">${tl('Elo solo', 'Solo Elo')}</small><small>${eloTitle(w.elo, 1)}</small></div></div></div>
+    ${self ? '' : `<div class="row hs-act"><button type="button" class="btn" id="hsThach" data-thach="${w.id}">${tl('Thách đấu', 'Challenge')}</button>
+      <button type="button" class="btn ghost live-btn" id="hsXem" data-xem="${w.id}" hidden><i class="live-dot" aria-hidden="true"></i>${tl('Xem trực tiếp', 'Watch live')}</button>
       <span class="kb-row" data-kb-slot="${w.id}">${kbNut(w.id)}</span></div>`}
-    <div class="tabs" role="tablist">${[['stats','Thống kê'],['games','Ván solo'],['runs','Lượt bán']].map(([k, n]) => `<button role="tab" data-t="${k}" aria-selected="${k === tab}">${n}</button>`).join('')}</div>
-    <div class="col" id="hsBody"><div class="empty-state">Đang tải…</div></div>`);
+    <div class="tabs" role="tablist">${[['stats',tl('Thống kê', 'Stats')],['games',tl('Ván solo', 'Solo')],['runs',tl('Lượt bán', 'Runs')]].map(([k, n]) => `<button role="tab" data-t="${k}" aria-selected="${k === tab}">${n}</button>`).join('')}</div>
+    <div class="col" id="hsBody"><div class="empty-state">${tl('Đang tải…', 'Loading…')}</div></div>`);
   $('back').onclick = HS.back;
   hoSoHang(HS);
   const me = () => hoSoScreen(tab, uid);
@@ -306,12 +311,12 @@ async function hoSoScreen(tab = 'stats', uid = null, back = null){
 async function hoSoHang(h){
   const w = h.who, gan = (id, t) => { const el = $(id); if(el && HS === h) el.textContent = t };
   if(!h.hangD) h.hangD = (h.self && myRank) || (await sb.from('bxh_sinh_vien').select('hang').eq('id', h.uid).maybeSingle()).data?.hang || null;
-  if(h.hangD) gan('hsRkD', `ĐBK · hạng #${h.hangD}`);
+  if(h.hangD) gan('hsRkD', tl(`ĐBK · hạng #${h.hangD}`, `BKP · rank #${h.hangD}`));
   if(!h.hangE){ const {data} = await sb.from('profiles').select('id').gt('elo', w.elo ?? 1200).limit(1000); if(data) h.hangE = data.length + 1 }
-  if(h.hangE) gan('hsRkE', `Elo · hạng #${h.hangE}`);
+  if(h.hangE) gan('hsRkE', tl(`Elo · hạng #${h.hangE}`, `Elo · rank #${h.hangE}`));
 }
 const back2 = tab => { const uid = HS.uid; return () => hoSoScreen(tab, uid) };
-const tenHS = () => HS.self ? 'Bạn' : tenNgan(HS.who.ten);
+const tenHS = () => HS.self ? tl('Bạn', 'You') : tenNgan(HS.who.ten);
 async function oppMap(ids){
   if(!ids.length) return new Map();
   const {data} = await sb.from('profiles').select('id,ten,lop,elo,avatar_url').in('id', [...new Set(ids)]);
@@ -324,25 +329,25 @@ async function gamesTab(body, from){
   const {data, error} = await tranCua(uid, 'id,a,b,do_kho,che_do,thang,ly_do,elo_a,elo_b,doi_a,doi_b,ket_thuc,a_doanh_thu,b_doanh_thu,a_tim_mat,b_tim_mat')
     .order('ket_thuc', {ascending:false}).range(from, from + N - 1);
   if(!$('hsBody') || HS !== h) return;
-  if(error){ body.innerHTML = `<div class="empty-state">Không tải được: ${esc(error.message)}</div>`; return }
+  if(error){ body.innerHTML = `<div class="empty-state">${tl('Không tải được', 'Could not load')}: ${esc(error.message)}</div>`; return }
   const rows = (data || []).map(r => soloView(r, uid));
-  if(!rows.length && !from){ body.innerHTML = `<div class="empty-state">${h.self ? 'Bạn chưa đấu trận solo nào. Vào Bảng xếp hạng, bấm tên một bạn để thách đấu.' : `${esc(tenNgan(h.who.ten))} chưa đấu trận solo nào.`}</div>`; return }
+  if(!rows.length && !from){ body.innerHTML = `<div class="empty-state">${h.self ? tl('Bạn chưa đấu trận solo nào. Vào Bảng xếp hạng, bấm tên một bạn để thách đấu.', 'You have not played any solo matches. Open the Leaderboard and tap a name to challenge someone.') : tl(`${esc(tenNgan(h.who.ten))} chưa đấu trận solo nào.`, `${esc(tenNgan(h.who.ten))} has not played any solo matches.`)}</div>`; return }
   const om = await oppMap(rows.map(v => v.opp));
   const {data: bg} = rows.length ? await sb.from('ban_ghi').select('thach_dau_id').in('thach_dau_id', rows.map(v => v.r.id)) : {data: []};
   if(HS !== h) return;
   const coBG = new Set((bg || []).map(x => x.thach_dau_id));
-  const html = rows.map(v => { const p = om.get(v.opp) || {ten:'Người chơi'};
+  const html = rows.map(v => { const p = om.get(v.opp) || {ten:tl('Người chơi', 'Player')};
     return `<button type="button" class="li game" data-id="${v.r.id}">${kqIcon(v.kq)}
       <span class="nm with-av">${avatarHTML(p.avatar_url, p.ten, 34)}<span>${esc(p.ten)}${v.eloOpp != null ? ` <small class="muted">(${v.eloOpp})</small>` : ''}
         <span class="sb">${DIFF[v.r.do_kho].n} · ${CHE_DO[v.r.che_do].n} · ${LY_DO[v.r.ly_do] || ''} · ${fmtNgay(v.r.ket_thuc)}</span></span></span>
-      <span class="pt"><span class="elo-doi">${v.doi > 0 ? '+' : v.doi < 0 ? '−' : '±'}${Math.abs(v.doi)}</span>${coBG.has(v.r.id) ? '<small class="xem">Xem lại ›</small>' : ''}</span></button>` }).join('');
+      <span class="pt"><span class="elo-doi">${v.doi > 0 ? '+' : v.doi < 0 ? '−' : '±'}${Math.abs(v.doi)}</span>${coBG.has(v.r.id) ? `<small class="xem">${tl('Xem lại ›', 'Replay ›')}</small>` : ''}</span></button>` }).join('');
   if(!from) body.innerHTML = `<div class="list games" id="gList"></div>`;
   $('gList').insertAdjacentHTML('beforeend', html);
   body.querySelector('#gMore')?.remove();
-  if(rows.length === N) body.insertAdjacentHTML('beforeend', '<button type="button" class="btn ghost" id="gMore">Xem thêm</button>');
+  if(rows.length === N) body.insertAdjacentHTML('beforeend', `<button type="button" class="btn ghost" id="gMore">${tl('Xem thêm', 'Load more')}</button>`);
   $('gMore') && ($('gMore').onclick = () => gamesTab(body, from + N));
   $('gList').onclick = e => { const b = e.target.closest('[data-id]'); if(!b) return; const v = rows.find(x => x.r.id === +b.dataset.id); if(!v) return;
-    const p = om.get(v.opp) || {ten:'Đối thủ'};
+    const p = om.get(v.opp) || {ten:tl('Đối thủ', 'Opponent')};
     replayScreen({thach_dau: v.r.id, first: uid, back: back2('games'), title: `${tenNgan(h.who.ten)} vs ${tenNgan(p.ten)}`,
       sub: `${KQ[v.kq].n} · ${DIFF[v.r.do_kho].n} · ${CHE_DO[v.r.che_do].n} · ${fmtNgay(v.r.ket_thuc)}`}) };
 }
@@ -351,20 +356,20 @@ async function runsTab(body){
   const {data, error} = await sb.from('runs').select('id,do_kho,trang_thai,so_ngay,doanh_thu,tim_mat,delta,ket_thuc')
     .eq('user_id', h.uid).neq('trang_thai', 'dang_choi').order('ket_thuc', {ascending:false}).limit(50);
   if(!$('hsBody') || HS !== h) return;
-  if(error){ body.innerHTML = `<div class="empty-state">Không tải được: ${esc(error.message)}</div>`; return }
-  if(!data || !data.length){ body.innerHTML = `<div class="empty-state">${h.self ? 'Bạn' : esc(tenNgan(h.who.ten))} chưa có lượt bán nào được tính điểm.</div>`; return }
+  if(error){ body.innerHTML = `<div class="empty-state">${tl('Không tải được', 'Could not load')}: ${esc(error.message)}</div>`; return }
+  if(!data || !data.length){ body.innerHTML = `<div class="empty-state">${tl(`${h.self ? 'Bạn' : esc(tenNgan(h.who.ten))} chưa có lượt bán nào được tính điểm.`, `${h.self ? 'You have' : esc(tenNgan(h.who.ten)) + ' has'} no scored runs yet.`)}</div>`; return }
   const {data: bg} = await sb.from('ban_ghi').select('run_id').in('run_id', data.map(r => r.id));
   if(HS !== h) return;
   const coBG = new Set((bg || []).map(x => x.run_id));
-  body.innerHTML = `<p class="muted">50 lượt gần nhất. Bản ghi để xem lại được giữ cho 50 lượt mới nhất.</p><div class="list games" id="rList">${data.map(r => {
+  body.innerHTML = `<p class="muted">${tl('50 lượt gần nhất. Bản ghi để xem lại được giữ cho 50 lượt mới nhất.', 'Latest 50 runs. Replays are kept for the 50 most recent runs.')}</p><div class="list games" id="rList">${data.map(r => {
     const d = r.delta || 0, k = r.trang_thai === 'bo_cuoc' ? 'thua' : d > 0 ? 'thang' : d < 0 ? 'thua' : 'hoa';
     return `<button type="button" class="li game" data-id="${r.id}" ${coBG.has(r.id) ? '' : 'data-no="1"'}>${kqIcon(k)}
-      <span class="nm"><span>${DIFF[r.do_kho].n} · ${r.trang_thai === 'bo_cuoc' ? 'bỏ dở' : `trụ ${r.so_ngay} ngày`}</span>
-        <span class="sb">${r.doanh_thu || 0}k doanh thu · mất ${r.tim_mat || 0} tim · ${fmtNgay(r.ket_thuc)}</span></span>
-      <span class="pt"><span class="elo-doi">${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d)}</span>${coBG.has(r.id) ? '<small class="xem">Xem lại ›</small>' : ''}</span></button>` }).join('')}</div>`;
-  $('rList').onclick = e => { const b = e.target.closest('[data-id]'); if(!b) return; if(b.dataset.no){ toast('Lượt này không có bản ghi'); return }
+      <span class="nm"><span>${DIFF[r.do_kho].n} · ${r.trang_thai === 'bo_cuoc' ? tl('bỏ dở', 'abandoned') : tl(`trụ ${r.so_ngay} ngày`, `lasted ${r.so_ngay} days`)}</span>
+        <span class="sb">${tl(`${r.doanh_thu || 0}k doanh thu · mất ${r.tim_mat || 0} tim`, `${r.doanh_thu || 0}k revenue · ${r.tim_mat || 0} hearts lost`)} · ${fmtNgay(r.ket_thuc)}</span></span>
+      <span class="pt"><span class="elo-doi">${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d)}</span>${coBG.has(r.id) ? `<small class="xem">${tl('Xem lại ›', 'Replay ›')}</small>` : ''}</span></button>` }).join('')}</div>`;
+  $('rList').onclick = e => { const b = e.target.closest('[data-id]'); if(!b) return; if(b.dataset.no){ toast(tl('Lượt này không có bản ghi', 'No recording for this run')); return }
     const r = data.find(x => x.id === +b.dataset.id);
-    replayScreen({run: r.id, first: h.uid, back: back2('runs'), title: `${h.self ? 'Lượt bán' : tenNgan(h.who.ten) + ' bán'} ${DIFF[r.do_kho].n}`, sub: `${r.so_ngay} ngày · ${r.delta > 0 ? '+' : ''}${r.delta} ĐBK · ${fmtNgay(r.ket_thuc)}`}) };
+    replayScreen({run: r.id, first: h.uid, back: back2('runs'), title: tl(`${h.self ? 'Lượt bán' : tenNgan(h.who.ten) + ' bán'} ${DIFF[r.do_kho].n}`, `${h.self ? 'Your' : tenNgan(h.who.ten) + '\'s'} ${DIFF[r.do_kho].n} run`), sub: `${r.so_ngay} ${tl('ngày', 'days')} · ${r.delta > 0 ? '+' : ''}${r.delta} ${tl('ĐBK', 'BKP')} · ${fmtNgay(r.ket_thuc)}`}) };
 }
 async function statsTab(body){
   const h = HS, w = h.who;
@@ -378,7 +383,7 @@ async function statsTab(body){
   const eloSeries = games.map(g => ({t: g.r.ket_thuc, v: (g.eloTruoc ?? 1200) + g.doi, g}));
   const eloMax = Math.max(1200, w.elo ?? 1200, ...eloSeries.map(x => x.v));
   const theo = md => { const gs = games.filter(g => g.r.che_do === md), x = gs.filter(g => g.kq === 'thang').length;
-    return gs.length ? `${x}/${gs.length} thắng (${Math.round(x / gs.length * 100)}%)` : 'chưa đấu' };
+    return gs.length ? `${x}/${gs.length} ${tl('thắng', 'won')} (${Math.round(x / gs.length * 100)}%)` : tl('chưa đấu', 'none yet') };
   const tot = runs.length, loi = runs.filter(r => (r.delta || 0) > 0).length;
   const avg = tot ? Math.round(runs.reduce((s, r) => s + (r.delta || 0), 0) / tot) : 0;
   const best = runs.reduce((b, r) => !b || (r.delta || 0) > (b.delta || 0) ? r : b, null);
@@ -389,28 +394,28 @@ async function statsTab(body){
       <td>${Math.max(...xs.map(r => r.delta || 0))}</td><td>${Math.max(...xs.map(r => r.so_ngay || 0))}</td></tr>` }).join('');
   body.innerHTML = `
     <section class="card-s"><h3>Solo</h3>
-      <div class="hang-the elo"><div class="hang-tt"><b>${eloTitle(w.elo)}</b><span class="muted">${(() => { const h = hangElo(w.elo); return h.ke ? `Còn <b>${h.ke.tu - (w.elo ?? 1200)}</b> Elo nữa lên ${eloTitle(h.ke.tu)}` : 'Danh hiệu cao nhất' })()}</span></div></div>
-      <div class="tiles"><div class="tile"><span>Elo hiện tại</span><b>${w.elo ?? 1200}</b></div><div class="tile"><span>Elo cao nhất</span><b>${eloMax}</b></div>
-        <div class="tile"><span>Số trận</span><b>${games.length}</b></div></div>
-      ${games.length ? `<div class="wdl" role="img" aria-label="Thắng ${pct(W)}%, hoà ${pct(Dr)}%, thua ${pct(L)}%">
+      <div class="hang-the elo"><div class="hang-tt"><b>${eloTitle(w.elo)}</b><span class="muted">${(() => { const h = hangElo(w.elo); return h.ke ? tl(`Còn <b>${h.ke.tu - (w.elo ?? 1200)}</b> Elo nữa lên ${eloTitle(h.ke.tu)}`, `<b>${h.ke.tu - (w.elo ?? 1200)}</b> more Elo to ${eloTitle(h.ke.tu)}`) : tl('Danh hiệu cao nhất', 'Top title') })()}</span></div></div>
+      <div class="tiles"><div class="tile"><span>${tl('Elo hiện tại', 'Current Elo')}</span><b>${w.elo ?? 1200}</b></div><div class="tile"><span>${tl('Elo cao nhất', 'Peak Elo')}</span><b>${eloMax}</b></div>
+        <div class="tile"><span>${tl('Số trận', 'Matches')}</span><b>${games.length}</b></div></div>
+      ${games.length ? `<div class="wdl" role="img" aria-label="${tl(`Thắng ${pct(W)}%, hoà ${pct(Dr)}%, thua ${pct(L)}%`, `Won ${pct(W)}%, drew ${pct(Dr)}%, lost ${pct(L)}%`)}">
           ${W ? `<i class="win" style="flex:${W}"></i>` : ''}${Dr ? `<i class="even" style="flex:${Dr}"></i>` : ''}${L ? `<i class="loss" style="flex:${L}"></i>` : ''}</div>
-        <div class="wdl-l"><span>${kqIcon('thang')} Thắng <b>${W}</b> · ${pct(W)}%</span><span>${kqIcon('hoa')} Hoà <b>${Dr}</b> · ${pct(Dr)}%</span><span>${kqIcon('thua')} Thua <b>${L}</b> · ${pct(L)}%</span></div>
-        <div class="muted">Sinh tồn: ${theo('sinh_ton')} · Điểm cao: ${theo('diem')}</div>
-        <div class="chart-t">Elo sau mỗi trận <span class="muted">· rê hoặc kéo ngang để xem từng trận</span></div><div class="chart" id="cElo"></div>` : '<p class="muted">Chưa có trận solo nào.</p>'}
+        <div class="wdl-l"><span>${kqIcon('thang')} ${KQ.thang.n} <b>${W}</b> · ${pct(W)}%</span><span>${kqIcon('hoa')} ${KQ.hoa.n} <b>${Dr}</b> · ${pct(Dr)}%</span><span>${kqIcon('thua')} ${KQ.thua.n} <b>${L}</b> · ${pct(L)}%</span></div>
+        <div class="muted">${CHE_DO.sinh_ton.n}: ${theo('sinh_ton')} · ${CHE_DO.diem.n}: ${theo('diem')}</div>
+        <div class="chart-t">${tl('Elo sau mỗi trận', 'Elo after each match')} <span class="muted">${tl('· rê hoặc kéo ngang để xem từng trận', '· hover or drag to see each match')}</span></div><div class="chart" id="cElo"></div>` : `<p class="muted">${tl('Chưa có trận solo nào.', 'No solo matches yet.')}</p>`}
     </section>
-    <section class="card-s"><h3>Mở quán (chế độ thường)</h3>
+    <section class="card-s"><h3>${tl('Mở quán (chế độ thường)', 'Shop runs (normal mode)')}</h3>
       ${hangTheDBK(w.diem)}
-      <div class="tiles"><div class="tile"><span>ĐBK hiện có</span><b>${w.diem}</b></div><div class="tile"><span>Số lượt</span><b>${tot}</b></div>
-        <div class="tile"><span>TB mỗi lượt</span><b>${avg > 0 ? '+' : avg < 0 ? '−' : ''}${Math.abs(avg)}</b></div>
-        <div class="tile"><span>Lượt có lời</span><b>${tot ? Math.round(loi / tot * 100) : 0}%</b></div>
-        <div class="tile"><span>Trụ lâu nhất</span><b>${dai} ngày</b></div>
-        <div class="tile"><span>Lượt tốt nhất</span><b>${best ? (best.delta > 0 ? '+' : '') + best.delta : '—'}</b></div></div>
-      <div class="streak-pill ${st.lit ? 'on' : ''}">${flameSVG(st.lit)}<b>${st.n}</b><span>ngày liên tiếp hiện tại · dài nhất <b>${w.chuoi_dai_nhat || st.best || 0}</b> ngày</span></div>
-      ${tot ? `<div class="chart-t">ĐBK từng lượt (${Math.min(tot, 40)} lượt gần nhất) <span class="muted">· rê hoặc kéo ngang để xem từng lượt</span></div><div class="chart" id="cRuns"></div>
-        <div style="overflow-x:auto"><table class="tb"><tr><th>Độ khó</th><th>Số lượt</th><th>TB ĐBK</th><th>Tốt nhất</th><th>Trụ lâu nhất</th></tr>${byDiff}</table></div>` : '<p class="muted">Chưa có lượt bán nào được tính điểm.</p>'}
+      <div class="tiles"><div class="tile"><span>${tl('ĐBK hiện có', 'Total BKP')}</span><b>${w.diem}</b></div><div class="tile"><span>${tl('Số lượt', 'Runs')}</span><b>${tot}</b></div>
+        <div class="tile"><span>${tl('TB mỗi lượt', 'Avg per run')}</span><b>${avg > 0 ? '+' : avg < 0 ? '−' : ''}${Math.abs(avg)}</b></div>
+        <div class="tile"><span>${tl('Lượt có lời', 'Profitable runs')}</span><b>${tot ? Math.round(loi / tot * 100) : 0}%</b></div>
+        <div class="tile"><span>${tl('Trụ lâu nhất', 'Longest run')}</span><b>${dai} ${tl('ngày', 'days')}</b></div>
+        <div class="tile"><span>${tl('Lượt tốt nhất', 'Best run')}</span><b>${best ? (best.delta > 0 ? '+' : '') + best.delta : '—'}</b></div></div>
+      <div class="streak-pill ${st.lit ? 'on' : ''}">${flameSVG(st.lit)}<b>${st.n}</b><span>${tl(`ngày liên tiếp hiện tại · dài nhất <b>${w.chuoi_dai_nhat || st.best || 0}</b> ngày`, `day streak now · longest <b>${w.chuoi_dai_nhat || st.best || 0}</b> days`)}</span></div>
+      ${tot ? `<div class="chart-t">${tl(`ĐBK từng lượt (${Math.min(tot, 40)} lượt gần nhất)`, `BKP per run (last ${Math.min(tot, 40)})`)} <span class="muted">${tl('· rê hoặc kéo ngang để xem từng lượt', '· hover or drag to see each run')}</span></div><div class="chart" id="cRuns"></div>
+        <div style="overflow-x:auto"><table class="tb"><tr><th>${tl('Độ khó', 'Difficulty')}</th><th>${tl('Số lượt', 'Runs')}</th><th>${tl('TB ĐBK', 'Avg BKP')}</th><th>${tl('Tốt nhất', 'Best')}</th><th>${tl('Trụ lâu nhất', 'Longest')}</th></tr>${byDiff}</table></div>` : `<p class="muted">${tl('Chưa có lượt bán nào được tính điểm.', 'No scored runs yet.')}</p>`}
     </section>`;
-  if(games.length) lineChart($('cElo'), eloSeries.map((x, k) => ({x:k, y:x.v, tip:`Trận ${k + 1} · ${KQ[x.g.kq].n} · ${x.g.doi > 0 ? '+' : ''}${x.g.doi} → <b>${x.v}</b><br>${fmtNgay(x.t)}`})));
-  if(tot) barChart($('cRuns'), runs.slice(-40).map(r => ({y:r.delta || 0, tip:`${DIFF[r.do_kho].n} · ${r.trang_thai === 'bo_cuoc' ? 'bỏ dở' : r.so_ngay + ' ngày'} · <b>${(r.delta || 0) > 0 ? '+' : ''}${r.delta || 0} ĐBK</b><br>${fmtNgay(r.ket_thuc)}`})));
+  if(games.length) lineChart($('cElo'), eloSeries.map((x, k) => ({x:k, y:x.v, tip:`${tl('Trận', 'Match')} ${k + 1} · ${KQ[x.g.kq].n} · ${x.g.doi > 0 ? '+' : ''}${x.g.doi} → <b>${x.v}</b><br>${fmtNgay(x.t)}`})));
+  if(tot) barChart($('cRuns'), runs.slice(-40).map(r => ({y:r.delta || 0, tip:`${DIFF[r.do_kho].n} · ${r.trang_thai === 'bo_cuoc' ? tl('bỏ dở', 'abandoned') : r.so_ngay + tl(' ngày', ' days')} · <b>${(r.delta || 0) > 0 ? '+' : ''}${r.delta || 0} ${tl('ĐBK', 'BKP')}</b><br>${fmtNgay(r.ket_thuc)}`})));
 }
 
 /* ================= 4. Xem trực tiếp =================
@@ -460,15 +465,15 @@ function xemStop(){
 }
 function xemHello(p){ try{ p.ch.send({type:'broadcast', event:'hello', payload:{have: p.ev.length, by: user && user.id}}) }catch(e){} }
 async function watchScreen(uid, back){
-  if(!ranked || !sb || !user){ toast('Đăng nhập để xem trực tiếp'); return }
+  if(!ranked || !sb || !user){ toast(tl('Đăng nhập để xem trực tiếp', 'Sign in to watch live')); return }
   if(uid === user.id) return;
   rpStop(); xemStop(); nhoMan('xem', uid);
   const x = XEM = {uid, back: back || home, ps: new Map(), order: [], idle: false, endShown: false};
-  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow"><span class="live-tag"><i class="live-dot" aria-hidden="true"></i>Trực tiếp</span> <span id="xEye"></span></div><button class="link" id="back">Đóng</button></div>
-    <h2 id="xTitle">Đang kết nối…</h2><p class="muted" id="xSub">Đang chờ quán của bạn ấy gửi tình hình.</p>
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow"><span class="live-tag"><i class="live-dot" aria-hidden="true"></i>${tl('Trực tiếp', 'Live')}</span> <span id="xEye"></span></div><button class="link" id="back">${tl('Đóng', 'Close')}</button></div>
+    <h2 id="xTitle">${tl('Đang kết nối…', 'Connecting…')}</h2><p class="muted" id="xSub">${tl('Đang chờ quán của bạn ấy gửi tình hình.', 'Waiting for their shop to send an update.')}</p>
     <div class="rp-stage n1" id="xStage"><div class="rp-view" id="rpv0"></div></div>
     <div id="xEnd" aria-live="polite"></div>
-    <div class="eyebrow">Diễn biến mới nhất</div><div class="list rp-moves" id="xMoves"></div>`);
+    <div class="eyebrow">${tl('Diễn biến mới nhất', 'Latest events')}</div><div class="list rp-moves" id="xMoves"></div>`);
   $('back').onclick = () => { xemStop(); x.back() };
   $('xStage').onclick = e => { const b = e.target.closest('[data-hs]'); if(b && b.dataset.hs){ xemStop(); hoSoScreen('stats', b.dataset.hs, () => watchScreen(uid, x.back)) } };
   await xemJoin(uid);
@@ -479,7 +484,7 @@ async function watchScreen(uid, back){
 }
 async function xemJoin(id){
   const x = XEM; if(!x || x.ps.has(id)) return;
-  const p = {id, ten: lbPeople.get(id)?.ten || 'Người chơi', av: lbPeople.get(id)?.avatar_url, ev: [], st: rpNew(), m: null, el: 0, at: 0, ket: null};
+  const p = {id, ten: lbPeople.get(id)?.ten || tl('Người chơi', 'Player'), av: lbPeople.get(id)?.avatar_url, ev: [], st: rpNew(), m: null, el: 0, at: 0, ket: null};
   x.ps.set(id, p); x.order.push(id);
   p.ch = sb.channel('xem:' + id, {config:{broadcast:{self:false}}})
     .on('broadcast', {event:'ev'}, ({payload}) => xemEv(x, p, payload))
@@ -515,15 +520,15 @@ function xemHead(x){
     stg.className = 'rp-stage n' + x.order.length; stg.innerHTML = x.order.map((k, i) => `<div class="rp-view" id="rpv${i}"></div>`).join('') }
   if(!p.m) { t.textContent = p.ten; return }
   const o = p.m.opp && x.ps.get(p.m.opp);
-  t.textContent = p.m.kind === 'solo' ? `${tenNgan(p.ten)} vs ${o ? tenNgan(o.ten) : 'đối thủ'}` : `${p.ten} đang bán`;
-  sub.textContent = p.m.kind === 'solo' ? `Solo · ${DIFF[p.m.diff]?.n || ''} · ${CHE_DO[p.m.md]?.n || ''}` : `Chế độ thường · ${DIFF[p.m.diff]?.n || ''}`;
+  t.textContent = p.m.kind === 'solo' ? `${tenNgan(p.ten)} vs ${o ? tenNgan(o.ten) : tl('đối thủ', 'opponent')}` : tl(`${p.ten} đang bán`, `${p.ten} is selling`);
+  sub.textContent = p.m.kind === 'solo' ? `Solo · ${DIFF[p.m.diff]?.n || ''} · ${CHE_DO[p.m.md]?.n || ''}` : `${tl('Chế độ thường', 'Normal mode')} · ${DIFF[p.m.diff]?.n || ''}`;
 }
 function xemIdle(x, st){
   if(XEM !== x) return; x.idle = true;
   const p = x.ps.get(x.uid);
   $('xTitle').textContent = p.ten;
-  $('xSub').textContent = st === 'ranh' ? `${tenNgan(p.ten)} đang không bán, bạn có thể thách đấu ngay.`
-    : `Chưa nhận được gì từ quán của ${tenNgan(p.ten)}. Có thể bạn ấy vừa tắt game hoặc đang dùng bản cũ.`;
+  $('xSub').textContent = st === 'ranh' ? tl(`${tenNgan(p.ten)} đang không bán, bạn có thể thách đấu ngay.`, `${tenNgan(p.ten)} is not selling right now, you can challenge them.`)
+    : tl(`Chưa nhận được gì từ quán của ${tenNgan(p.ten)}. Có thể bạn ấy vừa tắt game hoặc đang dùng bản cũ.`, `Nothing received from ${tenNgan(p.ten)}'s shop. They may have closed the game or be on an old version.`);
   xemEnd(x, null);
 }
 function xemFrame(){
@@ -535,7 +540,7 @@ function xemFrame(){
     while(p.st.i < p.ev.length && p.ev[p.st.i][0] <= T) rpApply(p.st, p.ev[p.st.i++]);
     rpDraw(p, i, Math.min(T, p.st.ended ? p.ev[p.ev.length - 1][0] : T)) });
   const p = x.ps.get(x.uid), eye = $('xEye');
-  if(eye) eye.textContent = p && p.m && p.at && now - p.at > 15000 ? '· mất tín hiệu' : '';
+  if(eye) eye.textContent = p && p.m && p.at && now - p.at > 15000 ? tl('· mất tín hiệu', '· signal lost') : '';
   if(p && p.m && !x.endShown){
     const o = p.m.opp && x.ps.get(p.m.opp), ket = p.ket || (o && o.ket);
     if(p.m.kind === 'solo' ? ket : p.st.ended && (ket || now - (p.endAt ||= now) > 12000)) xemEnd(x, ket);
@@ -546,29 +551,29 @@ function xemFrame(){
 function xemEnd(x, ket){
   x.endShown = true;
   const p = x.ps.get(x.uid), box = $('xEnd'); if(!box) return;
-  const nut = id => { const q = x.ps.get(id); return q ? `<button type="button" class="btn${id === x.uid ? '' : ' ghost'}" data-thach-xem="${id}">Thách đấu ${esc(tenNgan(q.ten))}</button>` : '' };
+  const nut = id => { const q = x.ps.get(id); return q ? `<button type="button" class="btn${id === x.uid ? '' : ' ghost'}" data-thach-xem="${id}">${tl('Thách đấu', 'Challenge')} ${esc(tenNgan(q.ten))}</button>` : '' };
   let html = '';
   if(p.m && p.m.kind === 'solo' && ket){
-    const r = ket, o = x.ps.get(p.m.opp), ten = id => esc(tenNgan((x.ps.get(id) || {}).ten || 'Đối thủ'));
-    const kq = !r.thang ? 'Hoà' : `${ten(r.thang)} thắng`;
+    const r = ket, o = x.ps.get(p.m.opp), ten = id => esc(tenNgan((x.ps.get(id) || {}).ten || tl('Đối thủ', 'Opponent')));
+    const kq = !r.thang ? tl('Hoà', 'Draw') : `${ten(r.thang)} ${tl('thắng', 'wins')}`;
     const dm = id => { const s = r.a === id ? 'a' : 'b'; const d = r['doi_' + s] || 0; return `${ten(id)} ${d > 0 ? '+' : d < 0 ? '−' : '±'}${Math.abs(d)} Elo` };
     html = `<div class="xem-ket"><b>${kq}</b> · ${LY_DO[r.ly_do] || ''}<br><span class="muted">${dm(r.a)} · ${dm(r.b)}</span></div>
-      <div class="col grow">${nut(x.uid)}${o ? nut(o.id) : ''}<button type="button" class="btn ghost" id="xReplay">Xem lại trận</button></div>`;
+      <div class="col grow">${nut(x.uid)}${o ? nut(o.id) : ''}<button type="button" class="btn ghost" id="xReplay">${tl('Xem lại trận', 'Replay match')}</button></div>`;
   } else if(p.m && p.st.ended){
     const cash = ket ? ket.cash : p.ev[p.ev.length - 1][5];
-    html = `<div class="xem-ket"><b>${esc(tenNgan(p.ten))} ${cash ? 'đã chốt sổ' : 'đã đóng quán'}</b> sau ${p.st.day || 1} ngày · ${p.st.total}k doanh thu${ket && ket.delta != null ? ` · ${ket.delta > 0 ? '+' : ''}${ket.delta} ĐBK` : ''}</div>
+    html = `<div class="xem-ket"><b>${esc(tenNgan(p.ten))} ${cash ? tl('đã chốt sổ', 'cashed out') : tl('đã đóng quán', 'closed the shop')}</b> ${tl(`sau ${p.st.day || 1} ngày · ${p.st.total}k doanh thu`, `after ${p.st.day || 1} days · ${p.st.total}k revenue`)}${ket && ket.delta != null ? ` · ${ket.delta > 0 ? '+' : ''}${ket.delta} ${tl('ĐBK', 'BKP')}` : ''}</div>
       <div class="col grow">${nut(x.uid)}</div>`;
   } else {
     html = `<div class="col grow">${nut(x.uid)}</div>`;
   }
-  box.innerHTML = html + `<button type="button" class="link" id="xHoSo">Xem hồ sơ ${esc(tenNgan(p.ten))}</button>`;
+  box.innerHTML = html + `<button type="button" class="link" id="xHoSo">${tl('Xem hồ sơ', 'View profile:')} ${esc(tenNgan(p.ten))}</button>`;
   box.querySelectorAll('[data-thach-xem]').forEach(b => b.onclick = () => {
     const id = b.dataset.thachXem, q = x.ps.get(id);
-    if(onlineSt.get(id) === 'solo'){ toast(`${tenNgan(q.ten)} vẫn đang trong trận`); return }
+    if(onlineSt.get(id) === 'solo'){ toast(tl(`${tenNgan(q.ten)} vẫn đang trong trận`, `${tenNgan(q.ten)} is still in a match`)); return }
     xemStop(); challengeScreen(q.prof || lbPeople.get(id) || {id, ten: q.ten, avatar_url: q.av}, x.back) });
   $('xHoSo').onclick = () => { xemStop(); hoSoScreen('stats', x.uid, x.back) };
   if($('xReplay')) $('xReplay').onclick = () => { const id = ket.id; xemStop();
-    replayScreen({thach_dau: id, first: x.uid, back: x.back, title: $('xTitle')?.textContent || 'Xem lại', sub: 'Trận vừa xong'}) };
+    replayScreen({thach_dau: id, first: x.uid, back: x.back, title: $('xTitle')?.textContent || tl('Xem lại', 'Replay'), sub: tl('Trận vừa xong', 'Just finished')}) };
   if(ket) lockButtons(box, 700);
 }
 
@@ -594,7 +599,7 @@ function lineChart(host, pts){
   const ys = pts.map(p => p.y), lo = Math.min(...ys, 1200) - 10, hi = Math.max(...ys, 1200) + 10;
   const X = k => P.l + (pts.length < 2 ? (W - P.l - P.r) / 2 : k / (pts.length - 1) * (W - P.l - P.r)), Y = v => P.t + (hi - v) / (hi - lo) * (H - P.t - P.b);
   const ticks = [lo + 10, Math.round((lo + hi) / 2), hi - 10];
-  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Elo từ ${ys[0]} đến ${ys[ys.length - 1]} qua ${pts.length} trận. Dùng phím mũi tên để xem từng trận.">
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${tl(`Elo từ ${ys[0]} đến ${ys[ys.length - 1]} qua ${pts.length} trận. Dùng phím mũi tên để xem từng trận.`, `Elo from ${ys[0]} to ${ys[ys.length - 1]} over ${pts.length} matches. Use arrow keys to step through.`)}">
     ${ticks.map(v => `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" class="grid"/><text x="${P.l - 6}" y="${Y(v) + 4}" class="ax" text-anchor="end">${Math.round(v)}</text>`).join('')}
     <polyline points="${pts.map((p, k) => `${X(k)},${Y(p.y)}`).join(' ')}" class="ln"/>
     <line class="xh" y1="${P.t}" y2="${H - P.b}" x1="-9" x2="-9"/><circle class="dot hov" r="5" cx="-9" cy="-9"/></svg>`;
@@ -610,7 +615,7 @@ function barChart(host, bars){
     return v > 0 ? `M${x},${y0}V${y + rr}Q${x},${y} ${x + rr},${y}H${x + w - rr}Q${x + w},${y} ${x + w},${y + rr}V${y0}Z`
                  : `M${x},${y0}V${y - rr}Q${x},${y} ${x + rr},${y}H${x + w - rr}Q${x + w},${y} ${x + w},${y - rr}V${y0}Z` };
   const cx = k => P.l + k * bw + w / 2;
-  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="ĐBK của ${bars.length} lượt gần nhất. Dùng phím mũi tên để xem từng lượt.">
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${tl(`ĐBK của ${bars.length} lượt gần nhất. Dùng phím mũi tên để xem từng lượt.`, `BKP of the last ${bars.length} runs. Use arrow keys to step through.`)}">
     <line class="xh" y1="${P.t}" y2="${H - P.b}" x1="-9" x2="-9"/>
     <text x="${P.l - 6}" y="${Y(m) + 8}" class="ax" text-anchor="end">+${m}</text><text x="${P.l - 6}" y="${Y(-m)}" class="ax" text-anchor="end">−${m}</text>
     <line x1="${P.l}" x2="${W - P.r}" y1="${y0}" y2="${y0}" class="base"/><text x="${P.l - 6}" y="${y0 + 4}" class="ax" text-anchor="end">0</text>

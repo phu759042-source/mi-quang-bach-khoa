@@ -82,11 +82,19 @@ const sfx={
   // thua: kèn "wah wah wah waaah" đi xuống
   lose(){[[392,370],[370,349],[349,330]].forEach(([a,b],i)=>tone(a,.32,{to:b,type:'sawtooth',vol:.07,at:i*.36,attack:.02}));
     tone(330,1,{to:220,type:'sawtooth',vol:.08,at:1.08,attack:.02});tone(165,1,{to:110,type:'triangle',vol:.12,at:1.08})},
-  draw(){tone(660,.25,{type:'triangle',vol:.15});tone(660,.4,{type:'triangle',vol:.15,at:.28})}
+  draw(){tone(660,.25,{type:'triangle',vol:.15});tone(660,.4,{type:'triangle',vol:.15,at:.28})},
+  // lên hạng / danh hiệu mới (bản 2.19.0): tiếng vút lên, trống, kèn hiệu đi lên rồi chuông lấp lánh
+  rankUp(){noise(.7,{type:'bandpass',f:400,to:3200,q:2,vol:.2,attack:.5});
+    [0,.12].forEach(t=>tone(110,.25,{to:55,vol:.35,at:.62+t}));
+    [523,659,784].forEach((f,i)=>tone(f,.16,{type:'triangle',vol:.2,at:.7+i*.12}));
+    [1046,1318,1568,2093].forEach(f=>tone(f,1.2,{type:'triangle',vol:.1,at:1.06}));
+    for(let i=0;i<10;i++) tone(2400+Math.random()*2600,.14,{type:'triangle',vol:.05,at:1.1+i*.08})},
+  // xuống hạng: hai nốt trượt xuống, nhẹ, không quá buồn
+  rankDown(){tone(523,.35,{to:440,type:'triangle',vol:.16});tone(440,.6,{to:330,type:'triangle',vol:.14,at:.32});tone(196,.7,{type:'sine',vol:.1,at:.32})}
 };
 function setSound(on){SFX.on=on;try{localStorage.setItem('mqbk-sound',on?'on':'off')}catch(e){}
   if(on){ac();tone(880,.08,{vol:.15})}
-  document.querySelectorAll('.snd').forEach(b=>{b.setAttribute('aria-pressed',on);b.innerHTML=sndIcon(on)+(b.dataset.label?`<span>${on?'Âm thanh: bật':'Âm thanh: tắt'}</span>`:'')})}
+  document.querySelectorAll('.snd').forEach(b=>{b.setAttribute('aria-pressed',on);b.innerHTML=sndIcon(on)+(b.dataset.label?`<span>${on?tl('Âm thanh: bật','Sound: on'):tl('Âm thanh: tắt','Sound: off')}</span>`:'')})}
 const sndIcon=on=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/>${on?'<path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>':'<path d="M17 9l5 6M22 9l-5 6"/>'}</svg>`;
-const soundBtn=(label)=>`<button type="button" class="snd${label?' snd-l':''}" ${label?'data-label="1"':''} aria-pressed="${SFX.on}" aria-label="Bật hoặc tắt âm thanh">${sndIcon(SFX.on)}${label?`<span>${SFX.on?'Âm thanh: bật':'Âm thanh: tắt'}</span>`:''}</button>`;
+const soundBtn=(label)=>`<button type="button" class="snd${label?' snd-l':''}" ${label?'data-label="1"':''} aria-pressed="${SFX.on}" aria-label="${tl('Bật hoặc tắt âm thanh','Toggle sound')}">${sndIcon(SFX.on)}${label?`<span>${SFX.on?tl('Âm thanh: bật','Sound: on'):tl('Âm thanh: tắt','Sound: off')}</span>`:''}</button>`;
 document.addEventListener('click',e=>{if(e.target.closest('.snd'))setSound(!SFX.on)});

@@ -21,7 +21,7 @@ async function submitPending(p){
   if(!res.error){clearPending();memPending=null;return res}
   if(isNetErr(res.error)) return res;              // giữ lại để nộp sau
   clearPending();memPending=null;                  // lỗi từ server: không thử lại nữa
-  if(/đã nộp/.test(res.error.message)){await loadProfile();return {data:{delta:null,diem:profile?.diem??0,hang:myRank}}}
+  if(/đã nộp/.test(res.error.vi||res.error.message)){await loadProfile();return {data:{delta:null,diem:profile?.diem??0,hang:myRank}}}
   return res;
 }
 // Nộp kết quả còn treo trước khi mở lượt mới, để lượt cũ không bị tính là bỏ dở

@@ -36,20 +36,20 @@ async function resumeRun(){
   }
   runId=r.runId; diff=DIFF[r.diff]?r.diff:'thuong'; S=r.S; S.lost=S.lost||0; S.bought=S.bought||0; midRun=true; running=false;
   D=mkD(r.D); REC=r.rec||null; rec('Y');
-  if(r.phase==='shop'){showShop();toast('Quán vẫn đang mở, bán tiếp nhé');return true}
+  if(r.phase==='shop'){showShop();toast(tl('Quán vẫn đang mở, bán tiếp nhé','Your shop is still open, keep selling'));return true}
   if(S.rep<=0){reviveScreen();return true}
   resumeScreen(); return true;
 }
 function resumeScreen(){
   runPhase='day';
-  openOv(`<div class="eyebrow">${DIFF[diff].n} · Ngày ${S.day}</div><h2>Quán đang mở dở</h2>
-    <p>Trang vừa tải lại nhưng quán vẫn giữ nguyên, kể cả nâng cấp đã mua. Khách đang chờ lúc tải lại đã về, nên bạn không bị mất tim vì họ.</p>
-    <div class="sum"><span>Giờ bán còn lại</span><b>${Math.ceil(D.t)} giây</b><span>Hôm nay đã bán</span><b>${D.earned}/${target(S.day)}k</b>
-      <span>Uy tín</span><b>${S.rep} tim</b><span>Tiền trong két</span><b>${S.money}k</b></div>
-    <div class="col grow"><button class="btn" id="go">Bán tiếp · 3</button>
-      <button class="btn ghost" id="close">Đóng quán</button></div>`);
+  openOv(`<div class="eyebrow">${DIFF[diff].n} · ${tl('Ngày','Day')} ${S.day}</div><h2>${tl('Quán đang mở dở','Shop still open')}</h2>
+    <p>${tl('Trang vừa tải lại nhưng quán vẫn giữ nguyên, kể cả nâng cấp đã mua. Khách đang chờ lúc tải lại đã về, nên bạn không bị mất tim vì họ.','The page reloaded but your shop is intact, upgrades included. Customers who were waiting have left, and you do not lose hearts for them.')}</p>
+    <div class="sum"><span>${tl('Giờ bán còn lại','Time left today')}</span><b>${Math.ceil(D.t)} ${tl('giây','s')}</b><span>${tl('Hôm nay đã bán','Sold today')}</span><b>${D.earned}/${target(S.day)}k</b>
+      <span>${tl('Uy tín','Reputation')}</span><b>${S.rep} ${tl('tim','hearts')}</b><span>${tl('Tiền trong két','Money in the till')}</span><b>${S.money}k</b></div>
+    <div class="col grow"><button class="btn" id="go">${tl('Bán tiếp','Keep selling')} · 3</button>
+      <button class="btn ghost" id="close">${tl('Đóng quán','Close shop')}</button></div>`);
   let k=3; const go=()=>{clearInterval(cd);sfx.cash(true);resumeDay()};
-  const cd=setInterval(()=>{k--;const b=$('go');if(!b){clearInterval(cd);return} if(k<=0)go(); else b.textContent='Bán tiếp · '+k},1000);
+  const cd=setInterval(()=>{k--;const b=$('go');if(!b){clearInterval(cd);return} if(k<=0)go(); else b.textContent=tl('Bán tiếp · ','Keep selling · ')+k},1000);
   $('go').onclick=go;
   $('close').onclick=()=>{clearInterval(cd);closeShopConfirm(resumeScreen)};
 }
@@ -57,8 +57,8 @@ const PAUSE_ICON='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true
 const FLAG_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>';
 function setPauseBtn(){
   const s=$('pauseSlot'); if(!s) return;
-  s.innerHTML=solo?`<button type="button" class="pz" id="pauseBtn" aria-label="Bỏ cuộc hoặc xin hoà">${FLAG_ICON}<span>Bỏ cuộc · Hoà</span></button>`
-    :`<button type="button" class="pz" id="pauseBtn" aria-label="Tạm dừng hoặc đóng quán">${PAUSE_ICON}<span>Tạm dừng</span></button>`;
+  s.innerHTML=solo?`<button type="button" class="pz" id="pauseBtn" aria-label="${tl('Bỏ cuộc hoặc xin hoà','Resign or offer a draw')}">${FLAG_ICON}<span>${tl('Bỏ cuộc · Hoà','Resign · Draw')}</span></button>`
+    :`<button type="button" class="pz" id="pauseBtn" aria-label="${tl('Tạm dừng hoặc đóng quán','Pause or close shop')}">${PAUSE_ICON}<span>${tl('Tạm dừng','Pause')}</span></button>`;
   $('pauseBtn').onclick=()=>solo?soloMenu():pauseMenu();
 }
 document.addEventListener('keydown',e=>{if((e.key==='Escape'||e.key==='p'||e.key==='P')&&running&&!/input|select|textarea/i.test(e.target.tagName)){e.preventDefault();solo?soloMenu():pauseMenu()}});
@@ -66,10 +66,10 @@ document.addEventListener('keydown',e=>{if((e.key==='Escape'||e.key==='p'||e.key
 function pauseMenu(){
   if(!running||solo) return;
   running=false; rec('Z'); saveRun('day'); sfx.remove();
-  openOv(`<div class="eyebrow">Tạm dừng · ${DIFF[diff].n} · Ngày ${S.day} · còn ${Math.ceil(D.t)} giây</div><h2>Quán đang tạm nghỉ</h2>
-    <p>Đồng hồ đang dừng. Khách vẫn ngồi chờ, bán tiếp thì họ được nghỉ thêm một nhịp.</p>
-    <div class="sum"><span>Hôm nay đã bán</span><b>${D.earned}/${target(S.day)}k</b><span>Uy tín</span><b>${S.rep} tim</b><span>Tổng doanh thu</span><b>${S.total}k</b></div>
-    <div class="col grow"><button class="btn" id="go">Bán tiếp</button><button class="btn ghost" id="close">Đóng quán</button></div>`);
+  openOv(`<div class="eyebrow">${tl('Tạm dừng','Paused')} · ${DIFF[diff].n} · ${tl('Ngày','Day')} ${S.day} · ${tl(`còn ${Math.ceil(D.t)} giây`,`${Math.ceil(D.t)}s left`)}</div><h2>${tl('Quán đang tạm nghỉ','Shop on a break')}</h2>
+    <p>${tl('Đồng hồ đang dừng. Khách vẫn ngồi chờ, bán tiếp thì họ được nghỉ thêm một nhịp.','The clock is stopped. Customers are still waiting and get a short breather when you resume.')}</p>
+    <div class="sum"><span>${tl('Hôm nay đã bán','Sold today')}</span><b>${D.earned}/${target(S.day)}k</b><span>${tl('Uy tín','Reputation')}</span><b>${S.rep} ${tl('tim','hearts')}</b><span>${tl('Tổng doanh thu','Total revenue')}</span><b>${S.total}k</b></div>
+    <div class="col grow"><button class="btn" id="go">${tl('Bán tiếp','Keep selling')}</button><button class="btn ghost" id="close">${tl('Đóng quán','Close shop')}</button></div>`);
   lockButtons($('ov'),500);
   $('go').onclick=resumeDay; $('close').onclick=()=>closeShopConfirm(pauseMenu2);
 }
@@ -77,36 +77,36 @@ function pauseMenu2(){running=true;pauseMenu()}
 // Đóng quán giữa ngày: tim còn lại tính là mất hết
 function closeShopConfirm(back){
   const hs=DIFF[diff].hs, con=S.rep, mat=(S.lost||0)+con, thuong=Math.round(S.total*hs/10), tru=Math.round(mat*15*hs**2), tong=thuong-tru;
-  openOv(`<div class="eyebrow">Đóng quán · ${DIFF[diff].n} · Ngày ${S.day}</div><h2>Đóng quán giữa chừng?</h2>
-    <p>Lượt chơi kết thúc ngay. <b>${con} tim còn lại sẽ bị tính là mất hết</b>${S.lost?`, cộng với ${S.lost} tim đã mất trước đó`:''}.</p>
-    <div class="sum"><span>Doanh thu đến giờ</span><b>${S.total}k</b><span>Tim bị tính là mất</span><b>${mat}</b>
-      <span>Thưởng (${S.total}k × ${hs} ÷ 10)</span><b>+${thuong}</b><span>Phạt (${mat} tim × ${phat(diff)})</span><b>−${tru}</b>
-      <span>${ranked?'ĐBK của lượt này':'Nếu có tài khoản'}</span><b style="color:${tong>=0?'var(--leaf)':'var(--chili)'}">${tong>=0?'+':'−'}${Math.abs(tong)}</b></div>
-    ${ranked?'':'<p class="muted">Lượt chơi thử không tính điểm.</p>'}
-    <div class="col grow"><button class="btn" id="back">Quay lại bán</button><button class="btn ghost" id="ok">Đóng quán, mất ${con} tim còn lại</button></div>`);
+  openOv(`<div class="eyebrow">${tl('Đóng quán','Close shop')} · ${DIFF[diff].n} · ${tl('Ngày','Day')} ${S.day}</div><h2>${tl('Đóng quán giữa chừng?','Close the shop now?')}</h2>
+    <p>${tl(`Lượt chơi kết thúc ngay. <b>${con} tim còn lại sẽ bị tính là mất hết</b>${S.lost?`, cộng với ${S.lost} tim đã mất trước đó`:''}.`,`The run ends right away. <b>Your ${con} remaining hearts count as lost</b>${S.lost?`, plus ${S.lost} lost earlier`:''}.`)}</p>
+    <div class="sum"><span>${tl('Doanh thu đến giờ','Revenue so far')}</span><b>${S.total}k</b><span>${tl('Tim bị tính là mất','Hearts counted as lost')}</span><b>${mat}</b>
+      <span>${tl('Thưởng','Bonus')} (${S.total}k × ${hs} ÷ 10)</span><b>+${thuong}</b><span>${tl('Phạt','Penalty')} (${mat} ${tl('tim','hearts')} × ${phat(diff)})</span><b>−${tru}</b>
+      <span>${ranked?tl('ĐBK của lượt này','BKP for this run'):tl('Nếu có tài khoản','With an account')}</span><b style="color:${tong>=0?'var(--leaf)':'var(--chili)'}">${tong>=0?'+':'−'}${Math.abs(tong)}</b></div>
+    ${ranked?'':`<p class="muted">${tl('Lượt chơi thử không tính điểm.','Trial runs do not count.')}</p>`}
+    <div class="col grow"><button class="btn" id="back">${tl('Quay lại bán','Back to selling')}</button><button class="btn ghost" id="ok">${tl(`Đóng quán, mất ${con} tim còn lại`,`Close and lose ${con} remaining hearts`)}</button></div>`);
   lockButtons($('ov'),800);
   $('back').onclick=back;
-  $('ok').onclick=()=>{S.lost=mat;S.rep=0;finishRun(`Bạn đã đóng quán giữa chừng, ${con} tim còn lại bị tính là mất.`)};
+  $('ok').onclick=()=>{S.lost=mat;S.rep=0;finishRun(tl(`Bạn đã đóng quán giữa chừng, ${con} tim còn lại bị tính là mất.`,`You closed early, your ${con} remaining hearts count as lost.`))};
 }
 
 /* ---- Solo: bỏ cuộc, xin hoà (trận vẫn chạy, không dừng đồng hồ) ---- */
 function soloMenu(){
   if(!solo) return;
   let m=$('soloMenu'); if(m){m.remove();return}
-  m=document.createElement('div'); m.id='soloMenu'; m.className='float-panel'; m.setAttribute('role','dialog'); m.setAttribute('aria-label','Bỏ cuộc hoặc xin hoà');
+  m=document.createElement('div'); m.id='soloMenu'; m.className='float-panel'; m.setAttribute('role','dialog'); m.setAttribute('aria-label',tl('Bỏ cuộc hoặc xin hoà','Resign or offer a draw'));
   const n=esc(tenNgan(solo.opp.ten)), cho=solo.row.xin_hoa_boi===user.id;
-  m.innerHTML=`<div class="fp-t">Trận vẫn đang chạy</div>
-    <button type="button" class="btn ghost" id="smDraw" ${cho?'disabled':''}>${cho?`Đang chờ ${n} trả lời`:`Xin hoà với ${n}`}</button>
-    <button type="button" class="btn ghost" id="smQuit">Bỏ cuộc, chấp nhận thua</button>
-    <button type="button" class="link" id="smClose">Đóng</button>`;
+  m.innerHTML=`<div class="fp-t">${tl('Trận vẫn đang chạy','The match is still running')}</div>
+    <button type="button" class="btn ghost" id="smDraw" ${cho?'disabled':''}>${cho?tl(`Đang chờ ${n} trả lời`,`Waiting for ${n}`):tl(`Xin hoà với ${n}`,`Offer ${n} a draw`)}</button>
+    <button type="button" class="btn ghost" id="smQuit">${tl('Bỏ cuộc, chấp nhận thua','Resign and accept the loss')}</button>
+    <button type="button" class="link" id="smClose">${tl('Đóng','Close')}</button>`;
   $('app').appendChild(m); lockButtons(m,400);
   $('smClose').onclick=()=>m.remove();
   $('smDraw').onclick=async()=>{ m.remove(); if(!solo) return; const id=solo.id;
     const {data,error}=await sb.rpc('xin_hoa',{p_id:id});
     if(error){toast(error.message);return}
-    if(data&&solo&&solo.id===id){soloUpdate(data); if(solo&&data.trang_thai!=='xong') toast(`Đã xin hoà, chờ ${tenNgan(solo.opp.ten)} trả lời`)} };
+    if(data&&solo&&solo.id===id){soloUpdate(data); if(solo&&data.trang_thai!=='xong') toast(tl(`Đã xin hoà, chờ ${tenNgan(solo.opp.ten)} trả lời`,`Draw offered, waiting for ${tenNgan(solo.opp.ten)}`))} };
   let armed=false;
-  $('smQuit').onclick=async e=>{ if(!armed){armed=true;e.target.textContent='Bấm lần nữa: chấp nhận thua';return}
+  $('smQuit').onclick=async e=>{ if(!armed){armed=true;e.target.textContent=tl('Bấm lần nữa: chấp nhận thua','Tap again to accept the loss');return}
     e.target.disabled=true; m.remove(); if(!solo) return;
     const {data,error}=await sb.rpc('bo_tran_solo',{p_id:solo.id}); if(error) toast(error.message); else if(data) soloUpdate(data) };
 }
@@ -114,9 +114,9 @@ let drawT=0;
 function hideDrawOffer(){clearTimeout(drawT);const el=$('drawOffer');if(el)el.remove()}
 function showDrawOffer(r){
   hideDrawOffer(); if(!solo) return;
-  const el=document.createElement('div'); el.id='drawOffer'; el.className='float-panel offer'; el.setAttribute('role','alertdialog'); el.setAttribute('aria-label','Đối thủ xin hoà');
-  el.innerHTML=`<div class="fp-t"><b>${esc(tenNgan(solo.opp.ten))}</b> xin hoà</div>
-    <div class="fp-row"><button type="button" class="btn ghost" data-no>Không</button><button type="button" class="btn" data-yes>Đồng ý hoà</button></div>
+  const el=document.createElement('div'); el.id='drawOffer'; el.className='float-panel offer'; el.setAttribute('role','alertdialog'); el.setAttribute('aria-label',tl('Đối thủ xin hoà','Your opponent offers a draw'));
+  el.innerHTML=`<div class="fp-t"><b>${esc(tenNgan(solo.opp.ten))}</b> ${tl('xin hoà','offers a draw')}</div>
+    <div class="fp-row"><button type="button" class="btn ghost" data-no>${tl('Không','No')}</button><button type="button" class="btn" data-yes>${tl('Đồng ý hoà','Accept draw')}</button></div>
     <div class="timer"><i style="animation-duration:20000ms"></i></div>`;
   $('app').appendChild(el); lockButtons(el,800);
   tone(660,.12,{type:'triangle',vol:.18}); tone(880,.18,{type:'triangle',vol:.18,at:.13});
@@ -130,5 +130,5 @@ function soloDrawWatch(prev,r){
   const xb=r.xin_hoa_boi, moi=xb&&r.xin_hoa_luc&&Date.parse(r.xin_hoa_luc)>Date.now()-25000;
   if(xb&&xb!==user.id&&moi&&r.xin_hoa_luc!==solo.offerSeen){solo.offerSeen=r.xin_hoa_luc;showDrawOffer(r)}
   if(!xb||xb===user.id) hideDrawOffer();
-  if(prev&&prev.xin_hoa_boi===user.id&&!xb&&r.trang_thai==='dang_dau') toast(`${tenNgan(solo.opp.ten)} không đồng ý hoà`);
+  if(prev&&prev.xin_hoa_boi===user.id&&!xb&&r.trang_thai==='dang_dau') toast(tl(`${tenNgan(solo.opp.ten)} không đồng ý hoà`,`${tenNgan(solo.opp.ten)} declined the draw`));
 }
