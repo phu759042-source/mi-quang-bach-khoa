@@ -12,8 +12,9 @@ const soVN = n => Number(n || 0).toLocaleString(LOCALE);
 document.documentElement.lang = LANG;
 
 function doiNgonNgu(l){ try{ localStorage.setItem('mqbk-lang', l) }catch(e){} location.reload() }
+// Bản 2.19.2: nút gọn VI | EN ở góc trên bên phải (màn đăng nhập / đăng ký; màn chính đặt bên trái chuông thông báo)
 const langHTML = () => `<div class="lang-sw" role="group" aria-label="Ngôn ngữ / Language">
-  <button type="button" data-lang="vi" aria-pressed="${!EN}" lang="vi">Tiếng Việt</button><button type="button" data-lang="en" aria-pressed="${EN}" lang="en">English</button></div>`;
+  <button type="button" data-lang="vi" aria-pressed="${!EN}" lang="vi" aria-label="Tiếng Việt" title="Tiếng Việt">VI</button><button type="button" data-lang="en" aria-pressed="${EN}" lang="en" aria-label="English" title="English">EN</button></div>`;
 document.addEventListener('click', e => { const b = e.target.closest('[data-lang]'); if(b && b.dataset.lang !== LANG) doiNgonNgu(b.dataset.lang) });
 
 // HTML tĩnh trong index.html

@@ -14,7 +14,7 @@ function home(){
   const pill=streakPill();
   openOv(`<div class="split"><div class="split-a">
   <img class="hero-icon desk" src="icons/favicon.svg" alt="" width="88" height="88">
-  <div class="home-top"><div class="eyebrow">${tl('Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc','Inspired by Mì Quảng Bích · 1-3 Dang Dung, Hoa Khanh Bac')}</div>${ranked?chuongHTML():''}</div>
+  <div class="home-top"><div class="eyebrow">${tl('Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc','Inspired by Mì Quảng Bích · 1-3 Dang Dung, Hoa Khanh Bac')}</div><div class="top-act">${langHTML()}${ranked?chuongHTML():''}</div></div>
   <h1>${TEN_H1}</h1>
   ${meCard}
   ${pill}
@@ -38,7 +38,6 @@ function home(){
     <div class="row"><button class="link" id="contact">${tl('Liên hệ người làm game','Contact the developer')}</button><button class="link" id="donate">${tl('Ủng hộ game','Support the game')}</button></div>
     <div class="row"><button class="link" id="vegame">${tl('Về game &amp; chính sách dữ liệu','About &amp; data policy')}</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
-    ${langHTML()}
     <div class="muted">${tl('Phiên bản','Version')} ${PHIEN_BAN}</div>
   </div></div></div>`);
   const desc=()=>{$('dd').textContent=diff==='thuong'?tl('Khách kiên nhẫn, mục tiêu vừa phải. Phạt nhẹ khi mất tim.','Patient customers, moderate targets. Light penalty for lost hearts.')

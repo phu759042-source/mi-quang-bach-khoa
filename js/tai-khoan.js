@@ -41,7 +41,7 @@ const lopKhoaHTML=(p,khoa)=>laSV(p)?esc(p.lop)+(khoa===false?'':' · '+esc(tKhoa
 function authScreen(mode='login'){
   openOv(`<div class="split"><div class="split-a">
   <img class="hero-icon desk" src="icons/favicon.svg" alt="" width="88" height="88">
-  <div class="eyebrow">${tl('Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc','Inspired by Mì Quảng Bích · 1-3 Dang Dung, Hoa Khanh Bac')}</div>
+  <div class="home-top"><div class="eyebrow">${tl('Lấy cảm hứng từ Mì Quảng Bích · 1-3 Đặng Dung, Hòa Khánh Bắc','Inspired by Mì Quảng Bích · 1-3 Dang Dung, Hoa Khanh Bac')}</div><div class="top-act">${langHTML()}</div></div>
   <h1>${TEN_H1}</h1>
   <p>${tl('Mở quán mì Quảng ở Hòa Khánh Bắc, nơi sinh viên Bách Khoa Đà Nẵng hay ghé ăn, và bán cho sinh viên các khoa. Mỗi lượt chơi cộng hoặc trừ <b>Điểm Bách Khoa</b> cho bạn, cho lớp và cho khoa của bạn.','Run a mì Quảng noodle shop in Hoa Khanh Bac, where Da Nang University of Science and Technology (Bach Khoa) students eat, and serve students from every faculty. Every run adds or subtracts <b>Bach Khoa Points</b> for you, your class and your faculty.')}</p>
   </div><div class="split-b">
@@ -56,7 +56,6 @@ function authScreen(mode='login'){
   ${mode==='login'?`<button class="link" id="forgot">${tl('Quên mật khẩu?','Forgot password?')}</button>`:''}
   <button class="link" id="guest">${tl('Chơi thử, không tính điểm','Play a trial run (no points)')}</button>
   ${themeHTML()}
-  ${langHTML()}
   <button class="link" id="contact">${tl('Liên hệ người làm game','Contact the developer')}</button>
   <button class="link" id="vegame">${tl('Về game &amp; chính sách dữ liệu','About &amp; data policy')}</button>
   </div></div>`);
