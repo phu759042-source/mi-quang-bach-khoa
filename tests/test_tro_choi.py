@@ -124,6 +124,15 @@ class Fake:
             for t in s.tb:
                 if t['user_id'] == u: t['da_doc'] = True
             return {'data': None}
+        if fn == 'xoa_tai_khoan':                             # giống public.xoa_tai_khoan (bản 2.18.0): cascade mọi thứ của người này
+            if a.get('p_xac_nhan') != 'XOA': return err('Chưa xác nhận xoá tài khoản')
+            if any(u in (r['a'], r['b']) and r['trang_thai'] == 'dang_dau' for r in s.rows.values()): return err('Bạn đang có trận solo')
+            s.prof.pop(u, None)
+            for k in [k for k, r in s.rows.items() if u in (r['a'], r['b'])]: del s.rows[k]
+            for k in [k for k, r in s.runs.items() if r['user_id'] == u]: del s.runs[k]
+            for k in [k for k, r in s.bb.items() if u in (r['a'], r['b'])]: del s.bb[k]
+            s.tb = [t for t in s.tb if u not in (t['user_id'], t['tu'])]
+            return {'data': None}
         if fn == 'luu_ho_so':                                 # giống public.luu_ho_so (bản 2.17.0)
             sv = a.get('p_sinh_vien', True) is not False
             if sv and not (a.get('p_khoa_id') and a.get('p_lop')): return err('Sinh viên Bách Khoa cần chọn khoa và nhập lớp')
@@ -819,6 +828,27 @@ with sync_playwright() as pw:
     A.locator('#cRuns svg').focus(); A.keyboard.press('End'); t3 = A.inner_text('#cRuns .cread')
     check(t3 == t1, 'phím End về lượt mới nhất')
     A.keyboard.press('ArrowLeft'); A.locator('#cRuns svg').blur(); shot(A, 'bieu-do-01-keo-ngang')
+
+    print('27. Hết ngày trong xem lại / xem trực tiếp: khách đang ngồi và xếp hàng đều biến mất')
+    st = A.evaluate("""() => { const st = rpNew(); rpApply(st, [0, 'D', 1, 0, 3, 500]);
+      rpApply(st, [100, 'S', 1, 0, 0, '01', 20000, 15000, 50, 0, 0]); rpApply(st, [200, 'S', 2, 1, 0, '02', 20000, 15000, 50, 0, -1]);
+      const truoc = st.slots.filter(Boolean).length + st.queue.length; rpApply(st, [75000, 'E', 640]);
+      return [truoc, st.slots.filter(Boolean).length, st.queue.length, st.shop] }""")
+    check(st == [2, 0, 0, True], f'hết ngày: dọn hết khách trên bàn và hàng chờ, chuyển sang cửa hàng ({st})')
+
+    print('28. Bạn bè: hai tab chia đều; Xoá tài khoản')
+    A.evaluate('home()'); A.wait_for_selector('#banbe', timeout=4000); A.click('#banbe'); A.wait_for_selector('.tabs.t2', timeout=4000)
+    w = A.evaluate("[...document.querySelectorAll('.tabs.t2 button')].map(b=>Math.round(b.getBoundingClientRect().width))")
+    tw = A.evaluate("Math.round(document.querySelector('.tabs.t2').getBoundingClientRect().width)")
+    check(len(w) == 2 and abs(w[0] - w[1]) <= 2 and sum(w) > tw * 0.9, f'hai tab Bạn bè / Lời mời chia đều chiều ngang ({w}, khung {tw})')
+    C.evaluate('home()'); C.wait_for_selector('#edit', timeout=4000); C.click('#edit'); C.wait_for_selector('#xoaTK', timeout=4000)
+    C.click('#xoaTK'); C.wait_for_selector('#xoaOk', timeout=4000)
+    check(C.locator('#xoaOk[disabled]').count() == 1, 'nút xoá bị khoá khi chưa gõ XOÁ')
+    C.fill('#xnXoa', 'xoá'); check(C.locator('#xoaOk[disabled]').count() == 0, 'gõ "xoá" (chữ thường, có dấu) thì mở khoá')
+    shot(C, 'xoa-tai-khoan')
+    C.click('#xoaOk'); C.wait_for_selector('#em', timeout=5000)
+    check('C' not in F.prof and not any('C' in (r['a'], r['b']) for r in F.bb.values()), 'xoá tài khoản: hồ sơ, bạn bè của Minh Anh biến mất trên server')
+    check(C.locator('#em').count() == 1, 'xoá xong về màn đăng nhập')
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

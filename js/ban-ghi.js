@@ -72,7 +72,9 @@ function rpApply(st, e){
     case 'J': st.queue = st.queue.filter(x => x.id !== e[2]); say('Khách xếp hàng bỏ về', 'bad'); break;
     case 'G': { const k = st.cust.get(e[2]); if(k){ if(e[3]){ k.qat = t; k.qr = .5 } else { k.at = t; k.r = .5 } } say('Thẻ tích điểm giữ chân khách', 'good'); break }
     case 'H': st.rep = e[2]; st.lost = e[3]; break;
-    case 'E': st.rem0 = 0; st.running = false; st.earned = e[2]; st.shop = true; say(`Hết ngày ${st.day}: ${e[2]}k`, 'day'); break;
+    case 'E': st.rem0 = 0; st.running = false; st.earned = e[2]; st.shop = true;
+      st.slots = Array(st.n).fill(null); st.queue = []; base();   // hết ngày: khách còn ngồi / xếp hàng đều về (bản 2.18.0)
+      say(`Hết ngày ${st.day}: ${e[2]}k`, 'day'); break;
     case 'B': st.upg[e[2]] = e[3]; say(`Mua ${upgName(e[2], e[3])}`, 'shop'); break;
     case 'K': st.rep++; say('Mua 1 tim', 'shop'); break;
     case 'Z': st.rem0 = rpRem(st, t); st.running = false; say('Tạm dừng', 'day'); break;

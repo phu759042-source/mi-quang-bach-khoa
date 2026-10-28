@@ -14,7 +14,7 @@ $$;
 
 insert into auth.users (id) values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'), ('00000000-0000-0000-0000-00000000000c'),
-  ('00000000-0000-0000-0000-00000000000d');
+  ('00000000-0000-0000-0000-00000000000d'), ('00000000-0000-0000-0000-00000000000e');
 
 do $$
 declare A uuid := '00000000-0000-0000-0000-00000000000a'; B uuid := '00000000-0000-0000-0000-00000000000b';
@@ -190,6 +190,23 @@ begin
   if not exists (select 1 from public.tim_nguoi_choi('Người D')) then raise exception 'HONG: không tìm được người ngoài BK'; end if;
   perform pg_temp.dang_xuat();
   raise notice 'OK bảng xếp hạng sinh viên/lớp/khoa đọc được';
+  -- Bản 2.18.0: tự xoá tài khoản, mọi dữ liệu biến mất khỏi bảng xếp hạng
+  perform pg_temp.dang_nhap('00000000-0000-0000-0000-00000000000e');
+  perform public.luu_ho_so('Người E', 'cntt', '25T1');
+  perform pg_temp.dang_xuat();
+  update public.profiles set so_luot = 2, diem = 500 where id = '00000000-0000-0000-0000-00000000000e';
+  insert into public.ban_be (a, b, nguoi_gui, trang_thai) values (A, '00000000-0000-0000-0000-00000000000e', A, 'ban');
+  perform pg_temp.dang_nhap('00000000-0000-0000-0000-00000000000e');
+  begin perform public.xoa_tai_khoan('xoa'); raise exception 'HONG: chưa xác nhận đúng vẫn xoá được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform public.xoa_tai_khoan('XOA');
+  perform pg_temp.dang_xuat();
+  if exists (select 1 from auth.users where id = '00000000-0000-0000-0000-00000000000e')
+    or exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-00000000000e')
+    or exists (select 1 from public.bxh_sinh_vien where id = '00000000-0000-0000-0000-00000000000e')
+    or exists (select 1 from public.ban_be x where '00000000-0000-0000-0000-00000000000e' in (x.a, x.b))
+    then raise exception 'HONG: xoá tài khoản còn sót dữ liệu'; end if;
+  raise notice 'OK xoá tài khoản: phải xác nhận, xoá sạch hồ sơ, bạn bè, bảng xếp hạng';
 end $$;
 
 select 'TẤT CẢ ĐỀU ĐÚNG' as ket_qua;

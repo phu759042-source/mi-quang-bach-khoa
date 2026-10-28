@@ -913,3 +913,22 @@ do $$ begin
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'thong_bao') then
     alter publication supabase_realtime add table public.thong_bao; end if;
 end $$;
+
+-- ---------------------------------------------------------------------
+-- 10. Xoá tài khoản (bản 2.18.0): người chơi tự xoá hẳn tài khoản của mình.
+-- Xoá dòng auth.users, mọi thứ còn lại tự xoá theo (on delete cascade): hồ sơ, điểm, Elo,
+-- lượt bán, trận solo (cả ở phía đối thủ), bản ghi, bạn bè, thông báo, đăng ký thông báo đẩy.
+-- Ảnh đại diện trong Storage do trình duyệt xoá trước khi gọi hàm này (Supabase chặn xoá Storage bằng SQL).
+-- ---------------------------------------------------------------------
+create or replace function public.xoa_tai_khoan(p_xac_nhan text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null then raise exception 'Chưa đăng nhập'; end if;
+  if p_xac_nhan is distinct from 'XOA' then raise exception 'Chưa xác nhận xoá tài khoản'; end if;
+  if exists (select 1 from public.thach_dau where v_uid in (a, b) and trang_thai = 'dang_dau') then
+    raise exception 'Bạn đang có trận solo. Đấu xong hoặc bỏ trận rồi hãy xoá tài khoản'; end if;
+  delete from auth.users where id = v_uid;
+end $$;
+revoke all on function public.xoa_tai_khoan(text) from public, anon, authenticated;
+grant execute on function public.xoa_tai_khoan(text) to authenticated;

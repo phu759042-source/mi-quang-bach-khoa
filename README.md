@@ -161,6 +161,7 @@ Cuối mỗi ngày, người chơi dùng tiền trong két để mua nâng cấp
 
 <p align="center"><img src="docs/images/sinh-vien-hay-khong.png" width="820" alt="Chọn có phải sinh viên BKĐN không, nhãn Ngoài BK và bộ lọc Chỉ sinh viên BK trên bảng xếp hạng"></p>
 - **Streak kiểu Duolingo**: chốt sổ ít nhất một lượt mỗi ngày để giữ lửa, bỏ một ngày là chuỗi về 0. Ngày được tính theo giờ Việt Nam (Asia/Ho_Chi_Minh). Có hiệu ứng ngọn lửa bùng lên và lịch tuần.
+- **Xoá tài khoản** ngay trong game (cuối màn sửa hồ sơ, phải gõ XOÁ để xác nhận): xoá hẳn email, điểm, Elo, lịch sử, bạn bè, ảnh đại diện và biến mất khỏi bảng xếp hạng.
 - **Bộ đếm truy cập** kiểu Facemash: đếm số lượt mở trang và số người đã ghé.
 
 <p align="center"><img src="docs/images/bang-xep-hang.png" width="820" alt="Bảng xếp hạng cá nhân, lớp và khoa"></p>

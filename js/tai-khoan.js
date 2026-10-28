@@ -171,13 +171,15 @@ function profileScreen(){
     <div class="msg" id="msg"></div>
     <button class="btn" type="submit">Lưu và vào quán</button>
   </form>
-  <button class="link" id="out">Đăng xuất</button>`);
+  <button class="link" id="out">Đăng xuất</button>
+  ${profile?'<button type="button" class="link nguy" id="xoaTK">Xoá tài khoản</button>':''}`);
   if(profile){(async()=>{const st=await pushState(),el=document.createElement('div');el.className='push-row';
     el.innerHTML=`${BELL}<span><b>Thông báo thách đấu</b><br>${st==='on'?'Đang bật trên máy này.':st==='ios'?'Cần thêm game vào Màn hình chính trước.':st==='denied'?'Đang bị chặn trong cài đặt trình duyệt.':st==='unsupported'?'Trình duyệt này chưa hỗ trợ.':'Đang tắt trên máy này.'}</span>
       ${st==='unsupported'?'':`<button type="button" class="link" id="pushTg">${st==='on'?'Tắt':st==='ios'||st==='denied'?'Xem cách làm':'Bật'}</button>`}`;
     const f=$('f'); if(f) f.before(el);
     const b=$('pushTg'); if(b) b.onclick=async()=>{if(st==='on'){await disablePush()}else{await enablePush()} profileScreen()};})()}
   $('out').onclick=logout; if($('pClose')) $('pClose').onclick=home;
+  if($('xoaTK')) $('xoaTK').onclick=xoaTaiKhoanScreen;
   if($('avNew')) $('avNew').onclick=chooseAvatar;
   if($('avAdjust')) $('avAdjust').onclick=readjustAvatar;
   if($('avDel')) $('avDel').onclick=e=>{if(e.target.dataset.sure){removeAvatar()}else{e.target.dataset.sure=1;e.target.textContent='Bấm lần nữa để xoá'}};
@@ -202,6 +204,36 @@ function profileScreen(){
     const {error}=await sb.rpc('luu_ho_so',sv?{p_ten:ten,p_khoa_id:kh,p_lop:lop,p_sinh_vien:true}:{p_ten:ten,p_khoa_id:null,p_lop:null,p_sinh_vien:false});
     if(error){msg.className='msg';msg.textContent='Không lưu được: '+error.message;return}
     await loadProfile(); ranked=true; soloConnect(); home();
+  };
+}
+/* Xoá tài khoản (bản 2.18.0): xoá ảnh đại diện trong Storage, thôi nhận thông báo đẩy, rồi RPC xoa_tai_khoan
+   xoá dòng auth.users (mọi bảng khác tự xoá theo). Phải gõ XOÁ để mở khoá nút. */
+function xoaTaiKhoanScreen(){
+  openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">Xoá tài khoản</div><button type="button" class="link" id="back">Huỷ</button></div>
+  <h2>Xoá vĩnh viễn tài khoản?</h2>
+  <div class="xoa-tk">
+    <p>Tài khoản <b>${esc(profile?.ten||'')}</b>${user?.email?` (${esc(user.email)})`:''} và toàn bộ dữ liệu sẽ bị xoá ngay, <b>không khôi phục được</b>:</p>
+    <ul><li>Điểm Bách Khoa, hạng, chuỗi ngày, Elo và thành tích solo. Bạn biến mất khỏi mọi bảng xếp hạng.</li>
+      <li>Lịch sử lượt bán, các trận solo và bản ghi xem lại (trận đã đấu cũng mất khỏi lịch sử của đối thủ; Elo của họ giữ nguyên).</li>
+      <li>Hồ sơ, ảnh đại diện, bạn bè, lời mời, thông báo và đăng ký thông báo đẩy.</li>
+      <li>Email đăng nhập. Sau này muốn chơi tiếp thì đăng ký lại từ đầu.</li></ul>
+  </div>
+  <label><span>Gõ <b>XOÁ</b> để xác nhận</span><input id="xnXoa" autocomplete="off" autocapitalize="characters" placeholder="XOÁ"></label>
+  <div class="msg" id="msg"></div>
+  <button type="button" class="btn nguy" id="xoaOk" disabled>Xoá vĩnh viễn tài khoản</button>
+  <button type="button" class="btn ghost" id="xoaHuy">Giữ lại tài khoản</button>`);
+  const ok=()=>$('xnXoa').value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase()==='XOA';
+  $('back').onclick=$('xoaHuy').onclick=profileScreen;
+  $('xnXoa').oninput=()=>{$('xoaOk').disabled=!ok()};
+  $('xoaOk').onclick=async()=>{
+    if(!ok()) return; const b=$('xoaOk'), msg=$('msg'); b.disabled=true; msg.className='msg ok'; msg.textContent='Đang xoá…';
+    if(profile?.avatar_url) try{await sb.storage.from('avatars').remove([user.id+'/goc.jpg',user.id+'/avatar.jpg'])}catch(e){}
+    await pushUnlink();
+    const {error}=await sb.rpc('xoa_tai_khoan',{p_xac_nhan:'XOA'});
+    if(error){msg.className='msg';msg.textContent='Chưa xoá được: '+error.message;b.disabled=false;return}
+    ['mqbk-run','mqbk-pending','mqbk-rec-cho'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
+    nhoMan(null);bbReset();soloDisconnect();try{await sb.auth.signOut()}catch(e){}
+    user=null;profile=null;ranked=false;myRank=null;authScreen();toast('Đã xoá tài khoản và toàn bộ dữ liệu');
   };
 }
 async function logout(){nhoMan(null);bbReset();soloDisconnect();await pushUnlink();await sb.auth.signOut();user=null;profile=null;ranked=false;authScreen()}

@@ -69,7 +69,8 @@ function veGameScreen(back = home){
     <ul>
       <li>Sửa tên, khoa, lớp, đổi hoặc xoá ảnh đại diện bất cứ lúc nào: bấm vào thẻ tên ở màn chính.</li>
       <li>Tắt thông báo thách đấu trong mục Sửa hồ sơ, huỷ kết bạn trong hồ sơ người đó.</li>
-      <li>Muốn xem lại dữ liệu của mình hoặc xoá hẳn tài khoản cùng toàn bộ dữ liệu: gửi email tới ${a('mailto:' + CONTACT.email, CONTACT.email)} từ chính email đã đăng ký. Mình sẽ xử lý và báo lại cho bạn.</li>
+      <li>Tự xoá hẳn tài khoản cùng toàn bộ dữ liệu (điểm, Elo, lịch sử, bạn bè, ảnh đại diện) ngay trong game: bấm thẻ tên ở màn chính, kéo xuống cuối, chọn <b>Xoá tài khoản</b>. Xoá xong không khôi phục được.</li>
+      <li>Muốn xem lại dữ liệu của mình hoặc cần giúp xoá: gửi email tới ${a('mailto:' + CONTACT.email, CONTACT.email)} từ chính email đã đăng ký. Mình sẽ xử lý và báo lại cho bạn.</li>
       <li>Có thể chơi thử mà không cần tạo tài khoản.</li>
     </ul>
   </section>

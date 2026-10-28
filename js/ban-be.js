@@ -108,7 +108,7 @@ async function banBeScreen(tab = 'ban', back = home){
     <h2>Bạn bè</h2>
     <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <input id="bbQ" type="search" placeholder="Tìm theo tên hoặc lớp để kết bạn" autocomplete="off" enterkeyhint="search" aria-label="Tìm người chơi để kết bạn"></div>
-    <div class="tabs" role="tablist"><button role="tab" data-t="ban" aria-selected="${tab === 'ban'}">Bạn bè <span class="bb-dem" id="bbN1"></span></button>
+    <div class="tabs t2" role="tablist"><button role="tab" data-t="ban" aria-selected="${tab === 'ban'}">Bạn bè <span class="bb-dem" id="bbN1"></span></button>
       <button role="tab" data-t="loi_moi" aria-selected="${tab === 'loi_moi'}">Lời mời <span class="bb-so" data-bb-badge="lm" hidden></span></button></div>
     <div class="col" id="bbBody"><div class="empty-state">Đang tải…</div></div>`);
   const me = () => banBeScreen(tab, back);
