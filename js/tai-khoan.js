@@ -74,7 +74,7 @@ function authScreen(mode='login'){
     msg.className='msg ok'; msg.textContent=mode==='login'?tl('Đang đăng nhập…','Signing in…'):tl('Đang tạo tài khoản…','Creating account…');
     const res=mode==='login'
       ? await sb.auth.signInWithPassword({email,password:pw})
-      : await sb.auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname}});
+      : await sb.auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:{lang:LANG}}});   // lang: chọn mẫu email Việt / Anh
     if(res.error){msg.className='msg';msg.textContent=viErr(res.error.message);return}
     if(mode==='signup'&&!res.data.session){msg.textContent=tl('Đã gửi email xác nhận. Mở email, bấm link xác nhận rồi quay lại đăng nhập.','Confirmation email sent. Open it, tap the link, then come back and sign in.');return}
     user=res.data.user; await afterLogin();
@@ -131,6 +131,8 @@ function viErr(m){
   return m;
 }
 async function afterLogin(){
+  // Bản 2.19.1: ghi ngôn ngữ đang dùng vào user_metadata.lang để email (đặt lại mật khẩu…) gửi đúng tiếng Việt / Anh
+  if(user&&user.user_metadata?.lang!==LANG) try{sb.auth.updateUser({data:{lang:LANG}}).catch(()=>{})}catch(e){}
   await loadProfile();
   if(profile){await flushPending(); recFlush()}
   ranked=!!profile; if(ranked){soloConnect();pushResync();if(pendingThach){const t=pendingThach;pendingThach=null;setTimeout(()=>openThach(t),900)}}

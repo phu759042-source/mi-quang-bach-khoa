@@ -300,7 +300,7 @@ STUB = r"""
       subscribe(cb){cb&&setTimeout(()=>{cb('SUBSCRIBED');ch.sync&&ch.sync()},50);return ch},
       presenceState(){return Object.fromEntries(Object.entries(window.__pres).map(([k,v])=>[k,[v]]))},track(p){call('track',p)}};chans.push(ch);return ch},
     removeChannel(ch){const i=chans.indexOf(ch);if(i>=0)chans.splice(i,1)},
-    auth:{onAuthStateChange(){},getSession:async()=>({data:{session:{user:{id:window.__uid}}}}),signOut:async()=>({})},
+    auth:{onAuthStateChange(){},getSession:async()=>({data:{session:{user:{id:window.__uid}}}}),signOut:async()=>({}),updateUser:async(a)=>{window.__meta=a;return {data:{},error:null}}},
     storage:{from:()=>({upload:async()=>({}),remove:async()=>({})})}
   })};
 })();
@@ -890,6 +890,7 @@ with sync_playwright() as pw:
     check('Bach Khoa' in h1 and 'Noodles' in h1 and A.locator('.ov h1 em', has_text='Bach Khoa').count() == 1, f'tiêu đề tiếng Anh: "Bach Khoa" (vàng) + "Noodles" (xanh) ({h1!r})')
     check(A.inner_text('#go') == 'Open the shop' and A.evaluate('document.documentElement.lang') == 'en', 'chuyển sang English: nút và thuộc tính lang đổi theo')
     m = sot(A); check(not m, f'màn chính không sót tiếng Việt {m}')
+    check(A.evaluate('window.__meta') == {'data': {'lang': 'en'}}, 'đăng nhập ở tiếng Anh: ghi user_metadata.lang = en để email gửi tiếng Anh')
     shot(A, 'tieng-anh-01-man-chinh')
     man = [("leaderboard('sv')", '#lbBody .podium', 'bảng xếp hạng Cá nhân'), ("leaderboard('lop')", '#lbBody', 'bảng Lớp'),
            ("leaderboard('khoa')", '#lbBody', 'bảng Khoa'), ("leaderboard('solo')", '#lbBody .podium', 'bảng Solo'),

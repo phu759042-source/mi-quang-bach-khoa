@@ -1,0 +1,7 @@
+Tiêu đề (Subject) dán vào Supabase › Authentication › Email Templates. Mẫu chọn ngôn ngữ theo user_metadata.lang (game ghi "en" khi người chơi dùng tiếng Anh).
+
+Confirm signup:
+{{ if eq (printf "%v" .Data.lang) "en" }}Confirm your Bach Khoa Noodles account{{ else }}Xác nhận tài khoản Mì Quảng Bách Khoa{{ end }}
+
+Reset password:
+{{ if eq (printf "%v" .Data.lang) "en" }}Reset your Bach Khoa Noodles password{{ else }}Đặt lại mật khẩu Mì Quảng Bách Khoa{{ end }}
