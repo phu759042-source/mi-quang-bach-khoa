@@ -229,6 +229,10 @@ Giống mục Games và Stats của chess.com:
 - **Kéo xuống để tải lại** trên điện thoại (chỉ ở các màn không chơi; lúc đang bán thì tắt hẳn). Tính năng này tự tắt khi đang chơi để tránh lỡ tay.
 - **Về game và chính sách dữ liệu**: màn riêng (mở từ màn chính và màn đăng nhập) ghi ngày game online lần đầu (24/10/2026), game thu thập dữ liệu gì, ai xem được gì, các biện pháp bảo mật, các bên dịch vụ liên quan (Supabase, GitHub Pages, Resend, jsDelivr, Google Fonts, dịch vụ thông báo của trình duyệt) kèm link chính sách riêng của từng bên, và cách yêu cầu xoá tài khoản.
 - **Ảnh xem trước khi chia sẻ link** (Open Graph 1200×630) để link miquangbk.com hiện ảnh lớn trên Messenger, Facebook, Zalo.
+- **Trang giới thiệu** [miquangbk.com/gioi-thieu/](https://miquangbk.com/gioi-thieu/): landing page tĩnh, đọc được không cần JavaScript (cho công cụ tìm kiếm), có ảnh màn hình thật của game, huy hiệu hạng và icon món chép từ mã game, phần hỏi nhanh khai báo dạng FAQ cho Google.
+- **Phim giới thiệu 14,5 giây** dựng bằng code (`docs/phim`): camera bay một mạch qua trang giới thiệu, thẻ và ảnh nổi lên khi camera đi qua, độ sâu trường ảnh tính từng điểm ảnh, nhoè chuyển động, rồi lặn xuống đặt phần hero thành thẻ dưới câu "Mở quán thôi. / *Cả trường đang chờ.*". Âm thanh cũng tổng hợp bằng code. Tốc độ camera được kiểm tra lại bằng optical flow trên bản xem nhanh.
+
+<p align="center"><img src="docs/images/phim-gioi-thieu.jpg" width="820" alt="Một số khung trong phim giới thiệu: camera lướt qua trang, ảnh bảng xếp hạng dựng đứng, thẻ câu than của khách nổi lên và màn kết"></p>
 - **Tiếp cận**: có nhãn `aria`, điều khiển được bằng bàn phím, và tôn trọng cài đặt giảm chuyển động (`prefers-reduced-motion`).
 
 <p align="center"><img src="docs/images/giao-dien-toi.png" width="620" alt="Giao diện tối"></p>
@@ -347,9 +351,12 @@ mi-quang-bach-khoa/
 │   ├── schema.sql           # Toàn bộ cấu trúc database: bảng, RLS, view, 23 hàm RPC, trigger
 │   ├── functions/           # Edge Function gửi thông báo đẩy
 │   └── README.md            # Cách dựng lại backend trên project mới
+├── gioi-thieu/              # Trang giới thiệu (landing page tĩnh) và ảnh màn hình của nó
+├── robots.txt, sitemap.xml, llms.txt   # Cho công cụ tìm kiếm và trợ lý AI
 ├── tests/                   # Kiểm thử tự động (xem tests/README.md)
 ├── .github/workflows/       # GitHub Actions chạy kiểm thử mỗi lần push
 ├── docs/images/             # Ảnh minh hoạ cho README
+├── docs/phim/               # Dựng phim giới thiệu: chụp trang, trang WebGL2 vẽ từng khung, render, âm thanh (xem docs/phim/README.md)
 └── CLAUDE.md                # Ghi chú kỹ thuật cho người phát triển
 ```
 

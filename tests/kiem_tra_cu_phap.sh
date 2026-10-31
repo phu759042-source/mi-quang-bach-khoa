@@ -27,3 +27,6 @@ PY
 for f in js/*.js; do node --check "$f"; done && echo "OK từng file js/"
 node --check "$TMP/all.js" && echo "OK ghép các file js/ (không trùng tên biến)"
 node --check sw.js && echo "OK sw.js"
+# trang dựng phim giới thiệu (docs/phim/film): các file nạp theo thứ tự, ghép lại kiểm tra một lượt
+cat docs/phim/film/_timeline.js docs/phim/film/_gl.js docs/phim/film/_overlay.js docs/phim/film/_frame.js > "$TMP/phim.js"
+node --check "$TMP/phim.js" && echo "OK trang dựng phim (docs/phim/film)"
