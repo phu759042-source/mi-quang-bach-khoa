@@ -1,6 +1,6 @@
 /* Mì Quảng Bách Khoa · js/ve-game.js: màn "Về game" (bản 2.16.0) gồm thông tin game, chính sách dữ liệu và bảo mật,
    các bên liên quan và trách nhiệm. Sửa nội dung ở đây thì cập nhật cả VE_GAME_CAP_NHAT. */
-const VE_GAME_CAP_NHAT = '28/10/2026';
+const VE_GAME_CAP_NHAT = '31/10/2026';
 const VE_GAME_RA_MAT = '24/10/2026';
 function veGameScreen(back = home){
   nhoMan('vegame');
@@ -21,11 +21,11 @@ function veGameScreen(back = home){
   </section>
 
   <section class="card-s"><h3>Dữ liệu game thu thập</h3>
-    <p><b>Khi chơi thử (không đăng nhập):</b> không cần tài khoản. Game chỉ lưu trên máy bạn các cài đặt (ngôn ngữ, giao diện, âm thanh, độ khó), quán đang mở dở và chuỗi ngày chơi. Để đếm số người ghé, game tạo một mã ngẫu nhiên lưu trên máy bạn. Mã này không gắn với tên hay email.</p>
+    <p><b>Khi chơi thử (không đăng nhập):</b> không cần tài khoản. Game chỉ lưu trên máy bạn các cài đặt (ngôn ngữ, giao diện, âm thanh, độ khó), quán đang mở dở, chuỗi ngày chơi, số lượt đã chơi và kết quả lượt chơi thử gần nhất (giữ 24 giờ, để tính điểm nếu bạn tạo tài khoản). Để đếm số người ghé, game tạo một mã ngẫu nhiên lưu trên máy bạn. Mã này không gắn với tên hay email.</p>
     <p><b>Khi có tài khoản, game lưu trên máy chủ:</b></p>
     <ul>
       <li>Email và mật khẩu để đăng nhập. Mật khẩu được mã hoá một chiều (bcrypt) bởi Supabase, người làm game không xem được.</li>
-      <li>Hồ sơ: tên hiển thị, bạn có phải sinh viên Bách Khoa Đà Nẵng không, khoa và lớp (chỉ khi là sinh viên), ảnh đại diện (nếu bạn tải lên). Game không hỏi MSSV, số điện thoại hay địa chỉ.</li>
+      <li>Hồ sơ: tên hiển thị, bạn có phải sinh viên Bách Khoa Đà Nẵng không, khoa và lớp (chỉ khi là sinh viên BKĐN), trường bạn học (nếu bạn chọn), ảnh đại diện (nếu bạn tải lên). Game không hỏi MSSV, số điện thoại hay địa chỉ.</li>
       <li>Kết quả chơi: từng lượt bán, ĐBK, chuỗi ngày, trận solo, Elo.</li>
       <li>Bản ghi thao tác để xem lại từng lượt bán và trận solo (giữ 50 lượt bán gần nhất, giữ hết các trận solo).</li>
       <li>Bạn bè, lời mời kết bạn và thông báo (giữ 100 thông báo gần nhất).</li>
@@ -37,7 +37,7 @@ function veGameScreen(back = home){
 
   <section class="card-s"><h3>Ai thấy được gì</h3>
     <ul>
-      <li><b>Mọi người, kể cả chưa đăng nhập:</b> tên hiển thị, khoa, lớp hoặc nhãn "Ngoài BK", ảnh đại diện, ĐBK, số lượt chơi, chuỗi ngày, Elo, thành tích solo và thứ hạng trên bảng xếp hạng.</li>
+      <li><b>Mọi người, kể cả chưa đăng nhập:</b> tên hiển thị, khoa, lớp, tên trường hoặc nhãn "Ngoài BK", ảnh đại diện, ĐBK, số lượt chơi, chuỗi ngày, Elo, thành tích solo và thứ hạng trên bảng xếp hạng.</li>
       <li><b>Người đã đăng nhập:</b> thêm lịch sử các lượt bán và trận solo đã kết thúc, bản ghi xem lại, trạng thái đang mở game / đang bán / đang solo, và xem trực tiếp khi bạn đang chơi.</li>
       <li><b>Chỉ bạn:</b> email, danh sách bạn bè và lời mời, thông báo, trận đang đấu và lời thách đang chờ.</li>
     </ul>
@@ -67,7 +67,7 @@ function veGameScreen(back = home){
 
   <section class="card-s"><h3>Quyền của bạn</h3>
     <ul>
-      <li>Sửa tên, khoa, lớp, đổi hoặc xoá ảnh đại diện bất cứ lúc nào: bấm vào thẻ tên ở màn chính.</li>
+      <li>Sửa tên, trường, khoa, lớp, đổi hoặc xoá ảnh đại diện bất cứ lúc nào: bấm vào thẻ tên ở màn chính.</li>
       <li>Tắt thông báo thách đấu trong mục Sửa hồ sơ, huỷ kết bạn trong hồ sơ người đó.</li>
       <li>Tự xoá hẳn tài khoản cùng toàn bộ dữ liệu (điểm, Elo, lịch sử, bạn bè, ảnh đại diện) ngay trong game: bấm thẻ tên ở màn chính, kéo xuống cuối, chọn <b>Xoá tài khoản</b>. Xoá xong không khôi phục được.</li>
       <li>Muốn xem lại dữ liệu của mình hoặc cần giúp xoá: gửi email tới ${a('mailto:' + CONTACT.email, CONTACT.email)} từ chính email đã đăng ký. Mình sẽ xử lý và báo lại cho bạn.</li>
@@ -94,11 +94,11 @@ function veGameScreen(back = home){
   </section>
 
   <section class="card-s"><h3>What data the game collects</h3>
-    <p><b>Trial play (not signed in):</b> no account needed. The game only stores on your device your settings (language, theme, sound, difficulty), an unfinished shop and your streak. To count visitors it creates a random ID on your device, not tied to any name or email.</p>
+    <p><b>Trial play (not signed in):</b> no account needed. The game only stores on your device your settings (language, theme, sound, difficulty), an unfinished shop, your streak, how many runs you have played and your latest trial result (kept 24 hours so it can count if you create an account). To count visitors it creates a random ID on your device, not tied to any name or email.</p>
     <p><b>With an account, the server stores:</b></p>
     <ul>
       <li>Your email and password for signing in. The password is one-way hashed (bcrypt) by Supabase; the developer cannot see it.</li>
-      <li>Profile: display name, whether you are a Bach Khoa Da Nang student, faculty and class (students only), avatar (if you upload one). No student ID, phone number or address is asked.</li>
+      <li>Profile: display name, whether you are a Bach Khoa Da Nang student, faculty and class (Bach Khoa students only), your school (if you pick one), avatar (if you upload one). No student ID, phone number or address is asked.</li>
       <li>Results: each run, Bach Khoa Points, streak, solo matches, Elo.</li>
       <li>Action recordings for replays of runs and solo matches (the latest 50 runs and all solo matches are kept).</li>
       <li>Friends, friend requests and notifications (the latest 100 notifications are kept).</li>
@@ -110,7 +110,7 @@ function veGameScreen(back = home){
 
   <section class="card-s"><h3>Who can see what</h3>
     <ul>
-      <li><b>Everyone, even signed out:</b> display name, faculty, class or the "Non-BK" tag, avatar, BKP, number of runs, streak, Elo, solo record and leaderboard rank.</li>
+      <li><b>Everyone, even signed out:</b> display name, faculty, class, school name or the "Non-BK" tag, avatar, BKP, number of runs, streak, Elo, solo record and leaderboard rank.</li>
       <li><b>Signed-in players:</b> also your finished runs and solo matches, replays, whether you are online / selling / in solo, and live view while you play.</li>
       <li><b>Only you:</b> your email, friends and requests, notifications, your current match and pending challenges.</li>
     </ul>

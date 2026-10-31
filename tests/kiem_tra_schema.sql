@@ -207,6 +207,32 @@ begin
     or exists (select 1 from public.ban_be x where '00000000-0000-0000-0000-00000000000e' in (x.a, x.b))
     then raise exception 'HONG: xoá tài khoản còn sót dữ liệu'; end if;
   raise notice 'OK xoá tài khoản: phải xác nhận, xoá sạch hồ sơ, bạn bè, bảng xếp hạng';
+  -- Bản 2.21.0: trường + nhận lượt chơi thử
+  if (select truong_id from public.profiles where id = A) is distinct from 'dut' then raise exception 'HONG: sinh viên BKĐN phải có trường dut'; end if;
+  insert into auth.users (id) values ('00000000-0000-0000-0000-00000000000f');
+  perform pg_temp.dang_nhap('00000000-0000-0000-0000-00000000000f');
+  begin perform public.luu_ho_so('Người F', null, null, false, 'khong-co'); raise exception 'HONG: lưu được trường không có trong danh sách';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  begin perform public.luu_ho_so('Người F', null, null, false, 'dut'); raise exception 'HONG: người ngoài chọn được trường BKĐN';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform public.luu_ho_so('Người F', null, null, false, 'hust');
+  begin perform public.nhan_luot_thu('thuong', 1, 300, 5); raise exception 'HONG: lượt thử bị trừ điểm vẫn nhận được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  begin perform public.nhan_luot_thu('thuong', 1, 9000, 0); raise exception 'HONG: lượt thử 9000k/ngày vẫn nhận được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  j := public.nhan_luot_thu('thuong', 3, 1500, 1);
+  if (j->>'delta')::int <> 150 - 15 or (select so_luot from public.profiles where id = '00000000-0000-0000-0000-00000000000f') <> 1
+    then raise exception 'HONG: nhận lượt thử sai điểm: %', j; end if;
+  begin perform public.nhan_luot_thu('thuong', 3, 1500, 1); raise exception 'HONG: nhận lượt thử được hai lần';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  if not exists (select 1 from public.bxh_truong where truong_id = 'hust' and so_nguoi = 1 and diem = round(135 / 30.0))
+    or not exists (select 1 from public.bxh_truong where truong_id = 'dut')
+    then raise exception 'HONG: bảng trường sai'; end if;
+  perform pg_temp.dang_nhap(A);
+  if (select truong from public.tim_nguoi_choi('Người F') limit 1) is distinct from 'BK Hà Nội' then raise exception 'HONG: tìm người chơi thiếu trường'; end if;
+  if not exists (select 1 from public.tim_nguoi_choi('BK Hà Nội')) then raise exception 'HONG: không tìm được theo tên trường'; end if;
+  perform pg_temp.dang_xuat();
+  raise notice 'OK trường: chọn trường, chặn trường lạ và BKĐN giả, bảng trường; lượt chơi thử nhận một lần, chỉ khi cộng điểm';
 end $$;
 
 select 'TẤT CẢ ĐỀU ĐÚNG' as ket_qua;

@@ -149,11 +149,13 @@ Cuối mỗi ngày, người chơi dùng tiền trong két để mua nâng cấp
 
 <p align="center"><img src="docs/images/dang-nhap-va-man-chinh.png" width="620" alt="Màn đăng nhập và màn chính khi đã có tài khoản"></p>
 
-- **Chơi thử không cần tài khoản.** Lượt chơi thử không tính điểm, chỉ lưu kỷ lục trên máy.
+- **Mở trang là chơi được ngay**, không bắt đăng nhập trước (bản 2.21.0). Lượt chơi thử có lời được giữ trên máy 24 giờ: tạo tài khoản trong thời gian đó thì server tính lượt này (hàm `nhan_luot_thu`, chỉ một lần cho tài khoản chưa có lượt nào, cùng luật chống gian lận như nộp điểm thường).
+- **Người mới được dẫn tay**: ngày đầu của 2 lượt đầu tiên là "ngày khai trương": khách kiên nhẫn gấp rưỡi, gọi tối đa 2 topping, đến thưa hơn. 3 tô đầu có chỉ tay từng bước (nút cần bấm sáng lên, có chữ hướng dẫn). Ba mức khó hơn bị khoá mềm: bấm lần đầu chỉ hiện cảnh báo mức phạt, bấm lần nữa mới chọn. Lý do: số liệu cho thấy 58% lượt chơi chết ngay ngày 1, nhiều người mới chọn luôn mức Bách Khoa rồi mất hết tim.
 - **Đăng ký bằng email**, có xác nhận email và đặt lại mật khẩu. Email gửi qua Resend với mẫu HTML riêng.
-- **Hồ sơ**: tên, câu hỏi **"Bạn có phải sinh viên Bách Khoa Đà Nẵng không?"**, khoa và lớp (bắt buộc nếu là sinh viên), và **ảnh đại diện** có công cụ cắt và phóng to ngay trong game. Người không phải sinh viên BKĐN vẫn chơi, tính ĐBK và solo như mọi người, có nhãn **Ngoài BK**, nhưng không được tính vào bảng lớp và khoa.
-- **Bảng xếp hạng ba cấp**:
+- **Hồ sơ**: tên, câu hỏi **"Bạn đang học ở đâu?"** (BK Đà Nẵng / trường khác / không đi học), khoa và lớp (bắt buộc với sinh viên BKĐN), trường (76 trường đại học, cao đẳng trên cả nước, chọn trong danh sách), và **ảnh đại diện** có công cụ cắt và phóng to ngay trong game. Người không phải sinh viên BKĐN vẫn chơi, tính ĐBK và solo như mọi người, tên kèm nhãn trường của họ (hoặc **Ngoài BK** nếu không đi học), được tính vào bảng Trường nhưng không vào bảng lớp và khoa.
+- **Bảng xếp hạng bốn cấp**:
   - *Cá nhân*: tổng ĐBK của từng người. Có bộ lọc **Tất cả người chơi** / **Chỉ sinh viên BK** (hạng được tính lại trong nhóm đang xem); tab Solo cũng lọc được như vậy.
+  - *Trường* (bản 2.21.0): tổng ĐBK của 30 bạn cao nhất trường, chia 30. Mọi trường đều đua được, BK Đà Nẵng tính cả sinh viên đã chơi từ trước.
   - *Lớp*: tổng ĐBK của 10 bạn cao nhất lớp, chia 10.
   - *Khoa*: tổng ĐBK của 30 bạn cao nhất khoa, chia 30.
 
@@ -326,6 +328,7 @@ mi-quang-bach-khoa/
 │   ├── cau-hinh.js          # Cấu hình Supabase, phiên bản, dữ liệu game, biến trạng thái
 │   ├── vong-choi.js         # Vòng chơi: khách, làm tô, bưng, hết ngày, mất tim
 │   ├── hien-thi.js          # Vẽ màn chơi
+│   ├── huong-dan.js         # Người mới: ngày khai trương, chỉ tay 3 tô đầu, giữ lượt chơi thử
 │   ├── am-thanh.js          # Âm thanh tổng hợp bằng Web Audio
 │   ├── mang.js              # Gọi RPC có thử lại
 │   ├── nop-diem.js          # Streak, kết thúc lượt, nộp điểm

@@ -22,7 +22,7 @@ function renderTables(){
       <div class="ava" style="background:${c.kh[2]}">${c.teacher?tl('Thầy','Prof'):c.kh[0]}</div>
       <div class="who">${name}</div><div class="order">${c.order.map(icon).join('')}</div>
       <div class="quote">${c.line}</div><div class="pat"><i></i></div><kbd class="k-table">${'QWER'[i]}</kbd></div>`}).join('');
-  updateBars();
+  updateBars(); hdVe();
 }
 function updateBars(){
   $('sTime').textContent=Math.max(0,Math.ceil(D.t))+'s';
@@ -66,7 +66,9 @@ function renderBowl(){
   $('bowl').innerHTML=s;
   $('hint').textContent=!b.items.has('mi')?tl('Bắt đầu bằng một vắt mì','Start with a portion of noodles'):!b.broth?(lv('noi')?tl('Thêm topping, rồi chạm vào khách. Nước lèo tự chan','Add toppings, then tap a customer. Broth is added automatically'):tl('Thêm topping, rồi chan nước lèo','Add toppings, then add the broth')):tl('Chạm vào khách để bưng ra','Tap a customer to serve');
   $('pour').disabled=!b.items.has('mi')||b.broth;
+  hdVe();
 }
 function renderPad(){
   $('pad').innerHTML=Object.keys(ING).map((k,i)=>`<button class="ing${D.bowl.items.has(k)?' on':''}" data-k="${k}">${icon(k)}<span>${ING[k].n}</span><kbd>${i+1}</kbd></button>`).join('');
+  hdVe();
 }

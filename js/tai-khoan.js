@@ -36,7 +36,12 @@ const khoaTen=id=>tKhoa((khoaList.find(k=>k.id===id)||{}).ten||'');
 // Bản 2.17.0: người chơi không phải sinh viên BKĐN để trống khoa/lớp (cột profiles.sinh_vien = false)
 const laSV=p=>!!p&&(p.sinh_vien??!!p.lop);
 const NGOAI_BK=`<span class="ngoai-bk" title="${tl('Không phải sinh viên Bách Khoa Đà Nẵng','Not a Bach Khoa Da Nang student')}">${tl('Ngoài BK','Non-BK')}</span>`;
-const lopKhoaHTML=(p,khoa)=>laSV(p)?esc(p.lop)+(khoa===false?'':' · '+esc(tKhoa(khoa??khoaTen(p.khoa_id)))):NGOAI_BK;
+// Bản 2.21.0: người ngoài BKĐN có trường thì hiện tên trường thay cho nhãn "Ngoài BK"
+let truongList=[];
+const truongTen=id=>(truongList.find(t=>t.id===id)||{}).ten_ngan||'';
+const truongCua=p=>p&&p.truong_id&&p.truong_id!=='khac'&&!laSV(p)?(p.truong||truongTen(p.truong_id)):'';
+const lopKhoaHTML=(p,khoa)=>laSV(p)?esc(p.lop)+(khoa===false?'':' · '+esc(tKhoa(khoa??khoaTen(p.khoa_id))))
+  :truongCua(p)?`<span class="ngoai-bk truong-tag">${esc(truongCua(p))}</span>`:NGOAI_BK;
 
 function authScreen(mode='login'){
   openOv(`<div class="split"><div class="split-a">
@@ -49,6 +54,7 @@ function authScreen(mode='login'){
     <label>Email<input id="em" type="email" autocomplete="email" required placeholder="${tl('ban@email.com','you@email.com')}"></label>
     <label>${tl('Mật khẩu','Password')}<input id="pw" type="password" autocomplete="${mode==='login'?'current-password':'new-password'}" minlength="6" required placeholder="${tl('Ít nhất 6 ký tự','At least 6 characters')}"></label>
     <div class="msg" id="msg"></div>
+    ${thuHTML()}
     ${mode==='signup'?`<p class="muted" style="margin:0;font-size:13px">${tl('Tạo tài khoản là bạn đồng ý với cách game lưu và dùng dữ liệu ở mục "Về game &amp; chính sách dữ liệu" bên dưới.','By creating an account you agree to how the game stores and uses data, described in "About &amp; data policy" below.')}</p>`:''}
     <button class="btn" type="submit">${mode==='login'?tl('Đăng nhập','Sign in'):tl('Tạo tài khoản','Create account')}</button>
   </form>
@@ -139,13 +145,15 @@ async function afterLogin(){
   if(profile&&await resumeRun()) return;
   if(!profile) return profileScreen();
   if(!(await moLaiMan())) home();
+  if(!profile.so_luot) nhanLuotThu();
 }
 async function loadKhoa(){
-  const {data}=await sb.from('khoa').select('id,ten').order('ten');
-  khoaList=data||[];
+  const [{data},t]=await Promise.all([sb.from('khoa').select('id,ten').order('ten'),
+    sb.from('truong').select('id,ten,ten_ngan,tinh').then(r=>r,()=>({data:null}))]);
+  khoaList=data||[]; truongList=t.data||[];
 }
 async function loadProfile(){
-  const {data}=await sb.from('profiles').select('ten,khoa_id,lop,sinh_vien,diem,so_luot,ngay_xa_nhat,chuoi,ngay_chuoi,chuoi_dai_nhat,avatar_url,avatar_khung,elo,solo_thang,solo_thua,solo_hoa').eq('id',user.id).maybeSingle();
+  const {data}=await sb.from('profiles').select('ten,khoa_id,lop,sinh_vien,truong_id,diem,so_luot,ngay_xa_nhat,chuoi,ngay_chuoi,chuoi_dai_nhat,avatar_url,avatar_khung,elo,solo_thang,solo_thua,solo_hoa').eq('id',user.id).maybeSingle();
   profile=data||null; myRank=null;
   if(profile&&profile.so_luot>0){
     const r=await sb.from('bxh_sinh_vien').select('hang').eq('id',user.id).maybeSingle();
@@ -163,11 +171,16 @@ function profileScreen(){
     :`<p class="muted">${tl('Lưu hồ sơ xong, bấm vào thẻ tên của bạn ở màn chính để thêm avatar.','After saving, tap your name card on the home screen to add an avatar.')}</p>`}
   <form class="col" id="f" novalidate>
     <label>${tl('Tên hiển thị','Display name')}<input id="ten" maxlength="40" autocomplete="nickname" value="${esc(p.ten)}" placeholder="${tl('Ví dụ: Phú 26T','e.g. Phu 26T')}"></label>
-    <fieldset class="sv-hoi"><legend>${tl('Bạn có phải sinh viên Trường Đại học Bách Khoa, Đại học Đà Nẵng không?','Are you a student at the University of Science and Technology, University of Da Nang (Bach Khoa)?')}</legend>
-      <div class="sv-chon" role="radiogroup" aria-label="${tl('Có phải sinh viên Bách Khoa Đà Nẵng','Bach Khoa Da Nang student')}">
-        <button type="button" class="diff" role="radio" data-sv="1" aria-pressed="false" aria-checked="false"><b>${tl('Có','Yes')}</b><small>${tl('Mình là sinh viên BKĐN','I am a BK student')}</small></button>
-        <button type="button" class="diff" role="radio" data-sv="0" aria-pressed="false" aria-checked="false"><b>${tl('Không','No')}</b><small>${tl('Mình chơi cho vui','Just playing for fun')}</small></button></div>
+    <fieldset class="sv-hoi"><legend>${truongList.length?tl('Bạn đang học ở đâu?','Where do you study?'):tl('Bạn có phải sinh viên Trường Đại học Bách Khoa, Đại học Đà Nẵng không?','Are you a student at the University of Science and Technology, University of Da Nang (Bach Khoa)?')}</legend>
+      <div class="sv-chon${truongList.length?' c3':''}" role="radiogroup" aria-label="${tl('Trường của bạn','Your school')}">
+        <button type="button" class="diff" role="radio" data-sv="1" aria-pressed="false" aria-checked="false"><b>${truongList.length?tl('BK Đà Nẵng','BK Da Nang'):tl('Có','Yes')}</b><small>${tl('Mình là sinh viên BKĐN','I am a BK student')}</small></button>
+        ${truongList.length?`<button type="button" class="diff" role="radio" data-sv="2" aria-pressed="false" aria-checked="false"><b>${tl('Trường khác','Another school')}</b><small>${tl('Đua điểm cho trường mình','Compete for my school')}</small></button>`:''}
+        <button type="button" class="diff" role="radio" data-sv="0" aria-pressed="false" aria-checked="false"><b>${truongList.length?tl('Không đi học','Not a student'):tl('Không','No')}</b><small>${tl('Mình chơi cho vui','Just playing for fun')}</small></button></div>
       <p class="sv-note" id="svNote" hidden></p></fieldset>
+    <div class="col" id="trFields" hidden><label>${tl('Trường','School')}<select id="truong"><option value="">${tl('Chọn trường','Pick a school')}</option>${(()=>{
+      const ds=truongList.filter(t=>t.id!=='dut'&&t.id!=='khac'), tinh=[...new Set(ds.map(t=>t.tinh))].sort((a,b)=>(a==='Đà Nẵng'?-1:b==='Đà Nẵng'?1:a.localeCompare(b,'vi')));
+      return tinh.map(n=>`<optgroup label="${esc(n)}">${ds.filter(t=>t.tinh===n).sort((a,b)=>a.ten.localeCompare(b.ten,'vi')).map(t=>`<option value="${t.id}"${t.id===p.truong_id?' selected':''}>${esc(t.ten)}</option>`).join('')}</optgroup>`).join('')
+        +`<option value="khac"${p.truong_id==='khac'?' selected':''}>${tl('Trường khác (chưa có trong danh sách)','Other (not listed)')}</option>`})()}</select></label></div>
     <div class="col" id="svFields" hidden>
     <label>${tl('Khoa','Faculty')}<select id="khoa"><option value="">${tl('Chọn khoa','Pick a faculty')}</option>${khoaList.map(k=>`<option value="${k.id}"${k.id===p.khoa_id?' selected':''}>${esc(EN?tKhoa(k.id):k.ten)}</option>`).join('')}</select></label>
     <label>${tl('Lớp sinh hoạt','Class')}<input id="lop" maxlength="16" value="${esc(p.lop)}" placeholder="${tl('Ví dụ: 26T_ATTT','e.g. 26T_ATTT')}" autocapitalize="characters"></label></div>
@@ -186,27 +199,30 @@ function profileScreen(){
   if($('avNew')) $('avNew').onclick=chooseAvatar;
   if($('avAdjust')) $('avAdjust').onclick=readjustAvatar;
   if($('avDel')) $('avDel').onclick=e=>{if(e.target.dataset.sure){removeAvatar()}else{e.target.dataset.sure=1;e.target.textContent=tl('Bấm lần nữa để xoá','Tap again to remove')}};
-  // Có / Không phải sinh viên BKĐN. Người đã có hồ sơ giữ lựa chọn cũ (tài khoản trước bản 2.17.0 đều là sinh viên).
-  let sv=profile?laSV(p):null;
+  // 1 = sinh viên BKĐN, 2 = trường khác (bản 2.21.0), 0 = không đi học. Người đã có hồ sơ giữ lựa chọn cũ.
+  let sv=profile?(laSV(p)?1:p.truong_id&&truongList.length?2:0):null;
   const chonSV=v=>{sv=v;
-    $('f').querySelectorAll('[data-sv]').forEach(b=>{const on=String(+v)===b.dataset.sv;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)});
-    $('svFields').hidden=!v; const n=$('svNote'); n.hidden=false; n.className='sv-note '+(v?'co':'khong');
-    n.innerHTML=v?tl('<b>Lưu ý:</b> sinh viên Bách Khoa cần chọn khoa và nhập lớp. Điểm của bạn được cộng vào bảng xếp hạng lớp và khoa.','<b>Note:</b> Bach Khoa students must pick a faculty and enter a class. Your points also count for your class and faculty.')
+    $('f').querySelectorAll('[data-sv]').forEach(b=>{const on=String(v)===b.dataset.sv;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)});
+    $('svFields').hidden=v!==1; $('trFields').hidden=v!==2; const n=$('svNote'); n.hidden=false; n.className='sv-note '+(v?'co':'khong');
+    n.innerHTML=v===2?tl('<b>Lưu ý:</b> điểm của bạn được cộng cho trường trên bảng xếp hạng <b>Trường</b>. Bảng Lớp và Khoa chỉ dành cho sinh viên BKĐN. Trường bạn chưa có trong danh sách thì chọn "Trường khác" và nhắn người làm game để thêm.','<b>Note:</b> your points count for your school on the <b>Schools</b> leaderboard. Classes and Faculties are for Bach Khoa Da Nang students only. If your school is not listed, pick "Other" and message the developer to add it.')
+      :v===1?tl('<b>Lưu ý:</b> sinh viên Bách Khoa cần chọn khoa và nhập lớp. Điểm của bạn được cộng vào bảng xếp hạng lớp và khoa.','<b>Note:</b> Bach Khoa students must pick a faculty and enter a class. Your points also count for your class and faculty.')
       :tl('<b>Lưu ý:</b> không cần khoa và lớp. Bạn vẫn chơi, tính ĐBK, solo và lên bảng xếp hạng chung như mọi người, chỉ không được tính vào bảng lớp và khoa. Tên bạn sẽ có nhãn "Ngoài BK".','<b>Note:</b> no faculty or class needed. You still play, earn BKP, play solo and appear on the overall leaderboard, but you are not counted in the class and faculty boards. Your name gets a "Non-BK" tag.')};
-  $('f').querySelector('.sv-chon').onclick=e=>{const b=e.target.closest('[data-sv]');if(b){chonSV(b.dataset.sv==='1');$('msg').textContent=''}};
+  $('f').querySelector('.sv-chon').onclick=e=>{const b=e.target.closest('[data-sv]');if(b){chonSV(+b.dataset.sv);$('msg').textContent=''}};
   if(sv!==null) chonSV(sv);
   $('f').onsubmit=async e=>{
     e.preventDefault();
     const ten=$('ten').value.trim(), kh=$('khoa').value, lop=$('lop').value.trim().toUpperCase().replace(/\s+/g,'_'), msg=$('msg');
     msg.className='msg';
     if(ten.length<2){msg.textContent=tl('Tên cần từ 2 ký tự.','Name needs at least 2 characters.');return}
-    if(sv===null){msg.textContent=tl('Chọn bạn có phải sinh viên Bách Khoa Đà Nẵng không.','Choose whether you are a Bach Khoa Da Nang student.');return}
-    if(sv&&!kh){msg.textContent=tl('Chọn khoa của bạn.','Pick your faculty.');return}
-    if(sv&&!/^[0-9]{2}[A-Z0-9_]{1,14}$/.test(lop)){msg.textContent=tl('Lớp bắt đầu bằng 2 số khoá, ví dụ 26T_ATTT.','Class starts with the 2-digit intake year, e.g. 26T_ATTT.');return}
+    if(sv===null){msg.textContent=truongList.length?tl('Chọn bạn đang học ở đâu.','Choose where you study.'):tl('Chọn bạn có phải sinh viên Bách Khoa Đà Nẵng không.','Choose whether you are a Bach Khoa Da Nang student.');return}
+    const tr=$('truong').value;
+    if(sv===2&&!tr){msg.textContent=tl('Chọn trường của bạn.','Pick your school.');return}
+    if(sv===1&&!kh){msg.textContent=tl('Chọn khoa của bạn.','Pick your faculty.');return}
+    if(sv===1&&!/^[0-9]{2}[A-Z0-9_]{1,14}$/.test(lop)){msg.textContent=tl('Lớp bắt đầu bằng 2 số khoá, ví dụ 26T_ATTT.','Class starts with the 2-digit intake year, e.g. 26T_ATTT.');return}
     msg.className='msg ok'; msg.textContent=tl('Đang lưu…','Saving…');
-    const {error}=await sb.rpc('luu_ho_so',sv?{p_ten:ten,p_khoa_id:kh,p_lop:lop,p_sinh_vien:true}:{p_ten:ten,p_khoa_id:null,p_lop:null,p_sinh_vien:false});
+    const {error}=await sb.rpc('luu_ho_so',sv===1?{p_ten:ten,p_khoa_id:kh,p_lop:lop,p_sinh_vien:true}:{p_ten:ten,p_khoa_id:null,p_lop:null,p_sinh_vien:false,...(truongList.length?{p_truong_id:sv===2?tr:null}:{})});
     if(error){msg.className='msg';msg.textContent=tl('Không lưu được: ','Could not save: ')+error.message;return}
-    await loadProfile(); ranked=true; soloConnect(); home();
+    const moi=!profile; await loadProfile(); ranked=true; soloConnect(); home(); if(moi) nhanLuotThu();
   };
 }
 /* Xoá tài khoản (bản 2.18.0): xoá ảnh đại diện trong Storage, thôi nhận thông báo đẩy, rồi RPC xoa_tai_khoan

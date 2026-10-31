@@ -262,7 +262,7 @@ function soloView(r, uid = user.id){   // một trận nhìn từ phía người
   const kq = !r.thang ? 'hoa' : r.thang === uid ? 'thang' : 'thua';
   return {r, me, o, kq, opp: r[o], eloTruoc: r['elo_' + me], doi: r['doi_' + me] || 0, eloOpp: r['elo_' + o]};
 }
-const PROF_COT = 'id,ten,lop,khoa_id,sinh_vien,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url,ngay_xa_nhat,chuoi,chuoi_dai_nhat,ngay_chuoi';
+const PROF_COT = 'id,ten,lop,khoa_id,sinh_vien,truong_id,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url,ngay_xa_nhat,chuoi,chuoi_dai_nhat,ngay_chuoi';
 let HS = null;   // hồ sơ đang xem: {uid, who, back, self}
 // Chuỗi ngày của người khác: tính từ các cột trong profiles giống streakState()
 const chuoiCua = w => { const lit = w.ngay_chuoi === vnDate(), alive = lit || w.ngay_chuoi === vnDate(-1);

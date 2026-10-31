@@ -62,7 +62,7 @@ async function finishRun(why, cashOut=false, sauFx=false){
     endFx('lose',tl('Quán đóng cửa','Shop closed'),why,()=>finishRun(why,false,true));
     return;
   }
-  midClose=cashOut;
+  midClose=cashOut; demLuotMay();
   running=false; midRun=false;
   const lost=S.lost||0;
   const hs=DIFF[diff].hs;
@@ -74,11 +74,12 @@ async function finishRun(why, cashOut=false, sauFx=false){
     <span>${tl('Thưởng','Bonus')} (${S.total}k × ${hs} ÷ 10)</span><b>+${Math.round(S.total*hs/10)}</b>
     <span>${tl('Phạt','Penalty')} (${lost} ${tl('tim','hearts')} × ${phat(diff)})</span><b>−${Math.round(lost*15*hs**2)}</b></div>`;
   if(!ranked){
+    giuLuotThu(est);
     if(S.day>guestBest.day||(S.day===guestBest.day&&S.total>guestBest.money)){guestBest={day:S.day,money:S.total};try{localStorage.setItem('mqbk-best',JSON.stringify(guestBest))}catch(e){}}
     const showGuest=()=>{openOv(`${head}<p>${esc(why)}</p>${summary}
-      <p class="muted">${tl(`Lượt chơi thử không được tính điểm. Nếu đăng nhập, lượt này sẽ ${est>=0?'cộng':'trừ'} <b>${Math.abs(est)}</b> ĐBK.`,`Trial runs do not count. If you were signed in, this run would ${est>=0?'add':'subtract'} <b>${Math.abs(est)}</b> BKP.`)}</p>
-      <div class="col grow"><button class="btn" id="again">${tl('Chơi lại','Play again')}</button><button class="btn ghost" id="home">${tl('Về màn hình chính','Back to home')}</button></div>`);
-      $('again').onclick=()=>startRun(); $('home').onclick=home};
+      <p class="muted">${sb&&est>0?tl(`Lượt chơi thử chưa được tính điểm. Tạo tài khoản trong 24 giờ thì lượt này được cộng <b>${est}</b> ĐBK cho bạn.`,`Trial runs do not count yet. Create an account within 24 hours and this run adds <b>${est}</b> BKP for you.`):tl(`Lượt chơi thử không được tính điểm. Nếu đăng nhập, lượt này sẽ ${est>=0?'cộng':'trừ'} <b>${Math.abs(est)}</b> ĐBK.`,`Trial runs do not count. If you were signed in, this run would ${est>=0?'add':'subtract'} <b>${Math.abs(est)}</b> BKP.`)}</p>
+      <div class="col grow">${sb&&est>0?`<button class="btn" id="giuDiem">${tl(`Tạo tài khoản, giữ +${est} ĐBK`,`Create an account, keep +${est} BKP`)}</button>`:''}<button class="btn${sb&&est>0?' ghost':''}" id="again">${tl('Chơi lại','Play again')}</button><button class="btn ghost" id="home">${tl('Về màn hình chính','Back to home')}</button></div>`);
+      $('again').onclick=()=>startRun(); $('home').onclick=home; if($('giuDiem')) $('giuDiem').onclick=()=>authScreen('signup')};
     const before=streakState().n, g=bumpGuestStreak();
     const showG=()=>{const c=midClose;showGuest();lockButtons($('ov'),c?1200:900);if(c){midClose=false;sfx.closeEnd();if(est>=0)confetti()}};
     if(g.moi) streakScreen(before,g.chuoi,g.best,showG); else showG();

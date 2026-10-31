@@ -23,7 +23,7 @@ async function bbTai(){
 async function bbHoSo(ids){
   const can = [...new Set(ids.filter(id => id && !BB.hs.has(id)))];
   if(!can.length) return;
-  const {data} = await sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,elo,avatar_url').in('id', can);
+  const {data} = await sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,truong_id,elo,avatar_url').in('id', can);
   (data || []).forEach(p => { BB.hs.set(p.id, p); lbPeople.set(p.id, p) });
 }
 const NGUOI_CHOI = tl('Người chơi', 'Player');

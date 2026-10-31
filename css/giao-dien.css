@@ -607,3 +607,17 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .xuong .dh-huy.moi{animation:dhRoi .9s cubic-bezier(.3,.7,.4,1) .75s forwards}
 @keyframes dhRoi{0%{opacity:0;transform:translateY(-40px)}70%{opacity:1;transform:translateY(6px);filter:grayscale(0)}100%{opacity:1;transform:translateY(0);filter:grayscale(.55)}}
 @media (prefers-reduced-motion:reduce){.dh-cu{display:none}.dh-huy.moi,.dh-mui,.dh-tia{animation:none;opacity:1}}
+/* Bản 2.21.0: người mới (chỉ tay 3 tô đầu, khoá mềm độ khó), trường */
+.tabs.t5{grid-template-columns:repeat(5,1fr)}
+@media (max-width:420px){.tabs.t5 button{font-size:13px;padding:8px 2px}}
+.sv-chon.c3{grid-template-columns:repeat(3,1fr)}
+.sv-chon.c3 b{white-space:normal}
+.goi-y{position:relative;z-index:2;outline:3px solid var(--turmeric);outline-offset:2px;animation:goiY 1.1s ease-in-out infinite}
+@keyframes goiY{0%,100%{box-shadow:0 0 0 0 rgba(232,163,23,.55)}50%{box-shadow:0 0 0 9px rgba(232,163,23,0)}}
+.cust.hd-dich:not(.goi-y){outline:2px dashed var(--turmeric);outline-offset:2px}
+.hint.coach{color:var(--heading);background:color-mix(in srgb,var(--turmeric) 22%,transparent);border-radius:10px;padding:6px 10px}
+.thu-giu{margin:0;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--leaf) 14%,transparent);border:1.5px solid color-mix(in srgb,var(--leaf) 45%,transparent);font-size:14px}
+.diff.mem{opacity:.62}
+.diff.mem[aria-pressed="true"]{opacity:1}
+.truong-tag{max-width:16ch;overflow:hidden;text-overflow:ellipsis}
+@media (prefers-reduced-motion:reduce){.goi-y{animation:none}}

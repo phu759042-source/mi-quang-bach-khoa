@@ -30,6 +30,6 @@ $('sndSlot').innerHTML=soundBtn(false);
     user=session?.user||null;
     if(/access_token|error_description/.test(location.hash)) cleanUrl();
     if(recovering&&user){newPasswordScreen();return}
-    if(user){ await afterLogin(); if(justConfirmed) toast(tl('Đã xác nhận email, chào mừng bạn','Email confirmed, welcome!')); } else if(!(await resumeRun())) authScreen();
+    if(user){ await afterLogin(); if(justConfirmed) toast(tl('Đã xác nhận email, chào mừng bạn','Email confirmed, welcome!')); } else if(!(await resumeRun())) {if(linkError||justConfirmed) authScreen(); else home()}
   }catch(e){ranked=false;if(!(await resumeRun().catch(()=>false)))home();toast(tl('Không kết nối được máy chủ, đang chơi thử','Cannot reach the server, playing offline'))}
 })();

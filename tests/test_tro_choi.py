@@ -31,11 +31,15 @@ class Fake:
     def __init__(s):
         s.khoa = [{'id': 'cntt', 'ten': 'Công nghệ Thông tin'}, {'id': 'dtvt', 'ten': 'Điện tử Viễn thông'}]
         base = dict(diem=0, so_luot=3, ngay_xa_nhat=4, chuoi=0, ngay_chuoi=None, chuoi_dai_nhat=0, avatar_url=None,
-                    avatar_khung=None, elo=1200, solo_thang=0, solo_thua=0, solo_hoa=0, sinh_vien=True)
+                    avatar_khung=None, elo=1200, solo_thang=0, solo_thua=0, solo_hoa=0, sinh_vien=True, truong_id='dut')
         s.prof = {'A': dict(base, id='A', ten='Nguyễn Tấn Phú', khoa_id='cntt', lop='26T_ATTT', diem=1420),
                   'B': dict(base, id='B', ten='Phạm Gia Huy', khoa_id='dtvt', lop='24DT2', diem=1300),
                   'C': dict(base, id='C', ten='Lê Minh Anh', khoa_id='cntt', lop='23T_DT1', diem=900)}
-        s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': []}
+        s.truong = [dict(id='dut', ten='Trường Đại học Bách Khoa, Đại học Đà Nẵng', ten_ngan='BK Đà Nẵng', tinh='Đà Nẵng'),
+                    dict(id='hust', ten='Đại học Bách khoa Hà Nội', ten_ngan='BK Hà Nội', tinh='Hà Nội'),
+                    dict(id='hcmut', ten='Trường Đại học Bách khoa, ĐHQG TP.HCM', ten_ngan='BK TP.HCM', tinh='TP.HCM'),
+                    dict(id='khac', ten='Trường khác', ten_ngan='Trường khác', tinh='Khác')]
+        s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': [], 'KHACH': []}
         s.runs, s.run_seq, s.nop, s.bg, s.pres = {}, itertools.count(77), [], [], {}
         s.calls = []
         s.dem = []
@@ -133,16 +137,29 @@ class Fake:
             for k in [k for k, r in s.bb.items() if u in (r['a'], r['b'])]: del s.bb[k]
             s.tb = [t for t in s.tb if u not in (t['user_id'], t['tu'])]
             return {'data': None}
-        if fn == 'luu_ho_so':                                 # giống public.luu_ho_so (bản 2.17.0)
+        if fn == 'luu_ho_so':                                 # giống public.luu_ho_so (bản 2.21.0)
             sv = a.get('p_sinh_vien', True) is not False
+            tr = 'dut' if sv else (a.get('p_truong_id') or None)
             if sv and not (a.get('p_khoa_id') and a.get('p_lop')): return err('Sinh viên Bách Khoa cần chọn khoa và nhập lớp')
+            if not sv and tr == 'dut': return err('Sinh viên Bách Khoa cần chọn khoa và nhập lớp')
+            if tr and tr not in [t['id'] for t in s.truong]: return err('Trường không có trong danh sách')
             s.prof[u].update(ten=a['p_ten'].strip(), sinh_vien=sv, khoa_id=a['p_khoa_id'] if sv else None,
-                             lop=a['p_lop'].strip().upper() if sv else None)
+                             lop=a['p_lop'].strip().upper() if sv else None, truong_id=tr)
             return {'data': None}
+        if fn == 'nhan_luot_thu':                             # giống public.nhan_luot_thu (bản 2.21.0)
+            p = s.prof.get(u); hs = HS[a['p_do_kho']]
+            if not p or p['so_luot'] or any(r['user_id'] == u for r in s.runs.values()): return err('Chỉ tài khoản mới được tính lượt chơi thử')
+            if not (1 <= a['p_so_ngay'] <= 30) or a['p_tim_mat'] > 5 + a['p_doanh_thu'] // 500 or a['p_doanh_thu'] > a['p_so_ngay'] * 5000: return err('Kết quả không hợp lệ')
+            d = round(a['p_doanh_thu'] * hs / 10) - round(a['p_tim_mat'] * 15 * hs ** 2)
+            if d <= 0: return err('Lượt chơi thử không cộng điểm')
+            i = next(s.run_seq); s.runs[i] = dict(id=i, user_id=u, do_kho=a['p_do_kho'], trang_thai='xong', so_ngay=a['p_so_ngay'], doanh_thu=a['p_doanh_thu'],
+                                                  tim_mat=a['p_tim_mat'], delta=d, ket_thuc=iso(now()))
+            p.update(diem=p['diem'] + d, so_luot=1); s.nhan = dict(a)
+            return {'data': {'delta': d, 'diem': p['diem'], 'hang': 3, 'chuoi': 1, 'chuoi_moi': True, 'chuoi_dai_nhat': 1, 'run_id': i}}
         if fn == 'tim_nguoi_choi':
             q = a['p_q'].lower()
             res = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']),
-                        diem=p['diem'], elo=p['elo'], avatar_url=None)
+                        diem=p['diem'], elo=p['elo'], avatar_url=None, sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']))
                    for p in s.prof.values() if p['id'] != u and (q in p['ten'].lower() or q in (p['lop'] or '').lower())]
             return {'data': res}
         if fn == 'bat_dau_luot':
@@ -222,12 +239,22 @@ class Fake:
         return {'data': dict(r, **{k: None for k in ('a_ping', 'b_ping')}) | {'a_ping': None, 'b_ping': None}}
 
     def khoa_ten(s, kid): return next((k['ten'] for k in s.khoa if k['id'] == kid), None)
+    def truong_ten(s, tid): return next((t['ten_ngan'] for t in s.truong if t['id'] == tid), None)
 
     def select(s, u, q):
         t, f = q['table'], q['filters']
         if t == 'ban_be': return {'data': [dict(r) for r in s.bb.values() if u in (r['a'], r['b'])]}       # RLS: của mình
         if t == 'thong_bao': return {'data': sorted([dict(x) for x in s.tb if x['user_id'] == u], key=lambda x: -x['id'])}
         if t == 'khoa': return {'data': s.khoa}
+        if t == 'truong': return {'data': s.truong}
+        if t == 'bxh_truong':                                 # giống view bxh_truong: tổng 30 người cao nhất / 30, bỏ "Trường khác"
+            g = {}
+            for p in s.prof.values():
+                if p['so_luot'] > 0 and p['truong_id'] and p['truong_id'] != 'khac': g.setdefault(p['truong_id'], []).append(p['diem'])
+            rows = sorted([dict(truong_id=k, ten=next(t['ten'] for t in s.truong if t['id'] == k), ten_ngan=s.truong_ten(k),
+                                tinh=next(t['tinh'] for t in s.truong if t['id'] == k), so_nguoi=len(v), diem=round(sum(sorted(v)[-30:]) / 30)) for k, v in g.items()], key=lambda r: -r['diem'])
+            for i, r in enumerate(rows): r['hang'] = i + 1
+            return {'data': rows}
         if t == 'profiles':
             uid = next((v for k, op, v in f if k == 'id'), None)
             gt = next((v for k, op, v in f if op == 'gt'), None)
@@ -265,7 +292,7 @@ class Fake:
             if q.get('single'): return {'data': {'hang': 2, 'hang_sv': 2}}
             ps = sorted(s.prof.values(), key=lambda p: -p['diem'])
             svs = [p for p in ps if p['sinh_vien']]
-            rows = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']), sinh_vien=p['sinh_vien'],
+            rows = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']), sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']),
                          diem=p['diem'], hang=i + 1, hang_sv=svs.index(p) + 1 if p['sinh_vien'] else None, chuoi=0, avatar_url=None) for i, p in enumerate(ps)]
             sv = next((v for k, op, v in f if k == 'sinh_vien'), None)
             return {'data': [r for r in rows if sv is None or r['sinh_vien'] == sv]}
@@ -300,7 +327,7 @@ STUB = r"""
       subscribe(cb){cb&&setTimeout(()=>{cb('SUBSCRIBED');ch.sync&&ch.sync()},50);return ch},
       presenceState(){return Object.fromEntries(Object.entries(window.__pres).map(([k,v])=>[k,[v]]))},track(p){call('track',p)}};chans.push(ch);return ch},
     removeChannel(ch){const i=chans.indexOf(ch);if(i>=0)chans.splice(i,1)},
-    auth:{onAuthStateChange(){},getSession:async()=>({data:{session:{user:{id:window.__uid}}}}),signOut:async()=>({}),updateUser:async(a)=>{window.__meta=a;return {data:{},error:null}}},
+    auth:{onAuthStateChange(){},getSession:async()=>({data:{session:window.__uid==='KHACH'?null:{user:{id:window.__uid}}}}),signOut:async()=>({}),updateUser:async(a)=>{window.__meta=a;return {data:{},error:null}}},
     storage:{from:()=>({upload:async()=>({}),remove:async()=>({})})}
   })};
 })();
@@ -878,6 +905,7 @@ with sync_playwright() as pw:
     print('30. Tiếng Anh: chuyển ngôn ngữ, không sót chữ tiếng Việt')
     VI = re.compile('[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', re.I)
     OK_VI = ['nguyễn tấn phú', 'phạm gia huy', 'lê minh anh', 'mì quảng bích', 'mì quảng', 'tiếng việt', 'phú']   # tên riêng, giữ nguyên
+    OK_VI = sorted(OK_VI + [w.lower() for t in F.truong for w in (t['ten'], t['ten_ngan'], t['tinh'])], key=len, reverse=True)   # tên trường
     def sot(P, sel='#ov'):
         t = P.inner_text(sel).lower()
         for w in OK_VI: t = t.replace(w, '')
@@ -892,7 +920,7 @@ with sync_playwright() as pw:
     m = sot(A); check(not m, f'màn chính không sót tiếng Việt {m}')
     check(A.evaluate('window.__meta') == {'data': {'lang': 'en'}}, 'đăng nhập ở tiếng Anh: ghi user_metadata.lang = en để email gửi tiếng Anh')
     shot(A, 'tieng-anh-01-man-chinh')
-    man = [("leaderboard('sv')", '#lbBody .podium', 'bảng xếp hạng Cá nhân'), ("leaderboard('lop')", '#lbBody', 'bảng Lớp'),
+    man = [("leaderboard('sv')", '#lbBody .podium', 'bảng xếp hạng Cá nhân'), ("leaderboard('lop')", '#lbBody', 'bảng Lớp'), ("leaderboard('truong')", '#lbBody', 'bảng Trường'),
            ("leaderboard('khoa')", '#lbBody', 'bảng Khoa'), ("leaderboard('solo')", '#lbBody .podium', 'bảng Solo'),
            ('profileScreen()', '#svFields', 'sửa hồ sơ'), ("hoSoScreen('stats',null,home)", '#cRuns', 'hồ sơ · thống kê'),
            ("hoSoScreen('games',null,home)", '#gList', 'hồ sơ · ván solo'), ("hoSoScreen('runs',null,home)", '#rList', 'hồ sơ · lượt bán'),
@@ -914,6 +942,53 @@ with sync_playwright() as pw:
     check('Promoted to Gold' in A.inner_text('.dh-stage'), 'màn lên hạng tiếng Anh: "Promoted to Gold"')
     A.wait_for_timeout(1500); shot(A, 'tieng-anh-04-len-hang')
     A.evaluate("localStorage.setItem('mqbk-lang','vi')")
+
+    print('31. Người mới: vào thẳng game, khoá mềm độ khó, chỉ tay 3 tô đầu, giữ lượt chơi thử, chọn trường')
+    K = make(b, 'KHACH', 390, 844)
+    K.wait_for_selector('#go', timeout=6000)
+    check(K.locator('#em').count() == 0 and 'chơi thử' in K.inner_text('#go'), 'mở trang lần đầu: vào màn chính chơi thử, không bắt đăng nhập')
+    check(K.locator('.diff.mem').count() == 3, 'ba mức khó hơn bị khoá mềm')
+    K.click('.diff.d-bk'); K.wait_for_timeout(150)
+    check('nên bắt đầu' in K.inner_text('#dd') and K.evaluate('diff') == 'thuong', 'bấm mức BK lần 1: chỉ cảnh báo, vẫn ở Thường')
+    K.click('.diff.d-bk'); check(K.evaluate('diff') == 'bk', 'bấm lần 2 mới chọn'); K.click('.diff.d-thuong')
+    K.click('#go'); K.wait_for_function('running===true', timeout=5000); K.evaluate('D.t=60')
+    check(K.evaluate('S.moi') == 1, 'lượt đầu tiên là ngày khai trương của người mới')
+    K.wait_for_selector('.cust[data-i]', timeout=8000); K.wait_for_selector('#app .goi-y', timeout=3000)
+    check('Hướng dẫn 1/3' in K.inner_text('#hint') and K.locator('#pad .goi-y[data-k="mi"]').count() == 1, 'chỉ tay bước đầu: nút Mì sáng, có chữ hướng dẫn')
+    shot(K, 'nguoi-moi-01-chi-tay')
+    for _ in range(80):
+        if K.evaluate('(D.hdN||0)>=3') or not K.evaluate('running'): break
+        if K.locator('#app .goi-y').count(): K.locator('#app .goi-y').first.click()
+        K.wait_for_timeout(120)
+    check(K.evaluate('D.hdN') == 3 and K.evaluate('S.lost') == 0, 'làm theo chỉ tay bán đúng 3 tô, không mất tim')
+    K.wait_for_timeout(300)
+    check(K.locator('#app .goi-y').count() == 0 and 'Hướng dẫn' not in K.inner_text('#hint'), 'xong 3 tô thì thôi chỉ tay')
+    check(all(len(c) <= 3 for c in K.evaluate("[...D.slots,...D.queue].filter(Boolean).map(c=>c.order)")), 'ngày khai trương: khách gọi tối đa 2 topping')
+    K.evaluate("finishRun('Thử chốt sổ', true)"); K.wait_for_selector('#giuDiem, #sNext', timeout=6000)
+    if K.locator('#sNext').count(): K.wait_for_timeout(1000); K.click('#sNext')                      # lần đầu chơi: màn chuỗi ngày trước
+    K.wait_for_selector('#giuDiem', timeout=6000)
+    luu = K.evaluate("JSON.parse(localStorage.getItem('mqbk-luot-thu'))")
+    check(luu and luu['est'] > 0 and luu['diff'] == 'thuong', f'lượt chơi thử có điểm dương được giữ lại ({luu})')
+    shot(K, 'nguoi-moi-02-giu-diem'); K.wait_for_timeout(1000); K.click('#giuDiem'); K.wait_for_selector('#em', timeout=4000)
+    check(K.locator('.thu-giu').count() == 1 and 'Tạo tài khoản' in K.inner_text('#f button[type=submit]'), 'bấm "giữ điểm" mở màn đăng ký, có nhắc số điểm')
+    F.prof['KHACH'] = dict(F.prof['A'], id='KHACH', ten='Người Mới', diem=0, so_luot=0, ngay_xa_nhat=0, elo=1200, khoa_id='cntt', lop='26T_X', sinh_vien=True, truong_id='dut')   # coi như vừa đăng ký + lưu hồ sơ
+    K.evaluate("(async()=>{window.__uid='KHACH';user={id:'KHACH'};await loadProfile();ranked=true;home();await nhanLuotThu()})()"); K.wait_for_timeout(800)
+    check(getattr(F, 'nhan', {}).get('p_doanh_thu') == luu['doanh_thu'] and F.prof['KHACH']['diem'] == luu['est'], 'tạo tài khoản xong: server tính lượt chơi thử, đúng số điểm')
+    check(K.evaluate("localStorage.getItem('mqbk-luot-thu')") is None, 'đã tính thì xoá lượt chơi thử khỏi máy (không nhận hai lần)')
+    K.evaluate('profileScreen()'); K.wait_for_selector('[data-sv="2"]', timeout=4000)
+    K.click('[data-sv="2"]'); check(K.is_visible('#trFields') and not K.is_visible('#svFields'), 'chọn "Trường khác": hiện ô chọn trường, ẩn khoa/lớp')
+    K.click('#f button[type=submit]'); K.wait_for_function("document.querySelector('#msg').textContent.includes('trường')", timeout=3000)
+    check(True, 'chưa chọn trường thì báo lỗi')
+    K.select_option('#truong', 'hust'); shot(K, 'truong-01-ho-so'); K.click('#f button[type=submit]'); K.wait_for_selector('#go', timeout=5000)
+    check(F.prof['KHACH']['truong_id'] == 'hust' and F.prof['KHACH']['sinh_vien'] is False, 'lưu hồ sơ: trường BK Hà Nội')
+    check('BK Hà Nội' in K.inner_text('#edit'), 'thẻ tên màn chính hiện tên trường thay cho "Ngoài BK"')
+    K.evaluate("leaderboard('truong')"); K.wait_for_selector('#lbBody .podium', timeout=5000)
+    t = K.inner_text('#lbBody')
+    check('BK Đà Nẵng' in t and 'BK Hà Nội' in t and K.locator('#lbBody .mine').count() == 1, 'bảng Trường: có BK Đà Nẵng và BK Hà Nội, tô trường của mình')
+    shot(K, 'truong-02-bxh')
+    K.click('[data-t="sv"]'); K.wait_for_selector('#lbBody .podium', timeout=5000)
+    check(K.locator('#lbBody .truong-tag', has_text='BK Hà Nội').count() == 1, 'bảng Cá nhân: nhãn tên trường')
+    K.close()
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

@@ -3,7 +3,7 @@
 /* ================= Vòng chơi ================= */
 let midRun=false;
 const GIA_TIM=500, TIM_MAX=5;
-function newGame(){midRun=true;S={day:1,money:0,rep:5,upg:{},total:0,lost:0,bought:0};recStart('run');startDay()}
+function newGame(){midRun=true;S={day:1,money:0,rep:5,upg:{},total:0,lost:0,bought:0,moi:laNguoiMoi()?1:0};recStart('run');startDay()}
 function startDay(){
   nhoMan(null);
   setTimeout(syncPresence,0);
@@ -18,10 +18,11 @@ function spawn(){
   if(i<0&&D.queue.length>=(lv('ghe')?6:4)) return;
   const df=DIFF[diff], kh=pick(KHACH), teacher=Math.random()<.08;
   let nTop=Math.min(4,Math.max(1,Math.floor(rnd(1,2.6+S.day*.35+df.top))));
+  if(khaiTruong()) nTop=Math.min(nTop,2); // ngày khai trương của người mới: tối đa 2 topping
   const combo=lv('combo')&&nTop>1&&Math.random()<.5; if(combo) nTop--;
   const tops=[...TOPS].sort(()=>Math.random()-.5).slice(0,nTop);
   const order=['mi',...TOPS.filter(t=>tops.includes(t)&&!(t==='rau'&&lv('rau')))];
-  const cool=(1+.15*lv('quat'))*D.ev.pat*df.pat;
+  const cool=(1+.15*lv('quat'))*D.ev.pat*df.pat*(khaiTruong()?HD_KIEN_NHAN:1);
   const max=(Math.max(9,22-S.day)+nTop*2.5)*cool*(teacher?.8:1);
   const qmax=Math.max(8,14-S.day*.5)*cool*(1+.25*lv('ghe'));
   const price=(25+5*nTop-(combo?5:0))*(1+.1*lv('bang'))*(teacher?2:1);
@@ -39,10 +40,11 @@ function loop(now){
   const dt=Math.min(.1,(now-last)/1000); last=now;
   D.t-=dt;
   if(D.t>0){
+    if(hdBat()&&!D.queue.length&&D.slots.every(x=>!x)&&D.spawnT>1.2) D.spawnT=1.2; // đang hướng dẫn mà quán trống: khách tới ngay
     D.spawnT-=dt;
     if(inRush()&&!D.rushSaid){D.rushSaid=true;toast(tl('Giờ cao điểm! Khách đến gấp đôi','Rush hour! Twice the customers'));renderStats()}
     if(!inRush()&&D.rushSaid&&D.t<=RUSH[0]&&!D.rushEnd){D.rushEnd=true;renderStats()}
-    if(D.spawnT<=0){spawn();const base=Math.max(2.2,5.4-S.day*.3)*(1-.06*lv('bang'))*(1-.1*lv('fanpage'))*DIFF[diff].spawn*(inRush()?.5:1);D.spawnT=rnd(base*.7,base*1.3)*D.ev.spawn}
+    if(D.spawnT<=0){spawn();const base=Math.max(2.2,5.4-S.day*.3)*(1-.06*lv('bang'))*(1-.1*lv('fanpage'))*DIFF[diff].spawn*(inRush()?.5:1)*(khaiTruong()?HD_THUA:1);D.spawnT=rnd(base*.7,base*1.3)*D.ev.spawn}
   }
   seatQueue();
   const pdt=dt*(inRush()&&lv('tv')?.7:1); // TV: giờ cao điểm khách bớt sốt ruột
@@ -116,7 +118,7 @@ function serve(i){
   rec('V',c.id,i,gain,Math.round(c.p/c.max*100));
   D.earned+=gain;S.money+=gain;S.total+=gain;D.served++;sfx.cash(c.teacher||tip>c.price*.2);
   floatText(el,`+${gain}k`,tip>0?'var(--leaf)':'var(--heading)');
-  D.slots[i]=null; renderTables(); renderStats();
+  D.slots[i]=null; hdXong(); renderTables(); renderStats();
 }
 function matches(c,b){
   const want=new Set(c.order), got=new Set(b.items);

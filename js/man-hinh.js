@@ -10,7 +10,7 @@ function home(){
     ?`<button type="button" class="me has-av me-btn" id="edit" aria-label="${tl('Sửa hồ sơ: tên, lớp, khoa, avatar','Edit profile: name, class, faculty, avatar')}"><span class="me-av-w">${avatarHTML(p.avatar_url,p.ten,48,'me-av')}<span class="me-pen" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></span></span><span class="nm">${esc(p.ten)}</span><span class="sub">${lopKhoaHTML(p)} · Elo ${p.elo??1200} ${eloTitle(p.elo,1)}</span>
        <span class="pts">${hangLogo(p.diem,34)}${p.diem}<small>${hangDBK(p.diem).n} · ${tl('ĐBK','BKP')}${myRank?` · ${tl('hạng','rank')} #${myRank}`:''}</small></span></button>`
     :`<div class="me"><div class="nm">${tl('Đang chơi thử','Trial mode')}</div><div class="sub">${tl('Không tính điểm','No points')}${guestBest.day?` · ${tl('kỷ lục ngày','best: day')} ${guestBest.day}`:''}</div>
-       <div class="pts">—<small>${tl('ĐBK','BKP')}</small></div></div>`;
+       <div class="pts">—<small>${tl('ĐBK','BKP')}</small></div></div>${thuHTML()}`;
   const pill=streakPill();
   openOv(`<div class="split"><div class="split-a">
   <img class="hero-icon desk" src="icons/favicon.svg" alt="" width="88" height="88">
@@ -23,7 +23,7 @@ function home(){
   <p class="muted desk keys">${tl('Chơi bằng bàn phím: <kbd>1</kbd>–<kbd>8</kbd> chọn món, <kbd>Space</kbd> chan nước lèo, <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> bưng cho bàn 1–4, <kbd>X</kbd> đổ bỏ.','Keyboard: <kbd>1</kbd>–<kbd>8</kbd> pick items, <kbd>Space</kbd> add broth, <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> serve tables 1–4, <kbd>X</kbd> dump.')}</p>
   </div><div class="split-b">
   <div class="col"><div class="eyebrow">${tl('Chọn độ khó','Difficulty')}</div>
-    <div class="diffs" id="diffs">${Object.entries(DIFF).map(([k,v])=>`<button class="diff d-${k}" data-d="${k}" aria-pressed="${k===diff}">
+    <div class="diffs" id="diffs">${Object.entries(DIFF).map(([k,v])=>`<button class="diff d-${k}${khoaMemKho(k)?' mem':''}" data-d="${k}" aria-pressed="${k===diff}">
       <b>${v.n}</b><span class="x">×${v.hs}</span><small>${tl(`Phạt ${phat(k)}/tim`,`−${phat(k)}/heart`)}</small></button>`).join('')}</div>
     <p class="muted" id="dd"></p></div>
   <ol class="steps mob">${tl('<li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi chạm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li><li>Hết bàn thì khách xếp hàng. Để khách chờ lâu là mất tim</li>','<li>Tap <b>Noodles</b>, then add exactly the toppings ordered</li><li>Tap <b>Add broth</b>, then tap the customer</li><li>Earn enough each day to pay the rent. Cash out any time</li><li>When tables are full, customers queue. Long waits cost hearts</li>')}</ol>
@@ -34,7 +34,7 @@ function home(){
     <button class="btn ghost" id="lb">${tl('Bảng xếp hạng','Leaderboard')}</button>
     ${ranked?`<button class="btn ghost" id="hoso">${tl('Ván đấu &amp; thống kê','Matches &amp; stats')}</button><button class="btn ghost" id="banbe">${tl('Bạn bè','Friends')} <span class="bb-so" data-bb-badge="lm" hidden></span></button>`:''}
     <div class="row">${ranked?`<button class="link" id="out">${tl('Đăng xuất','Sign out')}</button>`
-      :`<button class="link" id="login">${tl('Đăng nhập để tính điểm','Sign in to earn points')}</button>`}</div>
+      :`<button class="link" id="login">${tl('Đăng ký / đăng nhập để tính điểm','Sign up / sign in to earn points')}</button>`}</div>
     <div class="row"><button class="link" id="contact">${tl('Liên hệ người làm game','Contact the developer')}</button><button class="link" id="donate">${tl('Ủng hộ game','Support the game')}</button></div>
     <div class="row"><button class="link" id="vegame">${tl('Về game &amp; chính sách dữ liệu','About &amp; data policy')}</button></div>
     <div class="row" style="align-items:center;gap:12px">${themeHTML()}${soundBtn(true)}</div>
@@ -45,7 +45,10 @@ function home(){
     :diff==='dianguc'?tl('Khách cực vội, tô nhiều topping. Thưởng ×2.2, nhưng mất 5 tim là bị trừ 363 điểm.','Customers in a rush, lots of toppings. ×2.2 bonus, but losing 5 hearts costs 363 points.')
     :tl('Mức cao nhất. Khách vội nhất, gần như tô nào cũng 4 món, hàng chờ ngắn. Thưởng ×3, mất 5 tim bị trừ 675 điểm.','The top level. Most hurried customers, almost every bowl has 4 items, short queue. ×3 bonus, losing 5 hearts costs 675 points.')};
   desc();
-  $('diffs').onclick=e=>{const b=e.target.closest('.diff');if(!b)return;diff=b.dataset.d;try{localStorage.setItem('mqbk-diff',diff)}catch(e){}
+  $('diffs').onclick=e=>{const b=e.target.closest('.diff');if(!b)return;
+    if(b.classList.contains('mem')&&!b.dataset.hoi&&b.dataset.d!==diff){$('diffs').querySelectorAll('[data-hoi]').forEach(x=>delete x.dataset.hoi);b.dataset.hoi=1;
+      $('dd').innerHTML=tl(`<b>Mới chơi thì nên bắt đầu ở mức Thường.</b> Mức ${DIFF[b.dataset.d].n} khách rất vội, mất 5 tim bị trừ ${Math.round(75*DIFF[b.dataset.d].hs**2)} ĐBK. Bấm lần nữa nếu vẫn muốn chọn.`,`<b>New players should start on Normal.</b> On ${DIFF[b.dataset.d].n} customers are in a big hurry and losing 5 hearts costs ${Math.round(75*DIFF[b.dataset.d].hs**2)} BKP. Tap again to choose it anyway.`);return}
+    diff=b.dataset.d;try{localStorage.setItem('mqbk-diff',diff)}catch(e){}
     $('diffs').querySelectorAll('.diff').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===diff));desc()};
   $('go').onclick=startRun;
   $('lb').onclick=()=>leaderboard('sv');
@@ -154,8 +157,8 @@ async function leaderboard(tab,focus){
   openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${tl('Vinh danh · Học kỳ 1, 2026–2027','Hall of fame · Semester 1, 2026–2027')}</div><button class="link" id="back">${tl('Đóng','Close')}</button></div>
   <h2>${tl('Bảng xếp hạng','Leaderboard')}</h2>
   ${canSolo?`<div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-    <input id="q" type="search" placeholder="${tl('Tìm bạn theo tên hoặc lớp để solo','Find a player by name or class to challenge')}" autocomplete="off" enterkeyhint="search" aria-label="${tl('Tìm người chơi để thách đấu','Find a player to challenge')}"></div>`:''}
-  <div class="tabs t4" role="tablist">${[['sv',tl('Cá nhân','Players')],['lop',tl('Lớp','Classes')],['khoa',tl('Khoa','Faculties')],['solo','Solo']].map(([k,n])=>`<button role="tab" data-t="${k}" aria-selected="${k===tab}">${n}</button>`).join('')}</div>
+    <input id="q" type="search" placeholder="${tl('Tìm bạn theo tên, lớp hoặc trường để solo','Find a player by name, class or school')}" autocomplete="off" enterkeyhint="search" aria-label="${tl('Tìm người chơi để thách đấu','Find a player to challenge')}"></div>`:''}
+  <div class="tabs t5" role="tablist">${[['sv',tl('Cá nhân','Players')],['truong',tl('Trường','Schools')],['lop',tl('Lớp','Classes')],['khoa',tl('Khoa','Faculties')],['solo','Solo']].map(([k,n])=>`<button role="tab" data-t="${k}" aria-selected="${k===tab}">${n}</button>`).join('')}</div>
   ${tab==='sv'||tab==='solo'?`<div class="lb-loc" role="group" aria-label="${tl('Lọc người chơi','Filter players')}">${[['tat_ca',tl('Tất cả người chơi','All players')],['sv',tl('Chỉ sinh viên BK','BK students only')]].map(([k,n])=>`<button type="button" data-loc="${k}" aria-pressed="${k===lbLoc}">${n}</button>`).join('')}</div>`:''}
   <div class="col" id="lbBody"><div class="empty-state">${tl('Đang tải bảng xếp hạng…','Loading leaderboard…')}</div></div>
   <div class="rule" id="rule"></div>`);
@@ -166,9 +169,10 @@ async function leaderboard(tab,focus){
     loc.querySelectorAll('[data-loc]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.loc===lbLoc));
     const q=$('q'); if(q&&q.value.trim()) return; loadBoard(tab,canSolo)};
   const hint=canSolo?tl(' Bấm vào tên một bạn để xem hồ sơ, thách đấu solo, hoặc xem trực tiếp khi bạn ấy đang bán.',' Tap a name to see their profile, challenge them to solo, or watch live while they are selling.'):'';
-  const ngoaiBK=`<p style="margin-top:8px">${tl(`Người chơi không phải sinh viên Bách Khoa Đà Nẵng có nhãn ${NGOAI_BK}: vẫn được xếp hạng cá nhân và solo, nhưng không tính vào bảng Lớp và Khoa. Chọn <b>Chỉ sinh viên BK</b> để xem thứ hạng riêng trong sinh viên.`,`Players who are not Bach Khoa Da Nang students carry the ${NGOAI_BK} tag: they are ranked in Players and Solo but not counted in Classes and Faculties. Choose <b>BK students only</b> to see student-only ranks.`)}</p>`;
+  const ngoaiBK=`<p style="margin-top:8px">${tl(`Người chơi không phải sinh viên Bách Khoa Đà Nẵng có nhãn tên trường của họ, hoặc ${NGOAI_BK} nếu không đi học: vẫn được xếp hạng cá nhân và solo, nhưng không tính vào bảng Lớp và Khoa. Chọn <b>Chỉ sinh viên BK</b> để xem thứ hạng riêng trong sinh viên.`,`Players who are not Bach Khoa Da Nang students carry their school's name, or the ${NGOAI_BK} tag if they are not students: they are ranked in Players and Solo but not counted in Classes and Faculties. Choose <b>BK students only</b> to see student-only ranks.`)}</p>`;
   $('rule').innerHTML=tab==='sv'?ruleText()+ngoaiBK+`<p style="margin-top:8px"><b>${tl('Hạng theo tổng ĐBK:','Ranks by total BKP:')}</b></p>${hangBangDBK()}`+(hint?`<p style="margin-top:6px">${hint.trim()}</p>`:''):tab==='lop'
     ?tl('Điểm lớp = tổng ĐBK của 10 bạn cao nhất lớp, chia 10. Lớp chưa đủ 10 người chơi thì phần thiếu tính là 0. Chỉ tính sinh viên Bách Khoa.','Class score = total BKP of the class\'s top 10 players, divided by 10. Missing players count as 0. Bach Khoa students only.')
+    :tab==='truong'?tl('Điểm trường = tổng ĐBK của 30 bạn cao nhất trường, chia 30. Trường chưa đủ 30 người chơi thì phần thiếu tính là 0, nên rủ thêm bạn cùng trường vào là điểm trường lên. Chọn trường ở hồ sơ (bấm vào thẻ tên ở màn chính).','School score = total BKP of the school\'s top 30 players, divided by 30. Missing players count as 0, so bring classmates to raise your school. Pick your school in your profile (tap your name card on the home screen).')
     :tab==='khoa'?tl('Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30. Chỉ tính sinh viên Bách Khoa.','Faculty score = total BKP of the faculty\'s top 30 players, divided by 30. Bach Khoa students only.')
     :tl('Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Ai chưa đấu trận nào đứng ở 1200. Solo không ảnh hưởng ĐBK.','Solo Elo starts at 1200. Beating a higher-rated player gains a lot, losing to a lower-rated one costs a lot (chess Elo formula, K = 32). Players with no matches sit at 1200. Solo does not affect BKP.')+hint+ngoaiBK+`<p style="margin-top:8px"><b>${tl('Danh hiệu theo Elo:','Titles by Elo:')}</b></p>${hangBangElo()}`;
   if(!sb){$('lbBody').innerHTML=`<div class="empty-state">${tl('Không kết nối được máy chủ bảng xếp hạng.','Cannot reach the leaderboard server.')}</div>`;return}
@@ -187,12 +191,13 @@ async function leaderboard(tab,focus){
 async function loadBoard(tab,canSolo){
   let rows=[],err=null;
   const chiSV=lbLoc==='sv';
-  if(tab==='sv'){let q=sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,hang_sv,chuoi,avatar_url,sinh_vien').order('diem',{ascending:false}).limit(50);
+  if(tab==='sv'){let q=sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,hang_sv,chuoi,avatar_url,sinh_vien,truong_id,truong').order('diem',{ascending:false}).limit(50);
     if(chiSV) q=q.eq('sinh_vien',true);
     ({data:rows,error:err}=await q); if(rows&&chiSV) rows=rows.map(r=>({...r,hang:r.hang_sv}))}
+  else if(tab==='truong'){({data:rows,error:err}=await sb.from('bxh_truong').select('truong_id,ten,ten_ngan,tinh,so_nguoi,diem,hang').order('hang').limit(100))}
   else if(tab==='lop'){({data:rows,error:err}=await sb.from('bxh_lop').select('lop,khoa_id,so_nguoi,diem,hang').order('hang').limit(50))}
   else if(tab==='khoa'){({data:rows,error:err}=await sb.from('bxh_khoa').select('khoa_id,khoa,so_nguoi,diem,hang').order('hang'))}
-  else {let q=sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url').order('elo',{ascending:false}).limit(300);
+  else {let q=sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,truong_id,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url').order('elo',{ascending:false}).limit(300);
     if(chiSV) q=q.eq('sinh_vien',true);
     ({data:rows,error:err}=await q);
     if(rows){const all=rows, tr=x=>x.solo_thang+x.solo_thua+x.solo_hoa;
@@ -204,12 +209,13 @@ async function loadBoard(tab,canSolo){
   const norm=rows.map(r=>tab==='sv'
     ?{rk:r.hang,nm:r.ten,sbH:`${lopKhoaHTML(r,r.khoa)}${r.chuoi>0?` · ${tl(`${r.chuoi} ngày liên tiếp`,`${r.chuoi}-day streak`)}`:''}`,pt:r.diem,logo:hangLogo(r.diem,24),mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url}}
     :tab==='lop'?{rk:r.hang,nm:r.lop,sb:`${khoaTen(r.khoa_id)} · ${r.so_nguoi} ${tl('người chơi','players')}`,pt:r.diem,mine:profile&&r.lop===profile.lop}
+    :tab==='truong'?{rk:r.hang,nm:r.ten_ngan,sb:`${r.tinh} · ${r.so_nguoi} ${tl('người chơi','players')}`,pt:r.diem,mine:profile&&r.truong_id===profile.truong_id}
     :tab==='khoa'?{rk:r.hang,nm:tKhoa(r.khoa),sb:`${r.so_nguoi} ${tl('người chơi','players')}`,pt:r.diem,mine:profile&&r.khoa_id===profile.khoa_id}
     :{rk:r.hang,nm:r.ten,sbH:`${lopKhoaHTML(r,false)} · ${r.solo_thang+r.solo_thua+r.solo_hoa?tl(`${r.solo_thang} thắng ${r.solo_thua} thua${r.solo_hoa?` ${r.solo_hoa} hoà`:''}`,`${r.solo_thang}W ${r.solo_thua}L${r.solo_hoa?` ${r.solo_hoa}D`:''}`):tl('chưa đấu trận nào','no matches yet')}`,pt:r.elo,nmH:tenElo(r.ten,r.elo),tag:eloTitle(r.elo),mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url,elo:r.elo}});
   norm.forEach(r=>{if(r.p)lbPeople.set(r.uid,r.p)});
   if(!norm.length){body.innerHTML=tab==='solo'
     ?`<div class="empty-state">${tl('Chưa có trận solo nào.','No solo matches yet.')}${canSolo?tl(' Tìm một bạn ở ô phía trên và thách đấu để mở màn.',' Find someone above and challenge them first.'):tl(' Đăng nhập để thách đấu bạn bè.',' Sign in to challenge friends.')}</div>`
-    :`<div class="empty-state">${tl(`Chưa có ai trên bảng. Chơi một lượt để ghi tên ${tab==='lop'?'lớp bạn':'mình'} đầu tiên.`,`Nobody here yet. Play a run to put ${tab==='lop'?'your class':'yourself'} first.`)}</div>`;return}
+    :`<div class="empty-state">${tl(`Chưa có ai trên bảng. Chơi một lượt để ghi tên ${tab==='lop'?'lớp bạn':tab==='truong'?'trường bạn':'mình'} đầu tiên.`,`Nobody here yet. Play a run to put ${tab==='lop'?'your class':tab==='truong'?'your school':'yourself'} first.`)}</div>`;return}
   const tap=r=>canSolo&&r.uid?` data-prof="${r.uid}" role="button" tabindex="0" aria-label="${tl('Xem hồ sơ','View profile:')} ${esc(r.nm)}"`:'';
   const dot=r=>r.uid?`<span class="dot" data-online="${r.uid}" ${onlineSet.has(r.uid)?'':'hidden'}></span>`:'';
   const stb=r=>r.uid&&!r.mine?stBadge(r.uid):'';
