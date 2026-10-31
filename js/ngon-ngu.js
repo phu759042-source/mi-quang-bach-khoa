@@ -28,6 +28,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-lang
 
 // Lỗi do server trả về (supabase/schema.sql) → tiếng Anh
 const LOI_EN = [
+  ['Giáo viên cần chọn trường', 'Teachers must pick a school'],
   ['Trường không có trong danh sách', 'That school is not on the list'],
   ['Chỉ tài khoản mới được tính lượt chơi thử', 'Only new accounts can claim a trial run'],
   ['Lượt chơi thử không cộng điểm', 'That trial run did not earn points'],

@@ -621,3 +621,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .diff.mem[aria-pressed="true"]{opacity:1}
 .truong-tag{max-width:16ch;overflow:hidden;text-overflow:ellipsis}
 @media (prefers-reduced-motion:reduce){.goi-y{animation:none}}
+/* Bản 2.22.0: giáo viên */
+.sv-chon.c4{grid-template-columns:1fr 1fr}
+.sv-chon.c4 b{white-space:normal}
+.gv-tag{background:var(--navy);color:#fff;border-color:var(--navy);opacity:1}

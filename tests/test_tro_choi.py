@@ -29,9 +29,9 @@ lock = threading.Lock()
 
 class Fake:
     def __init__(s):
-        s.khoa = [{'id': 'cntt', 'ten': 'Công nghệ Thông tin'}, {'id': 'dtvt', 'ten': 'Điện tử Viễn thông'}]
+        s.khoa = [{'id': 'cntt', 'ten': 'Công nghệ Thông tin'}, {'id': 'dtvt', 'ten': 'Điện tử và trí tuệ nhân tạo'}]
         base = dict(diem=0, so_luot=3, ngay_xa_nhat=4, chuoi=0, ngay_chuoi=None, chuoi_dai_nhat=0, avatar_url=None,
-                    avatar_khung=None, elo=1200, solo_thang=0, solo_thua=0, solo_hoa=0, sinh_vien=True, truong_id='dut')
+                    avatar_khung=None, elo=1200, solo_thang=0, solo_thua=0, solo_hoa=0, sinh_vien=True, truong_id='dut', giang_vien=False)
         s.prof = {'A': dict(base, id='A', ten='Nguyễn Tấn Phú', khoa_id='cntt', lop='26T_ATTT', diem=1420),
                   'B': dict(base, id='B', ten='Phạm Gia Huy', khoa_id='dtvt', lop='24DT2', diem=1300),
                   'C': dict(base, id='C', ten='Lê Minh Anh', khoa_id='cntt', lop='23T_DT1', diem=900)}
@@ -138,13 +138,15 @@ class Fake:
             s.tb = [t for t in s.tb if u not in (t['user_id'], t['tu'])]
             return {'data': None}
         if fn == 'luu_ho_so':                                 # giống public.luu_ho_so (bản 2.21.0)
-            sv = a.get('p_sinh_vien', True) is not False
+            gv = a.get('p_giang_vien') is True                # bản 2.22.0: giáo viên bắt buộc chọn trường, không khoa/lớp
+            sv = a.get('p_sinh_vien', True) is not False and not gv
             tr = 'dut' if sv else (a.get('p_truong_id') or None)
+            if gv and not tr: return err('Giáo viên cần chọn trường')
             if sv and not (a.get('p_khoa_id') and a.get('p_lop')): return err('Sinh viên Bách Khoa cần chọn khoa và nhập lớp')
-            if not sv and tr == 'dut': return err('Sinh viên Bách Khoa cần chọn khoa và nhập lớp')
+            if not sv and not gv and tr == 'dut': return err('Sinh viên Bách Khoa cần chọn khoa và nhập lớp')
             if tr and tr not in [t['id'] for t in s.truong]: return err('Trường không có trong danh sách')
             s.prof[u].update(ten=a['p_ten'].strip(), sinh_vien=sv, khoa_id=a['p_khoa_id'] if sv else None,
-                             lop=a['p_lop'].strip().upper() if sv else None, truong_id=tr)
+                             lop=a['p_lop'].strip().upper() if sv else None, truong_id=tr, giang_vien=gv)
             return {'data': None}
         if fn == 'nhan_luot_thu':                             # giống public.nhan_luot_thu (bản 2.21.0)
             p = s.prof.get(u); hs = HS[a['p_do_kho']]
@@ -159,7 +161,7 @@ class Fake:
         if fn == 'tim_nguoi_choi':
             q = a['p_q'].lower()
             res = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']),
-                        diem=p['diem'], elo=p['elo'], avatar_url=None, sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']))
+                        diem=p['diem'], elo=p['elo'], avatar_url=None, sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']), giang_vien=p['giang_vien'])
                    for p in s.prof.values() if p['id'] != u and (q in p['ten'].lower() or q in (p['lop'] or '').lower())]
             return {'data': res}
         if fn == 'bat_dau_luot':
@@ -253,14 +255,15 @@ class Fake:
                 if p['so_luot'] > 0 and p['truong_id'] and p['truong_id'] != 'khac': g.setdefault(p['truong_id'], []).append(p['diem'])
             rows = sorted([dict(truong_id=k, ten=next(t['ten'] for t in s.truong if t['id'] == k), ten_ngan=s.truong_ten(k),
                                 tinh=next(t['tinh'] for t in s.truong if t['id'] == k), so_nguoi=len(v), diem=round(sum(sorted(v)[-30:]) / 30)) for k, v in g.items()], key=lambda r: -r['diem'])
+            for r in rows: r['so_gv'] = sum(1 for p in s.prof.values() if p['so_luot'] > 0 and p['truong_id'] == r['truong_id'] and p['giang_vien'])
             for i, r in enumerate(rows): r['hang'] = i + 1
             return {'data': rows}
         if t == 'profiles':
             uid = next((v for k, op, v in f if k == 'id'), None)
             gt = next((v for k, op, v in f if op == 'gt'), None)
             if gt is not None: return {'data': [dict(p) for p in s.prof.values() if p['elo'] > gt]}
-            sv = next((v for k, op, v in f if k == 'sinh_vien'), None)
-            if uid is None: return {'data': [dict(p) for p in s.prof.values() if sv is None or p['sinh_vien'] == sv]}
+            eq = [(k, v) for k, op, v in f if op == 'eq' and k in ('sinh_vien', 'giang_vien', 'truong_id')]
+            if uid is None: return {'data': [dict(p) for p in s.prof.values() if all(p[k] == v for k, v in eq)]}
             if isinstance(uid, list): return {'data': [dict(s.prof[x]) for x in uid if x in s.prof]}
             p = s.prof.get(uid)
             return {'data': dict(p) if p else None}
@@ -292,10 +295,10 @@ class Fake:
             if q.get('single'): return {'data': {'hang': 2, 'hang_sv': 2}}
             ps = sorted(s.prof.values(), key=lambda p: -p['diem'])
             svs = [p for p in ps if p['sinh_vien']]
-            rows = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']), sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']),
+            rows = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']), sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']), giang_vien=p['giang_vien'],
                          diem=p['diem'], hang=i + 1, hang_sv=svs.index(p) + 1 if p['sinh_vien'] else None, chuoi=0, avatar_url=None) for i, p in enumerate(ps)]
-            sv = next((v for k, op, v in f if k == 'sinh_vien'), None)
-            return {'data': [r for r in rows if sv is None or r['sinh_vien'] == sv]}
+            eq = [(k, v) for k, op, v in f if op == 'eq' and k in ('sinh_vien', 'giang_vien', 'truong_id')]
+            return {'data': [r for r in rows if all(r[k] == v for k, v in eq)]}
         if t == 'bxh_solo':
             ps = sorted([p for p in s.prof.values() if p['solo_thang'] + p['solo_thua'] + p['solo_hoa']], key=lambda p: -p['elo'])
             return {'data': [dict(p, khoa=s.khoa_ten(p['khoa_id']), hang=i + 1) for i, p in enumerate(ps)]}
@@ -971,7 +974,7 @@ with sync_playwright() as pw:
     check(luu and luu['est'] > 0 and luu['diff'] == 'thuong', f'lượt chơi thử có điểm dương được giữ lại ({luu})')
     shot(K, 'nguoi-moi-02-giu-diem'); K.wait_for_timeout(1000); K.click('#giuDiem'); K.wait_for_selector('#em', timeout=4000)
     check(K.locator('.thu-giu').count() == 1 and 'Tạo tài khoản' in K.inner_text('#f button[type=submit]'), 'bấm "giữ điểm" mở màn đăng ký, có nhắc số điểm')
-    F.prof['KHACH'] = dict(F.prof['A'], id='KHACH', ten='Người Mới', diem=0, so_luot=0, ngay_xa_nhat=0, elo=1200, khoa_id='cntt', lop='26T_X', sinh_vien=True, truong_id='dut')   # coi như vừa đăng ký + lưu hồ sơ
+    F.prof['KHACH'] = dict(F.prof['A'], id='KHACH', ten='Người Mới', diem=0, so_luot=0, ngay_xa_nhat=0, elo=1200, khoa_id='cntt', lop='26T_X', sinh_vien=True, truong_id='dut', giang_vien=False)   # coi như vừa đăng ký + lưu hồ sơ
     K.evaluate("(async()=>{window.__uid='KHACH';user={id:'KHACH'};await loadProfile();ranked=true;home();await nhanLuotThu()})()"); K.wait_for_timeout(800)
     check(getattr(F, 'nhan', {}).get('p_doanh_thu') == luu['doanh_thu'] and F.prof['KHACH']['diem'] == luu['est'], 'tạo tài khoản xong: server tính lượt chơi thử, đúng số điểm')
     check(K.evaluate("localStorage.getItem('mqbk-luot-thu')") is None, 'đã tính thì xoá lượt chơi thử khỏi máy (không nhận hai lần)')
@@ -988,6 +991,26 @@ with sync_playwright() as pw:
     shot(K, 'truong-02-bxh')
     K.click('[data-t="sv"]'); K.wait_for_selector('#lbBody .podium', timeout=5000)
     check(K.locator('#lbBody .truong-tag', has_text='BK Hà Nội').count() == 1, 'bảng Cá nhân: nhãn tên trường')
+
+    print('32. Giáo viên: chọn trường mình dạy (kể cả BKĐN), nhãn GV, bộ lọc Giáo viên / Trường mình, bảng Trường đếm giáo viên')
+    K.evaluate('profileScreen()'); K.wait_for_selector('[data-sv="3"]', timeout=4000)
+    check(K.evaluate("document.querySelector('#truong option[value=dut]').disabled"), 'sinh viên trường khác không chọn được BK Đà Nẵng')
+    K.click('[data-sv="3"]')
+    check(K.is_visible('#trFields') and not K.is_visible('#svFields') and not K.evaluate("document.querySelector('#truong option[value=dut]').disabled") and 'dạy' in K.inner_text('#trNhan'),
+          'chọn "Giáo viên": chọn trường mình dạy, BK Đà Nẵng mở lại, không có khoa/lớp')
+    K.select_option('#truong', 'dut'); shot(K, 'giao-vien-01-ho-so'); K.click('#f button[type=submit]'); K.wait_for_selector('#go', timeout=5000)
+    check(F.prof['KHACH']['giang_vien'] is True and F.prof['KHACH']['truong_id'] == 'dut' and F.prof['KHACH']['sinh_vien'] is False, 'lưu hồ sơ giáo viên BK Đà Nẵng')
+    check(K.locator('#edit .gv-tag').count() == 1 and 'BK Đà Nẵng' in K.inner_text('#edit'), 'thẻ tên: nhãn GV + tên trường')
+    K.evaluate("leaderboard('sv')"); K.wait_for_selector('#lbBody .podium', timeout=5000)
+    check(K.locator('[data-loc="gv"]').count() == 1 and K.locator('[data-loc="truong"]').count() == 1, 'bảng Cá nhân có bộ lọc Giáo viên và Trường mình')
+    K.click('[data-loc="gv"]'); K.wait_for_function("!document.querySelector('#lbBody').innerText.includes('Nguyễn Tấn Phú')", timeout=5000)
+    check('Người Mới' in K.inner_text('#lbBody') and K.locator('#lbBody .gv-tag').count() >= 1, 'lọc Giáo viên: chỉ còn giáo viên, có nhãn GV')
+    shot(K, 'giao-vien-02-loc')
+    K.click('[data-loc="truong"]'); K.wait_for_function("document.querySelector('#lbBody').innerText.includes('Nguyễn Tấn Phú')", timeout=5000)
+    check('BK Hà Nội' not in K.inner_text('#lbBody') and 'Người Mới' in K.inner_text('#lbBody'), 'lọc Trường mình: giáo viên đua cùng sinh viên BK')
+    K.click('[data-t="truong"]'); K.wait_for_selector('#lbBody .podium', timeout=5000)
+    check('1 giáo viên' in K.inner_text('#lbBody'), 'bảng Trường ghi số giáo viên của trường')
+    K.evaluate("localStorage.setItem('mqbk-loc','tat_ca')")
     K.close()
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()

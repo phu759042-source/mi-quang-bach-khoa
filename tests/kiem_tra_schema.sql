@@ -233,6 +233,25 @@ begin
   if not exists (select 1 from public.tim_nguoi_choi('BK Hà Nội')) then raise exception 'HONG: không tìm được theo tên trường'; end if;
   perform pg_temp.dang_xuat();
   raise notice 'OK trường: chọn trường, chặn trường lạ và BKĐN giả, bảng trường; lượt chơi thử nhận một lần, chỉ khi cộng điểm';
+  -- Bản 2.22.0: giáo viên
+  insert into auth.users (id) values ('00000000-0000-0000-0000-000000000010');
+  perform pg_temp.dang_nhap('00000000-0000-0000-0000-000000000010');
+  begin perform public.luu_ho_so('Thầy G', null, null, false, null, true); raise exception 'HONG: giáo viên không chọn trường vẫn lưu được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform public.luu_ho_so('Thầy G', 'cntt', '26T', true, 'dut', true);
+  if (select sinh_vien or not giang_vien or truong_id <> 'dut' or khoa_id is not null or lop is not null
+      from public.profiles where id = '00000000-0000-0000-0000-000000000010') then raise exception 'HONG: giáo viên BKĐN lưu sai'; end if;
+  perform pg_temp.dang_xuat();
+  update public.profiles set so_luot = 1, diem = 3000 where id = '00000000-0000-0000-0000-000000000010';
+  if not exists (select 1 from public.bxh_truong where truong_id = 'dut' and so_gv = 1)
+    or not (select giang_vien from public.bxh_sinh_vien where id = '00000000-0000-0000-0000-000000000010')
+    or exists (select 1 from public.bxh_sinh_vien where id = '00000000-0000-0000-0000-000000000010' and hang_sv is not null)
+    or (select sum(so_nguoi) from public.bxh_khoa) <> (select count(*) from public.profiles where so_luot > 0 and sinh_vien)
+    then raise exception 'HONG: giáo viên trên bảng xếp hạng sai'; end if;
+  perform pg_temp.dang_nhap(A);
+  if not (select giang_vien from public.tim_nguoi_choi('Thầy G') limit 1) then raise exception 'HONG: tìm kiếm thiếu giang_vien'; end if;
+  perform pg_temp.dang_xuat();
+  raise notice 'OK giáo viên: bắt buộc chọn trường (kể cả BKĐN), không khoa/lớp, tính vào bảng Trường, không vào Lớp/Khoa';
 end $$;
 
 select 'TẤT CẢ ĐỀU ĐÚNG' as ket_qua;

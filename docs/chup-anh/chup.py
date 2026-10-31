@@ -14,9 +14,9 @@ STUB = r"""
   const today = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh'}).format(new Date());
   const yest = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh'}).format(new Date(Date.now()-864e5));
   const KHOA = [{id:'cntt',ten:'Công nghệ Thông tin'},{id:'ck',ten:'Cơ khí'},{id:'dien',ten:'Điện'},{id:'xd',ten:'Xây dựng Dân dụng'},
-    {id:'dtvt',ten:'Điện tử Viễn thông'},{id:'hoa',ten:'Hóa'},{id:'kt',ten:'Kiến trúc'},{id:'mt',ten:'Môi trường'}];
+    {id:'dtvt',ten:'Điện tử và trí tuệ nhân tạo'},{id:'hoa',ten:'Hóa'},{id:'kt',ten:'Kiến trúc'},{id:'mt',ten:'Môi trường'}];
   const kid = n => KHOA.find(k=>k.ten===n)?.id ?? null;
-  const SV = [['Lê Minh Anh','23T_DT1','Công nghệ Thông tin',24800,9,1532],['Phạm Gia Huy','24DT2','Điện tử Viễn thông',23150,4,1410],
+  const SV = [['Lê Minh Anh','23T_DT1','Công nghệ Thông tin',24800,9,1532],['Phạm Gia Huy','24DT2','Điện tử và trí tuệ nhân tạo',23150,4,1410],
     ['Trần Thảo Vy','23KT1','Kiến trúc',21900,12,1288],['Nguyễn Hải Đăng',null,null,19850,0,1365],['Ngô Khánh Linh','24T_KHDL','Công nghệ Thông tin',18700,3,1250],
     ['Đặng Hữu Phước','23D2','Điện',17600,0,1190],['Bùi Ngọc Hân','22H5','Hóa',16550,2,1215],['Hoàng Đức Tài','24X1A','Xây dựng Dân dụng',15400,1,1176],
     ['Sinh viên Demo','26T_ATTT','Công nghệ Thông tin',14200,3,1236],['Huỳnh Mỹ Duyên','23MT','Môi trường',13100,0,1200]];
@@ -25,7 +25,7 @@ STUB = r"""
     hang_sv:r[1]?++sv:null,chuoi:r[4],avatar_url:null,elo:r[5],solo_thang:i%4+1,solo_thua:i%3,solo_hoa:i%2,so_luot:5}));
   const LOP = [['23T_DT1','cntt',14,16200],['24DT2','dtvt',11,14880],['23KT1','kt',10,14020],['22C1A','ck',12,12750],['24T_KHDL','cntt',9,11900],['23D2','dien',10,11040]]
     .map((r,i)=>({lop:r[0],khoa_id:r[1],so_nguoi:r[2],diem:r[3],hang:i+1}));
-  const BKH = [['Công nghệ Thông tin',142,13880],['Điện tử Viễn thông',87,12150],['Kiến trúc',54,11020],['Cơ khí',96,10400],['Điện',71,9870],['Hóa',40,8600]]
+  const BKH = [['Công nghệ Thông tin',142,13880],['Điện tử và trí tuệ nhân tạo',87,12150],['Kiến trúc',54,11020],['Cơ khí',96,10400],['Điện',71,9870],['Hóa',40,8600]]
     .map((r,i)=>({khoa:r[0],khoa_id:kid(r[0]),so_nguoi:r[1],diem:r[2],hang:i+1}));
   const PROFILE = {id:'demo',ten:'Sinh viên Demo',khoa_id:'cntt',lop:'26T_ATTT',sinh_vien:true,diem:14200,so_luot:23,ngay_xa_nhat:7,chuoi:3,ngay_chuoi:yest,chuoi_dai_nhat:6,
     avatar_url:null,avatar_khung:null,elo:1236,solo_thang:4,solo_thua:2,solo_hoa:1};

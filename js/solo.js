@@ -99,7 +99,7 @@ function titleBlink(on){clearInterval(titleBlink.t);document.title=TITLE0;if(!on
 const soloBusy=()=>midRun||!!solo||!!soloWait;
 async function showNotice(r){
   notices.set(r.id,{row:r});                      // giữ chỗ để không hiện hai lần
-  const {data:p}=await sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,truong_id,elo,avatar_url').eq('id',r.a).maybeSingle();
+  const {data:p}=await sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,truong_id,giang_vien,elo,avatar_url').eq('id',r.a).maybeSingle();
   if(!notices.has(r.id)) return;
   const left=Math.max(0,new Date(r.het_han)-Date.now());
   let box=$('notices');

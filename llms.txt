@@ -1,6 +1,6 @@
 # Mì Quảng Bách Khoa (miquangbk.com)
 
-> Game web miễn phí, chơi trên điện thoại và laptop, do Nguyễn Tấn Phú (sinh viên lớp 26T_ATTT, khoa Công nghệ Thông tin, Trường Đại học Bách Khoa – Đại học Đà Nẵng) làm. Người chơi mở quán mì Quảng, phục vụ sinh viên các khoa, kiếm Điểm Bách Khoa (ĐBK) cho bản thân, lớp và khoa. Từ bản 2.21.0 (31/10/2026) sinh viên mọi trường đều chơi được và đua điểm cho trường mình trên bảng xếp hạng Trường. Lấy cảm hứng từ quán Mì Quảng Bích, 1-3 Đặng Dung, Hòa Khánh Bắc, Đà Nẵng. Ra mắt ngày 24/10/2026. Có tiếng Việt và tiếng Anh (tên tiếng Anh: Bach Khoa Noodles).
+> Game web miễn phí, chơi trên điện thoại và laptop, do Nguyễn Tấn Phú (sinh viên lớp 26T_ATTT, khoa Công nghệ Thông tin, Trường Đại học Bách Khoa – Đại học Đà Nẵng) làm. Người chơi mở quán mì Quảng, phục vụ sinh viên các khoa, kiếm Điểm Bách Khoa (ĐBK) cho bản thân, lớp và khoa. Từ bản 2.21.0 (31/10/2026) sinh viên mọi trường đều chơi được và đua điểm cho trường mình trên bảng xếp hạng Trường. Từ bản 2.22.0 giáo viên, giảng viên cũng chọn trường mình dạy, có nhãn GV và đua cùng sinh viên. Lấy cảm hứng từ quán Mì Quảng Bích, 1-3 Đặng Dung, Hòa Khánh Bắc, Đà Nẵng. Ra mắt ngày 24/10/2026. Có tiếng Việt và tiếng Anh (tên tiếng Anh: Bach Khoa Noodles).
 
 - [Chơi ngay](https://miquangbk.com/): mở trang là chơi được, chơi thử không cần tài khoản, người mới có chỉ dẫn từng bước; đăng ký bằng email trong 24 giờ thì lượt chơi thử được tính điểm.
 - [Giới thiệu chi tiết](https://miquangbk.com/gioi-thieu/): cách chơi, độ khó, bảng xếp hạng, solo, phân hạng, câu hỏi thường gặp.

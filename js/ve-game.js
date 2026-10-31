@@ -25,7 +25,7 @@ function veGameScreen(back = home){
     <p><b>Khi có tài khoản, game lưu trên máy chủ:</b></p>
     <ul>
       <li>Email và mật khẩu để đăng nhập. Mật khẩu được mã hoá một chiều (bcrypt) bởi Supabase, người làm game không xem được.</li>
-      <li>Hồ sơ: tên hiển thị, bạn có phải sinh viên Bách Khoa Đà Nẵng không, khoa và lớp (chỉ khi là sinh viên BKĐN), trường bạn học (nếu bạn chọn), ảnh đại diện (nếu bạn tải lên). Game không hỏi MSSV, số điện thoại hay địa chỉ.</li>
+      <li>Hồ sơ: tên hiển thị, bạn có phải sinh viên Bách Khoa Đà Nẵng không, khoa và lớp (chỉ khi là sinh viên BKĐN), trường bạn học hoặc dạy và bạn có phải giáo viên không (nếu bạn chọn), ảnh đại diện (nếu bạn tải lên). Game không hỏi MSSV, số điện thoại hay địa chỉ.</li>
       <li>Kết quả chơi: từng lượt bán, ĐBK, chuỗi ngày, trận solo, Elo.</li>
       <li>Bản ghi thao tác để xem lại từng lượt bán và trận solo (giữ 50 lượt bán gần nhất, giữ hết các trận solo).</li>
       <li>Bạn bè, lời mời kết bạn và thông báo (giữ 100 thông báo gần nhất).</li>
@@ -37,7 +37,7 @@ function veGameScreen(back = home){
 
   <section class="card-s"><h3>Ai thấy được gì</h3>
     <ul>
-      <li><b>Mọi người, kể cả chưa đăng nhập:</b> tên hiển thị, khoa, lớp, tên trường hoặc nhãn "Ngoài BK", ảnh đại diện, ĐBK, số lượt chơi, chuỗi ngày, Elo, thành tích solo và thứ hạng trên bảng xếp hạng.</li>
+      <li><b>Mọi người, kể cả chưa đăng nhập:</b> tên hiển thị, khoa, lớp, tên trường, nhãn GV (giáo viên) hoặc "Ngoài BK", ảnh đại diện, ĐBK, số lượt chơi, chuỗi ngày, Elo, thành tích solo và thứ hạng trên bảng xếp hạng.</li>
       <li><b>Người đã đăng nhập:</b> thêm lịch sử các lượt bán và trận solo đã kết thúc, bản ghi xem lại, trạng thái đang mở game / đang bán / đang solo, và xem trực tiếp khi bạn đang chơi.</li>
       <li><b>Chỉ bạn:</b> email, danh sách bạn bè và lời mời, thông báo, trận đang đấu và lời thách đang chờ.</li>
     </ul>
@@ -98,7 +98,7 @@ function veGameScreen(back = home){
     <p><b>With an account, the server stores:</b></p>
     <ul>
       <li>Your email and password for signing in. The password is one-way hashed (bcrypt) by Supabase; the developer cannot see it.</li>
-      <li>Profile: display name, whether you are a Bach Khoa Da Nang student, faculty and class (Bach Khoa students only), your school (if you pick one), avatar (if you upload one). No student ID, phone number or address is asked.</li>
+      <li>Profile: display name, whether you are a Bach Khoa Da Nang student, faculty and class (Bach Khoa students only), your school and whether you are a teacher (if you pick one), avatar (if you upload one). No student ID, phone number or address is asked.</li>
       <li>Results: each run, Bach Khoa Points, streak, solo matches, Elo.</li>
       <li>Action recordings for replays of runs and solo matches (the latest 50 runs and all solo matches are kept).</li>
       <li>Friends, friend requests and notifications (the latest 100 notifications are kept).</li>
@@ -110,7 +110,7 @@ function veGameScreen(back = home){
 
   <section class="card-s"><h3>Who can see what</h3>
     <ul>
-      <li><b>Everyone, even signed out:</b> display name, faculty, class, school name or the "Non-BK" tag, avatar, BKP, number of runs, streak, Elo, solo record and leaderboard rank.</li>
+      <li><b>Everyone, even signed out:</b> display name, faculty, class, school name, Teacher tag or the "Non-BK" tag, avatar, BKP, number of runs, streak, Elo, solo record and leaderboard rank.</li>
       <li><b>Signed-in players:</b> also your finished runs and solo matches, replays, whether you are online / selling / in solo, and live view while you play.</li>
       <li><b>Only you:</b> your email, friends and requests, notifications, your current match and pending challenges.</li>
     </ul>

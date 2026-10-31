@@ -149,8 +149,10 @@ function donateScreen(back){
 }
 
 /* ================= Bảng xếp hạng ================= */
-// Bộ lọc tab Cá nhân và Solo (bản 2.17.0): 'tat_ca' = mọi người chơi, 'sv' = chỉ sinh viên BKĐN
-let lbLoc=(()=>{try{return localStorage.getItem('mqbk-loc')==='sv'?'sv':'tat_ca'}catch(e){return 'tat_ca'}})();
+// Bộ lọc tab Cá nhân và Solo: 'tat_ca' mọi người · 'sv' sinh viên BKĐN (2.17.0) · 'truong' cùng trường với mình · 'gv' giáo viên (2.22.0)
+let lbLoc=(()=>{try{const v=localStorage.getItem('mqbk-loc');return ['sv','truong','gv'].includes(v)?v:'tat_ca'}catch(e){return 'tat_ca'}})();
+const LB_LOC=()=>[['tat_ca',tl('Tất cả','Everyone')],['sv',tl('Sinh viên BK','BK students')],...(profile&&profile.truong_id&&profile.truong_id!=='khac'?[['truong',tl('Trường mình','My school')]]:[]),['gv',tl('Giáo viên','Teachers')]];
+const locHop=()=>LB_LOC().some(([k])=>k===lbLoc)?lbLoc:'tat_ca';
 async function leaderboard(tab,focus){
   nhoMan('bxh',tab);
   const canSolo=ranked&&!!sb;
@@ -159,7 +161,7 @@ async function leaderboard(tab,focus){
   ${canSolo?`<div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     <input id="q" type="search" placeholder="${tl('Tìm bạn theo tên, lớp hoặc trường để solo','Find a player by name, class or school')}" autocomplete="off" enterkeyhint="search" aria-label="${tl('Tìm người chơi để thách đấu','Find a player to challenge')}"></div>`:''}
   <div class="tabs t5" role="tablist">${[['sv',tl('Cá nhân','Players')],['truong',tl('Trường','Schools')],['lop',tl('Lớp','Classes')],['khoa',tl('Khoa','Faculties')],['solo','Solo']].map(([k,n])=>`<button role="tab" data-t="${k}" aria-selected="${k===tab}">${n}</button>`).join('')}</div>
-  ${tab==='sv'||tab==='solo'?`<div class="lb-loc" role="group" aria-label="${tl('Lọc người chơi','Filter players')}">${[['tat_ca',tl('Tất cả người chơi','All players')],['sv',tl('Chỉ sinh viên BK','BK students only')]].map(([k,n])=>`<button type="button" data-loc="${k}" aria-pressed="${k===lbLoc}">${n}</button>`).join('')}</div>`:''}
+  ${tab==='sv'||tab==='solo'?`<div class="lb-loc" role="group" aria-label="${tl('Lọc người chơi','Filter players')}">${LB_LOC().map(([k,n])=>`<button type="button" data-loc="${k}" aria-pressed="${k===locHop()}">${n}</button>`).join('')}</div>`:''}
   <div class="col" id="lbBody"><div class="empty-state">${tl('Đang tải bảng xếp hạng…','Loading leaderboard…')}</div></div>
   <div class="rule" id="rule"></div>`);
   $('back').onclick=home;
@@ -169,10 +171,10 @@ async function leaderboard(tab,focus){
     loc.querySelectorAll('[data-loc]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.loc===lbLoc));
     const q=$('q'); if(q&&q.value.trim()) return; loadBoard(tab,canSolo)};
   const hint=canSolo?tl(' Bấm vào tên một bạn để xem hồ sơ, thách đấu solo, hoặc xem trực tiếp khi bạn ấy đang bán.',' Tap a name to see their profile, challenge them to solo, or watch live while they are selling.'):'';
-  const ngoaiBK=`<p style="margin-top:8px">${tl(`Người chơi không phải sinh viên Bách Khoa Đà Nẵng có nhãn tên trường của họ, hoặc ${NGOAI_BK} nếu không đi học: vẫn được xếp hạng cá nhân và solo, nhưng không tính vào bảng Lớp và Khoa. Chọn <b>Chỉ sinh viên BK</b> để xem thứ hạng riêng trong sinh viên.`,`Players who are not Bach Khoa Da Nang students carry their school's name, or the ${NGOAI_BK} tag if they are not students: they are ranked in Players and Solo but not counted in Classes and Faculties. Choose <b>BK students only</b> to see student-only ranks.`)}</p>`;
+  const ngoaiBK=`<p style="margin-top:8px">${tl(`Người chơi không phải sinh viên Bách Khoa Đà Nẵng có nhãn tên trường của họ, hoặc ${NGOAI_BK} nếu không đi học: vẫn được xếp hạng cá nhân và solo, nhưng không tính vào bảng Lớp và Khoa. Bộ lọc phía trên xem riêng sinh viên BK, người cùng trường với bạn, hoặc giáo viên (nhãn GV); hạng được tính lại trong nhóm đang xem.`,`Players who are not Bach Khoa Da Nang students carry their school's name, or the ${NGOAI_BK} tag if they are not students: they are ranked in Players and Solo but not counted in Classes and Faculties. The filters above show only BK students, people from your school, or teachers (Teacher tag); ranks are recomputed within the group.`)}</p>`;
   $('rule').innerHTML=tab==='sv'?ruleText()+ngoaiBK+`<p style="margin-top:8px"><b>${tl('Hạng theo tổng ĐBK:','Ranks by total BKP:')}</b></p>${hangBangDBK()}`+(hint?`<p style="margin-top:6px">${hint.trim()}</p>`:''):tab==='lop'
     ?tl('Điểm lớp = tổng ĐBK của 10 bạn cao nhất lớp, chia 10. Lớp chưa đủ 10 người chơi thì phần thiếu tính là 0. Chỉ tính sinh viên Bách Khoa.','Class score = total BKP of the class\'s top 10 players, divided by 10. Missing players count as 0. Bach Khoa students only.')
-    :tab==='truong'?tl('Điểm trường = tổng ĐBK của 30 bạn cao nhất trường, chia 30. Trường chưa đủ 30 người chơi thì phần thiếu tính là 0, nên rủ thêm bạn cùng trường vào là điểm trường lên. Chọn trường ở hồ sơ (bấm vào thẻ tên ở màn chính).','School score = total BKP of the school\'s top 30 players, divided by 30. Missing players count as 0, so bring classmates to raise your school. Pick your school in your profile (tap your name card on the home screen).')
+    :tab==='truong'?tl('Điểm trường = tổng ĐBK của 30 người cao nhất trường (cả sinh viên và giáo viên), chia 30. Trường chưa đủ 30 người chơi thì phần thiếu tính là 0, nên rủ thêm bạn cùng trường vào là điểm trường lên. Chọn trường ở hồ sơ (bấm vào thẻ tên ở màn chính).','School score = total BKP of the school\'s top 30 players (students and teachers), divided by 30. Missing players count as 0, so bring classmates to raise your school. Pick your school in your profile (tap your name card on the home screen).')
     :tab==='khoa'?tl('Điểm khoa = tổng ĐBK của 30 bạn cao nhất khoa, chia 30. Chỉ tính sinh viên Bách Khoa.','Faculty score = total BKP of the faculty\'s top 30 players, divided by 30. Bach Khoa students only.')
     :tl('Elo solo bắt đầu từ 1200. Thắng người Elo cao hơn mình được cộng nhiều, thua người Elo thấp hơn bị trừ nhiều (công thức Elo như cờ vua, K = 32). Ai chưa đấu trận nào đứng ở 1200. Solo không ảnh hưởng ĐBK.','Solo Elo starts at 1200. Beating a higher-rated player gains a lot, losing to a lower-rated one costs a lot (chess Elo formula, K = 32). Players with no matches sit at 1200. Solo does not affect BKP.')+hint+ngoaiBK+`<p style="margin-top:8px"><b>${tl('Danh hiệu theo Elo:','Titles by Elo:')}</b></p>${hangBangElo()}`;
   if(!sb){$('lbBody').innerHTML=`<div class="empty-state">${tl('Không kết nối được máy chủ bảng xếp hạng.','Cannot reach the leaderboard server.')}</div>`;return}
@@ -190,26 +192,28 @@ async function leaderboard(tab,focus){
 }
 async function loadBoard(tab,canSolo){
   let rows=[],err=null;
-  const chiSV=lbLoc==='sv';
-  if(tab==='sv'){let q=sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,hang_sv,chuoi,avatar_url,sinh_vien,truong_id,truong').order('diem',{ascending:false}).limit(50);
-    if(chiSV) q=q.eq('sinh_vien',true);
-    ({data:rows,error:err}=await q); if(rows&&chiSV) rows=rows.map(r=>({...r,hang:r.hang_sv}))}
-  else if(tab==='truong'){({data:rows,error:err}=await sb.from('bxh_truong').select('truong_id,ten,ten_ngan,tinh,so_nguoi,diem,hang').order('hang').limit(100))}
+  const loc=locHop(), chiSV=loc==='sv';
+  const loc2=q=>loc==='sv'?q.eq('sinh_vien',true):loc==='gv'?q.eq('giang_vien',true):loc==='truong'?q.eq('truong_id',profile.truong_id):q;
+  if(tab==='sv'){let q=sb.from('bxh_sinh_vien').select('id,ten,lop,khoa,diem,hang,hang_sv,chuoi,avatar_url,sinh_vien,truong_id,truong,giang_vien').order('diem',{ascending:false}).limit(50);
+    q=loc2(q);
+    ({data:rows,error:err}=await q); if(rows&&chiSV) rows=rows.map(r=>({...r,hang:r.hang_sv}));
+    else if(rows&&loc!=='tat_ca') rows=rows.map(r=>({...r,hang:1+rows.filter(z=>z.diem>r.diem).length}))}
+  else if(tab==='truong'){({data:rows,error:err}=await sb.from('bxh_truong').select('truong_id,ten,ten_ngan,tinh,so_nguoi,so_gv,diem,hang').order('hang').limit(100))}
   else if(tab==='lop'){({data:rows,error:err}=await sb.from('bxh_lop').select('lop,khoa_id,so_nguoi,diem,hang').order('hang').limit(50))}
   else if(tab==='khoa'){({data:rows,error:err}=await sb.from('bxh_khoa').select('khoa_id,khoa,so_nguoi,diem,hang').order('hang'))}
-  else {let q=sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,truong_id,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url').order('elo',{ascending:false}).limit(300);
-    if(chiSV) q=q.eq('sinh_vien',true);
+  else {let q=sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,truong_id,giang_vien,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url').order('elo',{ascending:false}).limit(300);
+    q=loc2(q);
     ({data:rows,error:err}=await q);
     if(rows){const all=rows, tr=x=>x.solo_thang+x.solo_thua+x.solo_hoa;
       all.sort((x,y)=>y.elo-x.elo||tr(y)-tr(x)||y.diem-x.diem);
       rows=all.slice(0,50).map(x=>({...x,khoa:khoaTen(x.khoa_id),hang:1+all.filter(z=>z.elo>x.elo).length}))}}
-  const body=$('lbBody'); if(!body||($('q')&&$('q').value.trim())||(chiSV!==(lbLoc==='sv'))) return;
+  const body=$('lbBody'); if(!body||($('q')&&$('q').value.trim())||(loc!==locHop())) return;
   if(err){body.innerHTML=`<div class="empty-state">${tl('Không tải được','Could not load')}: ${esc(err.message)}</div>`;return}
   rows=rows||[];
   const norm=rows.map(r=>tab==='sv'
     ?{rk:r.hang,nm:r.ten,sbH:`${lopKhoaHTML(r,r.khoa)}${r.chuoi>0?` · ${tl(`${r.chuoi} ngày liên tiếp`,`${r.chuoi}-day streak`)}`:''}`,pt:r.diem,logo:hangLogo(r.diem,24),mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url}}
     :tab==='lop'?{rk:r.hang,nm:r.lop,sb:`${khoaTen(r.khoa_id)} · ${r.so_nguoi} ${tl('người chơi','players')}`,pt:r.diem,mine:profile&&r.lop===profile.lop}
-    :tab==='truong'?{rk:r.hang,nm:r.ten_ngan,sb:`${r.tinh} · ${r.so_nguoi} ${tl('người chơi','players')}`,pt:r.diem,mine:profile&&r.truong_id===profile.truong_id}
+    :tab==='truong'?{rk:r.hang,nm:r.ten_ngan,sb:`${r.tinh} · ${r.so_nguoi} ${tl('người chơi','players')}${r.so_gv?tl(`, ${r.so_gv} giáo viên`,`, ${r.so_gv} teacher${r.so_gv>1?'s':''}`):''}`,pt:r.diem,mine:profile&&r.truong_id===profile.truong_id}
     :tab==='khoa'?{rk:r.hang,nm:tKhoa(r.khoa),sb:`${r.so_nguoi} ${tl('người chơi','players')}`,pt:r.diem,mine:profile&&r.khoa_id===profile.khoa_id}
     :{rk:r.hang,nm:r.ten,sbH:`${lopKhoaHTML(r,false)} · ${r.solo_thang+r.solo_thua+r.solo_hoa?tl(`${r.solo_thang} thắng ${r.solo_thua} thua${r.solo_hoa?` ${r.solo_hoa} hoà`:''}`,`${r.solo_thang}W ${r.solo_thua}L${r.solo_hoa?` ${r.solo_hoa}D`:''}`):tl('chưa đấu trận nào','no matches yet')}`,pt:r.elo,nmH:tenElo(r.ten,r.elo),tag:eloTitle(r.elo),mine:user&&r.id===user.id,av:r.avatar_url,hasAv:true,uid:r.id,p:{id:r.id,ten:r.ten,lop:r.lop,avatar_url:r.avatar_url,elo:r.elo}});
   norm.forEach(r=>{if(r.p)lbPeople.set(r.uid,r.p)});
@@ -223,10 +227,10 @@ async function loadBoard(tab,canSolo){
   const pod=(r,i)=>r?`<div class="pod r${i+1}${r.mine?' mine':''}"${tap(r)}>${r.hasAv?avatarHTML(r.av,r.nm,i===0?60:46,'pod-av'):''}<div class="rk">${r.rk}</div><div class="nm">${dot(r)}${r.nmH||esc(r.nm)}</div>${stb(r)}<div class="sb">${r.tag?r.tag+' · ':''}${r.sbH??esc(r.sb)}</div><div class="pt">${r.logo||''}${r.pt}</div></div>`:'<div></div>';
   let html=`<div class="podium">${pod(top[1],1)}${pod(top[0],0)}${pod(top[2],2)}</div>`;
   if(rest.length) html+=`<div class="list">${rest.map(r=>`<div class="li${r.mine?' mine':''}"${tap(r)}><span class="rk">#${r.rk}</span><span class="nm${r.hasAv?' with-av':''}">${r.hasAv?avatarHTML(r.av,r.nm,34):''}<span>${dot(r)}${r.nmH||esc(r.nm)} ${stb(r)}<span class="sb">${r.tag?r.tag+' · ':''}${r.sbH??esc(r.sb)}</span></span></span><span class="pt">${r.logo||''}${r.pt}</span></div>`).join('')}</div>`;
-  let rkCua=chiSV?null:myRank;
+  let rkCua=loc==='tat_ca'?myRank:null;
   if(tab==='sv'&&chiSV&&profile&&laSV(profile)&&myRank&&!norm.some(r=>r.mine)) rkCua=(await sb.from('bxh_sinh_vien').select('hang_sv').eq('id',user.id).maybeSingle()).data?.hang_sv??null;
   if(tab==='sv'&&profile&&rkCua&&!norm.some(r=>r.mine)) html+=`<div class="list"><div class="li mine"><span class="rk">#${rkCua}</span><span class="nm with-av">${avatarHTML(profile.avatar_url,profile.ten,34)}<span>${esc(profile.ten)}<span class="sb">${tl('Bạn','You')}</span></span></span><span class="pt">${hangLogo(profile.diem,24)}${profile.diem}</span></div></div>`;
-  if(!body.isConnected||chiSV!==(lbLoc==='sv')||($('q')&&$('q').value.trim())) return;
+  if(!body.isConnected||loc!==locHop()||($('q')&&$('q').value.trim())) return;
   body.innerHTML=html;
   body.querySelectorAll('[data-prof][role=button]').forEach(el=>el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click()}});
 }
