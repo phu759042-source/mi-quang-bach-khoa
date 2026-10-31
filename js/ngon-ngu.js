@@ -20,7 +20,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-lang
 // HTML tĩnh trong index.html
 (function dichTinh(){
   if(!EN) return;
-  document.title = 'Bach Khoa Noodles';
+  document.title = 'Bach Khoa Quang Noodles';
   document.querySelectorAll('[data-en]').forEach(el => { el.innerHTML = el.dataset.en });
   document.querySelectorAll('[data-en-aria]').forEach(el => el.setAttribute('aria-label', el.dataset.enAria));
   document.querySelectorAll('[data-en-title]').forEach(el => el.setAttribute('title', el.dataset.enTitle));
