@@ -54,7 +54,7 @@ const LOI_EN = [
   ['Độ khó không hợp lệ', 'Invalid difficulty']];
 function tLoi(m){ if(!EN || !m) return m; for(const [vi, en] of LOI_EN) if(m.includes(vi)) return en; return m }
 // Tên game trên màn chính / đăng nhập: tiếng Việt "Mì Quảng" xanh + "Bách Khoa" vàng; tiếng Anh "Bach Khoa" vàng + "Noodles" xanh
-const TEN_H1 = EN ? '<em>Bach Khoa</em>Noodles' : 'Mì Quảng <em>Bách Khoa</em>';
+const TEN_H1 = EN ? '<em>Bach Khoa</em>Quang Noodles' : 'Mì Quảng <em>Bách Khoa</em>';
 // Tên khoa lấy từ database (tiếng Việt) → tiếng Anh; tra theo mã khoa hoặc theo tên tiếng Việt
 const KHOA_EN = {ck:['Cơ khí','Mechanical Engineering'], ckgt:['Cơ khí Giao thông','Transportation Mechanical Engineering'],
   nhiet:['Công nghệ Nhiệt – Điện lạnh','Thermal & Refrigeration Engineering'], cntt:['Công nghệ Thông tin','Information Technology'],
