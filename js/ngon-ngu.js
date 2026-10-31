@@ -61,7 +61,7 @@ const TEN_H1 = EN ? '<em>Bach Khoa</em>Quang Noodles' : 'Mì Quảng <em>Bách K
 // Tên khoa lấy từ database (tiếng Việt) → tiếng Anh; tra theo mã khoa hoặc theo tên tiếng Việt
 const KHOA_EN = {ck:['Cơ khí','Mechanical Engineering'], ckgt:['Cơ khí Giao thông','Transportation Mechanical Engineering'],
   nhiet:['Công nghệ Nhiệt – Điện lạnh','Thermal & Refrigeration Engineering'], cntt:['Công nghệ Thông tin','Information Technology'],
-  dien:['Điện','Electrical Engineering'], dtvt:['Điện tử – Viễn thông','Electronics & Telecommunications'], hoa:['Hóa','Chemical Engineering'],
+  dien:['Điện','Electrical Engineering'], dtvt:['Điện tử và trí tuệ nhân tạo','Electronics & artificial intelligence'], hoa:['Hóa','Chemical Engineering'],
   fast:['Khoa học Công nghệ tiên tiến','Advanced Science & Technology'], kt:['Kiến trúc','Architecture'], mt:['Môi trường','Environmental Engineering'],
   qlda:['Quản lý Dự án','Project Management'], xdcd:['Xây dựng Cầu đường','Bridge & Road Engineering'],
   xdtl:['Xây dựng Công trình thủy','Water Resources Engineering'], xddd:['Xây dựng Dân dụng & Công nghiệp','Civil & Industrial Construction']};
