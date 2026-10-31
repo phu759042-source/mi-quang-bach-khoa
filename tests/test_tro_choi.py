@@ -148,6 +148,7 @@ class Fake:
             s.prof[u].update(ten=a['p_ten'].strip(), sinh_vien=sv, khoa_id=a['p_khoa_id'] if sv else None,
                              lop=a['p_lop'].strip().upper() if sv else None, truong_id=tr, giang_vien=gv)
             return {'data': None}
+        if fn == 'bi_an_bxh': return {'data': bool(s.prof.get(a['p_uid'], {}).get('cho_duyet'))}   # bản 2.23.0
         if fn == 'nhan_luot_thu':                             # giống public.nhan_luot_thu (bản 2.21.0)
             p = s.prof.get(u); hs = HS[a['p_do_kho']]
             if not p or p['so_luot'] or any(r['user_id'] == u for r in s.runs.values()): return err('Chỉ tài khoản mới được tính lượt chơi thử')
@@ -1011,6 +1012,14 @@ with sync_playwright() as pw:
     K.click('[data-t="truong"]'); K.wait_for_selector('#lbBody .podium', timeout=5000)
     check('1 giáo viên' in K.inner_text('#lbBody'), 'bảng Trường ghi số giáo viên của trường')
     K.evaluate("localStorage.setItem('mqbk-loc','tat_ca')")
+
+    print('33. Lượt bị đánh dấu chờ duyệt: màn chính báo cho người chơi')
+    F.prof['KHACH']['cho_duyet'] = True
+    K.evaluate('home()'); K.wait_for_selector('#duyetSlot .msg', timeout=4000)
+    check('chờ kiểm tra' in K.inner_text('#duyetSlot'), 'màn chính báo "đang chờ kiểm tra"')
+    F.prof['KHACH']['cho_duyet'] = False
+    K.evaluate('home()'); K.wait_for_timeout(600)
+    check(K.locator('#duyetSlot .msg').count() == 0, 'đã duyệt thì không báo nữa')
     K.close()
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()

@@ -258,6 +258,32 @@ begin
   if not (select giang_vien from public.tim_nguoi_choi('Thầy G') limit 1) then raise exception 'HONG: tìm kiếm thiếu giang_vien'; end if;
   perform pg_temp.dang_xuat();
   raise notice 'OK giáo viên: bắt buộc chọn trường (kể cả BKĐN), không khoa/lớp, tính vào bảng Trường, không vào Lớp/Khoa';
+  -- Bản 2.23.0: mức trần theo ngày, đối chiếu bản ghi, ẩn khỏi bảng xếp hạng chờ duyệt
+  perform pg_temp.dang_nhap(B);
+  v_id := public.bat_dau_luot('thuong');
+  perform pg_temp.dang_xuat(); update public.runs set bat_dau = now() - interval '200 seconds' where id = v_id; perform pg_temp.dang_nhap(B);
+  begin perform public.nop_ket_qua(v_id, 1, 3000, 0); raise exception 'HONG: 1 ngày 3000k vẫn được (trần 2670k)';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform public.nop_ket_qua(v_id, 1, 1000, 0);
+  perform public.luu_ban_ghi(null, v_id, '{"ev":[[0,"D",1],[3000,"V",1,0,40,90]]}'::jsonb);
+  perform pg_temp.dang_xuat();
+  if (select nghi_ngo from public.runs where id = v_id) is null or not public.bi_an_bxh(B)
+     or exists (select 1 from public.bxh_sinh_vien where id = B) then raise exception 'HONG: bản ghi bưng 40k nộp 1000k không bị ẩn'; end if;
+  update public.profiles set cho_duyet = false where id = B; update public.runs set nghi_ngo = null where id = v_id;
+  -- lượt thật: bản ghi khớp thì không sao
+  perform pg_temp.dang_nhap(B);
+  v_id := public.bat_dau_luot('thuong');
+  perform pg_temp.dang_xuat(); update public.runs set bat_dau = now() - interval '200 seconds' where id = v_id; perform pg_temp.dang_nhap(B);
+  perform public.nop_ket_qua(v_id, 1, 100, 0);
+  perform public.luu_ban_ghi(null, v_id, '{"ev":[[0,"D",1],[3000,"V",1,0,60,90],[5000,"V",2,1,40,80]]}'::jsonb);
+  perform pg_temp.dang_xuat();
+  if (select nghi_ngo from public.runs where id = v_id) is not null or public.bi_an_bxh(B) then raise exception 'HONG: lượt thật bị đánh dấu nghi ngờ'; end if;
+  -- lượt mới thiếu bản ghi quá 10 phút: ẩn
+  update public.runs set ket_thuc = now() - interval '11 minutes', doanh_thu = 900 where id = v_id; delete from public.ban_ghi where run_id = v_id;
+  if not public.bi_an_bxh(B) then raise exception 'HONG: lượt thiếu bản ghi không bị ẩn'; end if;
+  update public.runs set can_ban_ghi = false where id = v_id;
+  if public.bi_an_bxh(B) then raise exception 'HONG: lượt cũ không bắt buộc bản ghi mà vẫn bị ẩn'; end if;
+  raise notice 'OK kiểm duyệt: trần theo ngày, bản ghi không khớp hoặc thiếu thì ẩn khỏi bảng xếp hạng';
 end $$;
 
 select 'TẤT CẢ ĐỀU ĐÚNG' as ket_qua;

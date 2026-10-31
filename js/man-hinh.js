@@ -4,7 +4,7 @@
 function home(){
   nhoMan(null);
   setTimeout(syncPresence,0);
-  setTimeout(refreshNotices,0); setTimeout(pushCard,0);
+  setTimeout(refreshNotices,0); setTimeout(pushCard,0); setTimeout(duyetCard,0);
   const p=profile;
   const meCard=ranked&&p
     ?`<button type="button" class="me has-av me-btn" id="edit" aria-label="${tl('Sửa hồ sơ: tên, lớp, khoa, avatar','Edit profile: name, class, faculty, avatar')}"><span class="me-av-w">${avatarHTML(p.avatar_url,p.ten,48,'me-av')}<span class="me-pen" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></span></span><span class="nm">${esc(p.ten)}</span><span class="sub">${lopKhoaHTML(p)} · Elo ${p.elo??1200} ${eloTitle(p.elo,1)}</span>
@@ -18,7 +18,7 @@ function home(){
   <h1>${TEN_H1}</h1>
   ${meCard}
   ${pill}
-  ${ranked?'<div id="pushSlot"></div>':''}
+  ${ranked?'<div id="duyetSlot"></div><div id="pushSlot"></div>':''}
   <ol class="steps desk">${tl('<li>Bấm <b>Mì</b>, thêm đúng topping khách gọi</li><li>Bấm <b>Chan nước lèo</b>, rồi bấm vào khách</li><li>Đủ doanh thu mỗi ngày để giữ mặt bằng. Chốt sổ lúc nào cũng được</li><li>Hết bàn thì khách xếp hàng. Để khách chờ lâu là mất tim, nhất là giờ cao điểm</li>','<li>Tap <b>Noodles</b>, then add exactly the toppings the customer ordered</li><li>Tap <b>Add broth</b>, then click the customer</li><li>Earn enough each day to pay the rent. You can cash out any time</li><li>When tables are full, customers queue. Keep them waiting too long and you lose hearts, especially at rush hour</li>')}</ol>
   <p class="muted desk keys">${tl('Chơi bằng bàn phím: <kbd>1</kbd>–<kbd>8</kbd> chọn món, <kbd>Space</kbd> chan nước lèo, <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> bưng cho bàn 1–4, <kbd>X</kbd> đổ bỏ.','Keyboard: <kbd>1</kbd>–<kbd>8</kbd> pick items, <kbd>Space</kbd> add broth, <kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> serve tables 1–4, <kbd>X</kbd> dump.')}</p>
   </div><div class="split-b">
@@ -306,3 +306,12 @@ function applyTheme(t){
 const themeHTML=()=>`<div class="theme" role="group" aria-label="${tl('Giao diện','Theme')}"><span>${tl('Giao diện','Theme')}</span>${[['light',tl('Sáng','Light')],['dark',tl('Tối','Dark')],['auto',tl('Theo máy','Auto')]].map(([k,n])=>`<button type="button" data-t="${k}" aria-pressed="${k===theme}">${n}</button>`).join('')}</div>`;
 document.addEventListener('click',e=>{const b=e.target.closest('.theme button');if(b)applyTheme(b.dataset.t)});
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(theme==='auto')applyTheme('auto')})}catch(e){}
+
+/* Bản 2.23.0: lượt chơi bị server đánh dấu (bản ghi không khớp kết quả nộp, hoặc thiếu bản ghi) thì người đó
+   tạm ẩn khỏi bảng xếp hạng chờ chủ game duyệt; báo cho chính người chơi biết trên màn chính. */
+async function duyetCard(){
+  const slot=$('duyetSlot'); if(!slot||!sb||!user) return;
+  try{const {data,error}=await sb.rpc('bi_an_bxh',{p_uid:user.id}); if(error||data!==true||!$('duyetSlot')) return;
+    $('duyetSlot').innerHTML=`<p class="msg">${tl('Một vài lượt chơi của bạn đang chờ kiểm tra nên bạn tạm thời không hiện trên bảng xếp hạng. Nếu bạn nghĩ đây là nhầm lẫn, hãy nhắn người làm game ở mục Liên hệ.','Some of your runs are being reviewed, so you are hidden from the leaderboard for now. If you think this is a mistake, message the developer from Contact.')}</p>`;
+  }catch(e){}
+}

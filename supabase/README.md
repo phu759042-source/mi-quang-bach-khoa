@@ -54,3 +54,23 @@ select json_object_agg(k, h order by k) from (
 ## Lưu ý gói miễn phí
 
 Project Supabase gói miễn phí **tự tạm dừng sau 7 ngày không có hoạt động** (ví dụ kỳ nghỉ không ai chơi). Khi đó vào Dashboard bấm **Resume project**; dữ liệu được giữ tới 1 năm sau khi tạm dừng.
+
+## Duyệt lượt nghi ngờ (bản 2.23.0)
+
+Máy chủ tự đánh dấu `runs.nghi_ngo` (lý do) và `profiles.cho_duyet = true` khi bản ghi không khớp kết quả nộp. Lượt mới thiếu bản ghi quá 10 phút cũng làm người đó bị ẩn (`bi_an_bxh`). Chạy trong SQL Editor:
+
+```sql
+-- Xem ai đang bị ẩn và vì sao
+select p.ten, r.id, r.do_kho, r.so_ngay, r.doanh_thu, r.delta, r.nghi_ngo, r.ket_thuc
+from runs r join profiles p on p.id = r.user_id
+where r.nghi_ngo is not null or p.cho_duyet order by r.ket_thuc desc;
+
+-- Lượt thật, bỏ nghi ngờ (thay <id> và <uid>)
+update runs set nghi_ngo = null, can_ban_ghi = false where id = <id>;
+update profiles set cho_duyet = false where id = '<uid>';
+
+-- Gian lận: huỷ lượt (điểm về 0) rồi tính lại điểm người đó từ các lượt còn lại
+update runs set doanh_thu = 0, tim_mat = 0, delta = 0 where id = <id>;
+update profiles p set diem = greatest(0, (select coalesce(sum(delta), 0) from runs where user_id = p.id and trang_thai <> 'dang_choi')),
+  cho_duyet = false where id = '<uid>';
+```

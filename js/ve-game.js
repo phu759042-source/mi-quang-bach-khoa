@@ -1,6 +1,6 @@
 /* Mì Quảng Bách Khoa · js/ve-game.js: màn "Về game" (bản 2.16.0) gồm thông tin game, chính sách dữ liệu và bảo mật,
    các bên liên quan và trách nhiệm. Sửa nội dung ở đây thì cập nhật cả VE_GAME_CAP_NHAT. */
-const VE_GAME_CAP_NHAT = '31/10/2026';
+const VE_GAME_CAP_NHAT = '31/10/2026'; // bản 2.23.0: thêm đối chiếu bản ghi chống gian lận
 const VE_GAME_RA_MAT = '24/10/2026';
 function veGameScreen(back = home){
   nhoMan('vegame');
@@ -27,7 +27,7 @@ function veGameScreen(back = home){
       <li>Email và mật khẩu để đăng nhập. Mật khẩu được mã hoá một chiều (bcrypt) bởi Supabase, người làm game không xem được.</li>
       <li>Hồ sơ: tên hiển thị, bạn có phải sinh viên Bách Khoa Đà Nẵng không, khoa và lớp (chỉ khi là sinh viên BKĐN), trường bạn học hoặc dạy và bạn có phải giáo viên không (nếu bạn chọn), ảnh đại diện (nếu bạn tải lên). Game không hỏi MSSV, số điện thoại hay địa chỉ.</li>
       <li>Kết quả chơi: từng lượt bán, ĐBK, chuỗi ngày, trận solo, Elo.</li>
-      <li>Bản ghi thao tác để xem lại từng lượt bán và trận solo (giữ 50 lượt bán gần nhất, giữ hết các trận solo).</li>
+      <li>Bản ghi thao tác để xem lại từng lượt bán và trận solo (giữ 50 lượt bán gần nhất, giữ hết các trận solo). Máy chủ đối chiếu bản ghi với kết quả nộp để phát hiện gian lận; lượt không khớp hoặc thiếu bản ghi làm tài khoản tạm ẩn khỏi bảng xếp hạng cho đến khi người làm game kiểm tra.</li>
       <li>Bạn bè, lời mời kết bạn và thông báo (giữ 100 thông báo gần nhất).</li>
       <li>Nếu bật thông báo thách đấu: địa chỉ nhận thông báo do trình duyệt cấp. Tắt thông báo hoặc đăng xuất thì địa chỉ này bị xoá.</li>
     </ul>
@@ -100,7 +100,7 @@ function veGameScreen(back = home){
       <li>Your email and password for signing in. The password is one-way hashed (bcrypt) by Supabase; the developer cannot see it.</li>
       <li>Profile: display name, whether you are a Bach Khoa Da Nang student, faculty and class (Bach Khoa students only), your school and whether you are a teacher (if you pick one), avatar (if you upload one). No student ID, phone number or address is asked.</li>
       <li>Results: each run, Bach Khoa Points, streak, solo matches, Elo.</li>
-      <li>Action recordings for replays of runs and solo matches (the latest 50 runs and all solo matches are kept).</li>
+      <li>Action recordings for replays of runs and solo matches (the latest 50 runs and all solo matches are kept). The server checks recordings against submitted results to catch cheating; a run that does not match, or has no recording, hides the account from the leaderboard until the developer reviews it.</li>
       <li>Friends, friend requests and notifications (the latest 100 notifications are kept).</li>
       <li>If you turn on challenge notifications: the push address your browser provides. It is deleted when you turn notifications off or sign out.</li>
     </ul>
