@@ -287,8 +287,13 @@ async function loadBoard(tab,canSolo,lim=50,dinhVi=false){
   body.innerHTML=html;
   body.querySelectorAll('[data-prof][role=button],[data-nhom][role=button]').forEach(el=>el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click()}});
   const dong=body.querySelector('[data-toi-dong]'), bar=$('lbToi');
-  const nhay=el=>{el.scrollIntoView({block:'center',behavior:dinhVi?'auto':'smooth'});el.classList.remove('nhay');void el.offsetWidth;el.classList.add('nhay');setTimeout(()=>el.classList.remove('nhay'),1800)};
+  // Tự tính vị trí rồi cuộn khung #ov (scrollIntoView trong khung cuộn riêng hay không chạy trên Safari iPhone); 0,5 s sau chưa tới thì nhảy thẳng
+  const nhay=el=>{const ov=$('ov'),dich=()=>{const r=el.getBoundingClientRect(),o=ov.getBoundingClientRect();return Math.max(0,ov.scrollTop+r.top-o.top-(ov.clientHeight-r.height)/2)};
+    const y=dich(); try{ov.scrollTo({top:y,behavior:dinhVi?'auto':'smooth'})}catch(e){ov.scrollTop=y}
+    setTimeout(()=>{if(!el.isConnected)return;const r=el.getBoundingClientRect(),o=ov.getBoundingClientRect();if(r.bottom<o.top||r.top>o.bottom)ov.scrollTop=dich()},520);
+    el.classList.remove('nhay');void el.offsetWidth;el.classList.add('nhay');setTimeout(()=>el.classList.remove('nhay'),1800)};
   if(bar){
+    bar.querySelector('.li').style.cursor='pointer'; bar.querySelector('.li').onclick=e=>{e.stopPropagation();$('lbDinhVi').click()};   // bấm cả thanh cũng định vị
     $('lbDinhVi').onclick=e=>{e.stopPropagation();
       const d=body.querySelector('[data-toi-dong]'); if(d) return nhay(d);
       if(toi.rk&&toi.rk<=1000){const b=$('lbDinhVi');b.disabled=true;b.querySelector('span').textContent=tl('Đang tải…','Loading…');loadBoard(tab,canSolo,Math.min(1000,toi.rk+10),true)}
