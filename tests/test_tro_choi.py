@@ -42,6 +42,7 @@ class Fake:
         s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': [], 'KHACH': []}
         s.runs, s.run_seq, s.nop, s.bg, s.pres = {}, itertools.count(77), [], [], {}
         s.calls = []
+        s.qt = set()                                           # ai là quản trị (bản 2.24.0)
         s.dem = []
         s.bcq = {}
         s.bb, s.tb, s.tb_seq = {}, [], itertools.count(1)      # bạn bè (khoá (a,b) với a<b), thông báo                                            # hàng đợi Realtime Broadcast theo người (giả lập kênh xem:<id>)
@@ -148,6 +149,24 @@ class Fake:
             s.prof[u].update(ten=a['p_ten'].strip(), sinh_vien=sv, khoa_id=a['p_khoa_id'] if sv else None,
                              lop=a['p_lop'].strip().upper() if sv else None, truong_id=tr, giang_vien=gv)
             return {'data': None}
+        if fn == 'la_quan_tri': return {'data': u in s.qt}                       # bản 2.24.0: quản trị
+        if fn in ('qt_danh_sach', 'qt_cho_qua', 'qt_huy_luot'):
+            if u not in s.qt: return err('Chỉ quản trị mới làm được')
+            bat = lambda uid: [r for r in s.runs.values() if r['user_id'] == uid and r.get('nghi_ngo') and not r.get('da_huy')]
+            if fn == 'qt_danh_sach':
+                return {'data': [dict(id=p['id'], ten=p['ten'], diem=p['diem'], so_luot=p['so_luot'], cho_duyet=True, sinh_vien=p['sinh_vien'],
+                                      giang_vien=p['giang_vien'], lop=p['lop'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']),
+                                      luot=[dict(id=r['id'], do_kho=r['do_kho'], so_ngay=r['so_ngay'], doanh_thu=r['doanh_thu'], tim_mat=r['tim_mat'], delta=r['delta'],
+                                                 ket_thuc=r['ket_thuc'], giay=3, ly_do=r['nghi_ngo'], co_ban_ghi=any(b['run_id'] == r['id'] for b in s.bg)) for r in bat(p['id'])])
+                                 for p in s.prof.values() if p.get('cho_duyet')]}
+            p = s.prof[a['p_uid']]; ids = [r['id'] for r in bat(p['id'])]
+            if fn == 'qt_cho_qua':
+                for r in bat(p['id']): r['nghi_ngo'] = None
+                p['cho_duyet'] = False; return {'data': None}
+            cu = p['diem']
+            for r in bat(p['id']): r.update(da_huy=True, doanh_thu=0, tim_mat=0, delta=0)
+            p.update(diem=max(0, sum(r['delta'] or 0 for r in s.runs.values() if r['user_id'] == p['id'])), cho_duyet=False)
+            return {'data': {'so_luot_huy': len(ids), 'diem_cu': cu, 'diem_moi': p['diem']}}
         if fn == 'bi_an_bxh': return {'data': bool(s.prof.get(a['p_uid'], {}).get('cho_duyet'))}   # bản 2.23.0
         if fn == 'nhan_luot_thu':                             # giống public.nhan_luot_thu (bản 2.21.0)
             p = s.prof.get(u); hs = HS[a['p_do_kho']]
@@ -1021,6 +1040,24 @@ with sync_playwright() as pw:
     K.evaluate('home()'); K.wait_for_timeout(600)
     check(K.locator('#duyetSlot .msg').count() == 0, 'đã duyệt thì không báo nữa')
     K.close()
+
+    print('34. Quản trị: nút riêng, danh sách lượt chờ duyệt, huỷ lượt gian lận')
+    check(B.locator('#quantri').count() == 0, 'người thường không có nút Quản trị')
+    F.qt.add('B')
+    i = next(F.run_seq); F.runs[i] = dict(id=i, user_id='KHACH', do_kho='bk', trang_thai='xong', so_ngay=1, doanh_thu=5000, tim_mat=5, delta=825,
+                                          ket_thuc=iso(now()), nghi_ngo='bản ghi bưng 0k, nộp 5000k')
+    F.prof['KHACH'].update(cho_duyet=True, diem=F.prof['KHACH']['diem'] + 825)
+    B.evaluate('kiemQuanTri().then(home)'); B.wait_for_selector('#quantri', timeout=5000)
+    B.wait_for_function("document.querySelector('#qtSo') && !document.querySelector('#qtSo').hidden", timeout=4000)
+    check(B.inner_text('#qtSo') == '1', 'nút Quản trị hiện số người chờ duyệt')
+    B.click('#quantri'); B.wait_for_selector('.qt-the', timeout=5000)
+    t = B.inner_text('#qtBody')
+    check('Người Mới' in t and 'bưng 0k' in t and f'#{i}' in t, 'danh sách: tên, lý do, mã lượt')
+    shot(B, 'quan-tri-01-danh-sach')
+    B.click('[data-qt="huy"]'); check(B.locator('[data-qt="huy"][data-sure]').count() == 1, 'huỷ phải bấm 2 lần')
+    B.click('[data-qt="huy"]'); B.wait_for_selector('#qtBody .empty-state', timeout=5000)
+    check(F.runs[i].get('da_huy') and F.runs[i]['delta'] == 0 and not F.prof['KHACH']['cho_duyet'], 'huỷ xong: lượt về 0, bỏ ẩn, danh sách trống')
+    F.qt.discard('B')
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

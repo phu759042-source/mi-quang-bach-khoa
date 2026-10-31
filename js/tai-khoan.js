@@ -142,7 +142,7 @@ async function afterLogin(){
   // Bản 2.19.1: ghi ngôn ngữ đang dùng vào user_metadata.lang để email (đặt lại mật khẩu…) gửi đúng tiếng Việt / Anh
   if(user&&user.user_metadata?.lang!==LANG) try{sb.auth.updateUser({data:{lang:LANG}}).catch(()=>{})}catch(e){}
   await loadProfile();
-  if(profile){await flushPending(); recFlush()}
+  if(profile){await flushPending(); recFlush(); await kiemQuanTri()}
   ranked=!!profile; if(ranked){soloConnect();pushResync();if(pendingThach){const t=pendingThach;pendingThach=null;setTimeout(()=>openThach(t),900)}}
   if(profile&&await soloBoot()) return;
   if(profile&&await resumeRun()) return;
@@ -266,7 +266,7 @@ function xoaTaiKhoanScreen(){
     user=null;profile=null;ranked=false;myRank=null;authScreen();toast(tl('Đã xoá tài khoản và toàn bộ dữ liệu','Your account and all data were deleted'));
   };
 }
-async function logout(){nhoMan(null);bbReset();soloDisconnect();await pushUnlink();await sb.auth.signOut();user=null;profile=null;ranked=false;authScreen()}
+async function logout(){nhoMan(null);bbReset();soloDisconnect();await pushUnlink();await sb.auth.signOut();user=null;profile=null;ranked=false;laQT=false;authScreen()}
 
 /* ================= Avatar ================= */
 const AV_BASE=SB_URL+'/storage/v1/object/public/avatars/';

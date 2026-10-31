@@ -625,3 +625,14 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .sv-chon.c4{grid-template-columns:1fr 1fr}
 .sv-chon.c4 b{white-space:normal}
 .gv-tag{background:var(--navy);color:#fff;border-color:var(--navy);opacity:1}
+/* Bản 2.24.0: màn quản trị */
+.qt-the{border:1.5px solid var(--line);border-radius:14px;background:var(--card);padding:12px;display:flex;flex-direction:column;gap:8px}
+.qt-dau{display:flex;flex-direction:column;gap:2px}
+.qt-ten{font-weight:800;font-size:16px;text-align:left;padding:0}
+.qt-dau .sb{font-size:13px;color:var(--muted)}
+.qt-luot{display:flex;flex-direction:column;gap:6px}
+.qt-dong{display:flex;flex-direction:column;gap:2px;font-size:13px;padding:8px;border-radius:10px;background:var(--paper)}
+.qt-dong .link{align-self:flex-start;padding:0}
+.qt-ly-do{color:var(--chili);font-weight:600}
+.qt-nut{gap:8px;flex-wrap:wrap}
+.qt-nut .btn{flex:1;min-width:140px}

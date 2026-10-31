@@ -32,7 +32,7 @@ function home(){
     <button class="btn" id="go">${ranked?tl('Mở quán','Open the shop'):tl('Mở quán (chơi thử)','Open the shop (trial)')}</button>
     ${ranked?`<button class="btn warm" id="solo">${tl('Solo · thách đấu bạn bè','Solo · challenge friends')}</button>`:''}
     <button class="btn ghost" id="lb">${tl('Bảng xếp hạng','Leaderboard')}</button>
-    ${ranked?`<button class="btn ghost" id="hoso">${tl('Ván đấu &amp; thống kê','Matches &amp; stats')}</button><button class="btn ghost" id="banbe">${tl('Bạn bè','Friends')} <span class="bb-so" data-bb-badge="lm" hidden></span></button>`:''}
+    ${ranked?`<button class="btn ghost" id="hoso">${tl('Ván đấu &amp; thống kê','Matches &amp; stats')}</button><button class="btn ghost" id="banbe">${tl('Bạn bè','Friends')} <span class="bb-so" data-bb-badge="lm" hidden></span></button>${qtNutHTML()}`:''}
     <div class="row">${ranked?`<button class="link" id="out">${tl('Đăng xuất','Sign out')}</button>`
       :`<button class="link" id="login">${tl('Đăng ký / đăng nhập để tính điểm','Sign up / sign in to earn points')}</button>`}</div>
     <div class="row"><button class="link" id="contact">${tl('Liên hệ người làm game','Contact the developer')}</button><button class="link" id="donate">${tl('Ủng hộ game','Support the game')}</button></div>
@@ -54,6 +54,7 @@ function home(){
   $('lb').onclick=()=>leaderboard('sv');
   if(ranked){$('solo').onclick=()=>leaderboard('solo',true);$('hoso').onclick=()=>hoSoScreen('stats',null,home);
     $('banbe').onclick=()=>banBeScreen(bbSoLoiMoi()?'loi_moi':'ban',home);$('chuong').onclick=()=>thongBaoScreen(home);bbVe()}
+  if($('quantri')){$('quantri').onclick=()=>quanTriScreen(home);qtDem()}
   $('contact').onclick=()=>contactScreen(home);
   $('donate').onclick=()=>donateScreen(home);
   $('vegame').onclick=()=>veGameScreen(home);

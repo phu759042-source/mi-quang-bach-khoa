@@ -27,6 +27,7 @@ async function moLaiMan(){
       case 'thongbao': if(!ranked) return false; await thongBaoScreen(home); return true;
       case 'ungho': donateScreen(home); return true;
       case 'vegame': veGameScreen(home); return true;
+      case 'quantri': if(!laQT) return false; await quanTriScreen(home); return true;
     }
   }catch(err){ console.warn('Không mở lại được màn cũ', err) }
   nhoMan(null); return false;

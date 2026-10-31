@@ -284,6 +284,28 @@ begin
   update public.runs set can_ban_ghi = false where id = v_id;
   if public.bi_an_bxh(B) then raise exception 'HONG: lượt cũ không bắt buộc bản ghi mà vẫn bị ẩn'; end if;
   raise notice 'OK kiểm duyệt: trần theo ngày, bản ghi không khớp hoặc thiếu thì ẩn khỏi bảng xếp hạng';
+  -- Bản 2.24.0: quản trị duyệt / huỷ lượt bất thường
+  perform pg_temp.dang_nhap(B);
+  v_id := public.bat_dau_luot('thuong');
+  perform pg_temp.dang_xuat(); update public.runs set bat_dau = now() - interval '200 seconds' where id = v_id; perform pg_temp.dang_nhap(B);
+  perform public.nop_ket_qua(v_id, 1, 1000, 0);
+  perform public.luu_ban_ghi(null, v_id, '{"ev":[[0,"D",1],[3000,"V",1,0,40,90]]}'::jsonb);
+  begin perform public.qt_danh_sach(); raise exception 'HONG: người thường xem được danh sách quản trị';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  begin perform public.qt_huy_luot(B); raise exception 'HONG: người thường tự huỷ lượt được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform pg_temp.dang_xuat();
+  insert into public.quan_tri (user_id) values (A);
+  perform pg_temp.dang_nhap(A);
+  if not public.la_quan_tri() or json_array_length(public.qt_danh_sach()) <> 1 then raise exception 'HONG: quản trị không thấy người bị ẩn'; end if;
+  j := public.qt_huy_luot(B);
+  perform pg_temp.dang_xuat();
+  if (j->>'so_luot_huy')::int <> 1 or public.bi_an_bxh(B) or not (select da_huy from public.runs where id = v_id)
+     or (select diem from public.profiles where id = B) <> (j->>'diem_moi')::int or (j->>'diem_moi')::int >= (j->>'diem_cu')::int
+     or exists (select 1 from public.ban_ghi where run_id = v_id)
+     or not exists (select 1 from public.qt_nhat_ky where hanh_dong = 'huy_luot' and doi_tuong = B)
+    then raise exception 'HONG: huỷ lượt sai: %', j; end if;
+  raise notice 'OK quản trị: chỉ quản trị xem/duyệt được, huỷ lượt tính lại điểm, ghi nhật ký';
 end $$;
 
 select 'TẤT CẢ ĐỀU ĐÚNG' as ket_qua;
