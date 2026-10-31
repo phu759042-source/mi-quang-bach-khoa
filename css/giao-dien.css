@@ -636,3 +636,57 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .qt-ly-do{color:var(--chili);font-weight:600}
 .qt-nut{gap:8px;flex-wrap:wrap}
 .qt-nut .btn{flex:1;min-width:140px}
+/* Bản 2.25.0: fair play */
+.ban-tag{display:inline-block;font-size:11px;font-weight:800;line-height:1;padding:3px 7px;border-radius:999px;background:#C8321E;color:#fff;white-space:nowrap;vertical-align:middle;letter-spacing:.01em}
+.canh-cao-the{background:color-mix(in srgb,var(--chili) 12%,transparent);border:1.5px solid color-mix(in srgb,var(--chili) 40%,transparent);border-radius:12px;padding:10px 12px;color:var(--ink)}
+.ban-man h2{color:var(--chili)}
+.tb-ht .tb-ht-icon{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--chili);color:#fff;font-weight:900;font-size:20px}
+.tb-ht.go_ban .tb-ht-icon{background:var(--leaf)}
+.qt-vp{align-items:center;gap:10px}
+.qt-vp .btn{flex:0 0 auto;padding:8px 12px}
+/* Bản 2.25.0: số người trên bảng xếp hạng, danh sách nhóm */
+.lb-dem{font-size:13px;margin:-2px 0 2px}
+.lb-dem b{color:var(--heading)}
+[data-nhom]{cursor:pointer}
+.hs-tg{font-size:12px;opacity:.85}
+/* Bản 2.25.0: trò chuyện */
+.bb-so.cham{min-width:10px;width:10px;height:10px;padding:0}
+.tc-li .tc-cuoi{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52vw}
+.tc-phai{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:auto;font-size:11px;color:var(--muted)}
+.tc-chung-icon{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--navy);color:#fff;font-weight:900;font-size:18px}
+.tc-khung{display:flex;flex-direction:column;gap:8px;height:calc(100dvh - 48px);max-height:calc(100dvh - 48px)}
+.tc-dau{flex:0 0 auto}
+.tc-ai{display:flex;align-items:center;gap:8px;text-decoration:none;text-align:left;padding:0}
+.tc-ai small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.tc-ten-phong{font-size:18px;color:var(--heading)}
+.tc-tin{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:3px;padding:6px 2px;border-top:1.5px solid var(--line);border-bottom:1.5px solid var(--line)}
+.tc-them{align-self:center;font-size:12px;margin:4px 0}
+.tc-dong{display:flex;align-items:flex-end;gap:6px;max-width:100%}
+.tc-dong:not(.lien){margin-top:6px}
+.tc-dong.minh{justify-content:flex-end}
+.tc-av{width:28px;flex:0 0 28px;border:0;background:none;padding:0;cursor:pointer}
+.tc-bong{max-width:78%;padding:7px 11px;border-radius:16px;background:var(--card);border:1.5px solid var(--line);font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.tc-dong.minh .tc-bong{background:var(--navy);border-color:var(--navy);color:#fff}
+.tc-bong small{display:block;font-size:10px;opacity:.7;margin-top:2px}
+.tc-dong.minh .tc-bong small{text-align:right}
+.tc-bong.xoa{font-style:italic;opacity:.6}
+.tc-ng{display:block;font-size:12px;color:var(--heading);margin-bottom:1px}
+.tc-an{font-size:10px;padding:0}
+.tc-go{flex:0 0 auto;display:flex;gap:8px;align-items:flex-end}
+.tc-go textarea{flex:1;resize:none;font:inherit;font-size:15px;padding:9px 12px;border-radius:18px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);max-height:120px}
+.tc-go .btn{flex:0 0 auto;padding:10px 16px}
+.tc-luat{flex:0 0 auto;font-size:11px;margin:0}
+.tc-luat .link{font-size:11px;padding:0}
+/* Bản 2.25.0: thả cảm xúc sau trận solo */
+.pu-bar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.pu-nut{font:inherit;font-size:22px;line-height:1;min-width:46px;height:46px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;transition:transform .12s}
+.pu-nut[data-pu="GG"]{font-size:15px;font-weight:900;color:var(--heading);font-family:var(--display)}
+.pu-nut:active{transform:scale(.88)}
+.pu-bay{position:fixed;bottom:120px;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:center;animation:puBay 2.3s ease-out forwards}
+.pu-bay.minh{left:calc(22% + var(--x))}
+.pu-bay.ho{right:calc(22% + var(--x))}
+.pu-e{font-size:44px;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.2))}
+.pu-e.gg{font-size:30px;font-weight:900;color:#fff;background:var(--navy);padding:6px 12px;border-radius:14px;font-family:var(--display)}
+.pu-bay small{font-size:11px;font-weight:700;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:2px 7px;margin-top:3px}
+@keyframes puBay{0%{opacity:0;transform:translateY(20px) scale(.6)}15%{opacity:1;transform:translateY(-10px) scale(1.1)}70%{opacity:1}100%{opacity:0;transform:translateY(-260px) scale(1)}}
+@media (prefers-reduced-motion:reduce){.pu-bay{animation-duration:1.4s}}

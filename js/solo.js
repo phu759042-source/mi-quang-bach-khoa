@@ -47,6 +47,7 @@ function soloConnect(){
     .on('postgres_changes',{event:'*',schema:'public',table:'thong_bao',filter:'user_id=eq.'+user.id},bbSuKien)
     .on('postgres_changes',{event:'*',schema:'public',table:'ban_be'},bbDoi)
     .subscribe();
+  tcBat();   // bản 2.25.0: trò chuyện
   const oc=onlineCh=sb.channel('online',{config:{presence:{key:user.id}}});
   oc.on('presence',{event:'sync'},()=>{
       if(onlineCh!==oc) return;                       // kênh cũ sau khi đăng xuất / xoá tài khoản
@@ -61,6 +62,7 @@ function soloConnect(){
 function soloDisconnect(){
   if(soloCh){sb.removeChannel(soloCh);soloCh=null}
   if(bbCh){sb.removeChannel(bbCh);bbCh=null}
+  tcTat();
   if(onlineCh){sb.removeChannel(onlineCh);onlineCh=null}
   liveClose(); clearInterval(soloConnect.t); clearInterval(soloConnect.bb); bbReset(); [...notices.keys()].forEach(dropNotice);
 }
@@ -99,7 +101,7 @@ function titleBlink(on){clearInterval(titleBlink.t);document.title=TITLE0;if(!on
 const soloBusy=()=>midRun||!!solo||!!soloWait;
 async function showNotice(r){
   notices.set(r.id,{row:r});                      // giữ chỗ để không hiện hai lần
-  const {data:p}=await sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,truong_id,giang_vien,elo,avatar_url').eq('id',r.a).maybeSingle();
+  const {data:p}=await sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,truong_id,giang_vien,bi_ban,elo,avatar_url').eq('id',r.a).maybeSingle();
   if(!notices.has(r.id)) return;
   const left=Math.max(0,new Date(r.het_han)-Date.now());
   let box=$('notices');
@@ -321,11 +323,13 @@ function soloEnd(r){
       <tr><td>${tl('Tim đã mất','Hearts lost')}</td>${cell(0,r[me+'_tim_mat'])}${cell(0,r[o+'_tim_mat'])}</tr>
       <tr><td>${tl('ĐBK','BKP')}</td>${cell(0,'<b>'+dm+'</b>')}${cell(0,'<b>'+dt+'</b>')}</tr></table></div>
     <div class="col grow"><button class="btn" id="re">${tl('Tái đấu','Rematch')}</button><button class="btn ghost" id="xemlai">${tl('Xem lại trận','Replay match')}</button>
+      ${puBarHTML(draw?'hoa':win?'thang':'thua')}
       <span class="kb-row" data-kb-slot="${r[o]}" data-kb-an="ban">${kbNut(r[o],'ban')}</span>
       <div class="row"><button class="link" id="lbs">${tl('Bảng xếp hạng Solo','Solo leaderboard')}</button><button class="link" id="home">${tl('Về màn hình chính','Back to home')}</button></div></div>`);
     $('xemlai').onclick=()=>replayScreen({thach_dau:r.id,back:home,title:`${tenNgan(profile?.ten||tl('Bạn','You'))} vs ${tenNgan(ten)}`,sub:`${draw?tl('Hoà','Draw'):win?tl('Thắng','Win'):tl('Thua','Loss')} · ${DIFF[s.dk].n} · ${CHE_DO[s.md].n}`});
     $('re').onclick=()=>challengeScreen({...s.opp,id:r[o]},null,{dk:s.dk,md:s.md});
     $('lbs').onclick=()=>leaderboard('solo'); $('home').onclick=home;
+    puBat(r.id,n);
     refreshNotices();
   };
   // Bản 2.19.0: đổi danh hiệu Elo thì hiện màn hiệu ứng riêng giữa hiệu ứng thắng/thua và màn kết quả
@@ -407,4 +411,29 @@ async function searchPlayers(q){
     <p class="muted">${tl('<span class="dot"></span>đang mở game · bấm tên để xem hồ sơ · <span class="st-badge">Đang solo</span> thì bấm "Xem trận" để xem trực tiếp','<span class="dot"></span>online · tap a name for their profile · <span class="st-badge">In solo</span> means you can tap "Watch" to follow live')}</p>`;
   body.querySelectorAll('[data-prof]').forEach(el=>el.onkeydown=e=>{if(e.target===el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();el.click()}});
   applyPresence();
+}
+
+/* ---- Bản 2.25.0: thả GG / emoji sau trận solo, hiện ở cả hai bên (Realtime Broadcast, không lưu DB) ---- */
+const PU = {ch: null, td: null, lan: 0, cuoi: 0, t: 0};
+const PU_BO = {thang: ['GG', '😎', '🔥', '🤝', '👏', '😂'], thua: ['GG', '😭', '🙏', '👏', '🤝', '💀'], hoa: ['GG', '🤝', '😅', '👏', '🔥', '😂']};
+const puBarHTML = kq => `<div class="pu-bar" role="group" aria-label="${tl('Thả cảm xúc cho đối thủ', 'React to your opponent')}">
+  ${PU_BO[kq].map(e => `<button type="button" class="pu-nut" data-pu="${e}">${e}</button>`).join('')}</div>`;
+function puBay(e, cuaMinh, ten){
+  const el = document.createElement('div');
+  el.className = 'pu-bay ' + (cuaMinh ? 'minh' : 'ho');
+  el.style.setProperty('--x', (Math.random() * 60 - 30).toFixed(0) + 'px');
+  el.innerHTML = `<span class="pu-e${e === 'GG' ? ' gg' : ''}">${esc(e)}</span>${cuaMinh ? '' : `<small>${esc(ten)}</small>`}`;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 2400);
+}
+function puTat(){ if(PU.ch){ sb.removeChannel(PU.ch); PU.ch = null } clearInterval(PU.t); PU.td = null }
+function puBat(td, tenDoiThu){
+  puTat(); if(!sb) return;
+  PU.td = td; PU.lan = 0;
+  PU.ch = sb.channel('pu:' + td).on('broadcast', {event: 'pu'}, m => { const e = m.payload?.e;
+    if(typeof e === 'string' && Object.values(PU_BO).some(b => b.includes(e)) && document.querySelector('.pu-bar')) puBay(e, false, tenDoiThu) }).subscribe();
+  const bar = document.querySelector('.pu-bar');
+  if(bar) bar.onclick = ev => { const b = ev.target.closest('[data-pu]'); if(!b) return;
+    const now = Date.now(); if(now - PU.cuoi < 250 || PU.lan >= 40) return; PU.cuoi = now; PU.lan++;
+    puBay(b.dataset.pu, true); PU.ch && PU.ch.send({type: 'broadcast', event: 'pu', payload: {e: b.dataset.pu}}) };
+  PU.t = setInterval(() => { if(!document.querySelector('.pu-bar')) puTat() }, 3000);   // rời màn kết quả thì đóng kênh
 }

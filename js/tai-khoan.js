@@ -42,7 +42,8 @@ const truongTen=id=>(truongList.find(t=>t.id===id)||{}).ten_ngan||'';
 const truongCua=p=>p&&p.truong_id&&p.truong_id!=='khac'&&!laSV(p)?(p.truong||truongTen(p.truong_id)):'';
 // Bản 2.22.0: giáo viên có nhãn GV trước tên trường
 const GV_TAG=()=>`<span class="ngoai-bk gv-tag" title="${tl('Giáo viên, giảng viên','Teacher or lecturer')}">${tl('GV','Teacher')}</span>`;
-const lopKhoaHTML=(p,khoa)=>laSV(p)?esc(p.lop)+(khoa===false?'':' · '+esc(tKhoa(khoa??khoaTen(p.khoa_id))))
+const lopKhoaHTML=(p,khoa)=>(p&&p.bi_ban?BAN_TAG()+' ':'')+_lopKhoa(p,khoa);
+const _lopKhoa=(p,khoa)=>laSV(p)?esc(p.lop)+(khoa===false?'':' · '+esc(tKhoa(khoa??khoaTen(p.khoa_id))))
   :p&&p.giang_vien?GV_TAG()+(truongCua(p)?` <span class="ngoai-bk truong-tag">${esc(truongCua(p))}</span>`:'')
   :truongCua(p)?`<span class="ngoai-bk truong-tag">${esc(truongCua(p))}</span>`:NGOAI_BK;
 
@@ -80,6 +81,7 @@ function authScreen(mode='login'){
     if(!/^\S+@\S+\.\S+$/.test(email)){msg.textContent=tl('Email chưa đúng định dạng.','That email does not look right.');return}
     if(pw.length<6){msg.textContent=tl('Mật khẩu cần ít nhất 6 ký tự.','Password needs at least 6 characters.');return}
     msg.className='msg ok'; msg.textContent=mode==='login'?tl('Đang đăng nhập…','Signing in…'):tl('Đang tạo tài khoản…','Creating account…');
+    if(await emailBiCam(email)){msg.className='msg';msg.textContent=banMsg();return}   // bản 2.25.0: email trong danh sách đen
     const res=mode==='login'
       ? await sb.auth.signInWithPassword({email,password:pw})
       : await sb.auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:{lang:LANG}}});   // lang: chọn mẫu email Việt / Anh
@@ -142,7 +144,8 @@ async function afterLogin(){
   // Bản 2.19.1: ghi ngôn ngữ đang dùng vào user_metadata.lang để email (đặt lại mật khẩu…) gửi đúng tiếng Việt / Anh
   if(user&&user.user_metadata?.lang!==LANG) try{sb.auth.updateUser({data:{lang:LANG}}).catch(()=>{})}catch(e){}
   await loadProfile();
-  if(profile){await flushPending(); recFlush(); await kiemQuanTri()}
+  if(profile&&profile.bi_ban){ranked=false;return banScreen()}   // bản 2.25.0
+  if(profile){await flushPending(); recFlush(); await kiemQuanTri(); batBaoOnline()}
   ranked=!!profile; if(ranked){soloConnect();pushResync();if(pendingThach){const t=pendingThach;pendingThach=null;setTimeout(()=>openThach(t),900)}}
   if(profile&&await soloBoot()) return;
   if(profile&&await resumeRun()) return;
@@ -156,7 +159,7 @@ async function loadKhoa(){
   khoaList=data||[]; truongList=t.data||[];
 }
 async function loadProfile(){
-  const {data}=await sb.from('profiles').select('ten,khoa_id,lop,sinh_vien,truong_id,giang_vien,diem,so_luot,ngay_xa_nhat,chuoi,ngay_chuoi,chuoi_dai_nhat,avatar_url,avatar_khung,elo,solo_thang,solo_thua,solo_hoa').eq('id',user.id).maybeSingle();
+  const {data}=await sb.from('profiles').select('ten,khoa_id,lop,sinh_vien,truong_id,giang_vien,canh_cao,bi_ban,lan_cuoi,created_at,diem,so_luot,ngay_xa_nhat,chuoi,ngay_chuoi,chuoi_dai_nhat,avatar_url,avatar_khung,elo,solo_thang,solo_thua,solo_hoa').eq('id',user.id).maybeSingle();
   profile=data||null; myRank=null;
   if(profile&&profile.so_luot>0){
     const r=await sb.from('bxh_sinh_vien').select('hang').eq('id',user.id).maybeSingle();

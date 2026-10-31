@@ -28,6 +28,13 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-lang
 
 // Lỗi do server trả về (supabase/schema.sql) → tiếng Anh
 const LOI_EN = [
+  ['Tài khoản đã bị khoá vì vi phạm fair play', 'This account is banned for breaking fair play'],
+  ['Email này đã bị cấm', 'This email is banned for breaking fair play'],
+  ['Tin nhắn trống', 'The message is empty'],
+  ['Tin nhắn dài quá', 'The message is longer than 500 characters'],
+  ['Bạn gửi nhanh quá', 'You are sending too fast, wait a moment'],
+  ['Không thể tự nhắn cho mình', 'You cannot message yourself'],
+  ['Không tìm thấy người này', 'Player not found'],
   ['Doanh thu không khớp với thời gian chơi', 'Revenue does not match the time played'],
   ['Bạn mở quán quá nhiều lần', 'You opened the shop too many times, take a short break'],
   ['Giáo viên cần chọn trường', 'Teachers must pick a school'],

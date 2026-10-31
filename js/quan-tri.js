@@ -22,7 +22,10 @@ async function quanTriScreen(back = home){
     <h2>${tl('Lượt chờ duyệt', 'Runs awaiting review')}</h2>
     <p class="muted">${tl('Những người dưới đây đang bị ẩn khỏi bảng xếp hạng vì có lượt bất thường. Xem lại bản ghi rồi chọn: <b>Cho qua</b> nếu là lượt thật, hoặc <b>Huỷ các lượt này</b> nếu gian lận (điểm các lượt đó về 0, điểm người chơi được tính lại từ các lượt còn lại). Mọi thao tác được ghi nhật ký.',
       'These players are hidden from the leaderboard because of unusual runs. Watch the recording, then choose <b>Approve</b> for genuine runs or <b>Void these runs</b> for cheating (those runs score 0 and the player\'s points are recalculated). Every action is logged.')}</p>
-    <div class="col" id="qtBody"><div class="empty-state">${tl('Đang tải…', 'Loading…')}</div></div>`);
+    <div class="col" id="qtBody"><div class="empty-state">${tl('Đang tải…', 'Loading…')}</div></div>
+    <h3 style="margin-top:18px">${tl('Cảnh cáo và cấm', 'Warnings and bans')}</h3>
+    <p class="muted">${tl(`Huỷ lượt gian lận tự cộng 1 lần cảnh cáo và gửi thông báo. Đủ ${CANH_CAO_MAX} lần thì tài khoản bị khoá, email vào danh sách đen.`, `Voiding cheated runs adds 1 warning and notifies the player. At ${CANH_CAO_MAX} warnings the account is banned and its email blacklisted.`)}</p>
+    <div class="col" id="qtViPham"></div>`);
   $('back').onclick = () => back();
   const ve = async () => {
     const body = $('qtBody'); if(!body) return;
@@ -43,6 +46,29 @@ async function quanTriScreen(back = home){
         <button type="button" class="btn warm" data-qt="huy" data-uid="${p.id}">${tl('Huỷ các lượt này', 'Void these runs')}</button></div>
       <div class="msg" data-qt-msg="${p.id}"></div></div>`).join('');
   };
+  const veViPham = async () => {
+    const el = $('qtViPham'); if(!el) return;
+    const {data, error} = await sb.rpc('qt_ds_vi_pham');
+    if(!$('qtViPham')) return;
+    if(error){ el.innerHTML = `<div class="empty-state">${esc(error.message)}</div>`; return }
+    el.innerHTML = (data || []).length ? `<div class="list">${data.map(p => `<div class="li qt-vp">
+      <span class="nm"><button type="button" class="link qt-ten" data-hs="${p.id}">${esc(p.ten)}</button> ${p.bi_ban ? BAN_TAG() : ''}
+        <span class="sb">${tl('Cảnh cáo', 'Warnings')} ${p.canh_cao}/${CANH_CAO_MAX} · ${esc(p.email || '')}${p.ban_luc ? ` · ${tl('bị ban', 'banned')} ${luc(p.ban_luc)}` : ''}</span></span>
+      ${p.bi_ban ? `<button type="button" class="btn ghost" data-vp="go_ban" data-uid="${p.id}">${tl('Gỡ ban', 'Unban')}</button>`
+        : `<button type="button" class="btn ghost" data-vp="canh_cao" data-uid="${p.id}">${tl('Cảnh cáo thêm', 'Add warning')}</button>`}</div>`).join('')}</div>`
+      : `<div class="empty-state">${tl('Chưa ai bị cảnh cáo.', 'No warnings yet.')}</div>`;
+  };
+  $('qtViPham').onclick = async e => {
+    const hs = e.target.closest('[data-hs]'); if(hs) return hoSoScreen('stats', hs.dataset.hs, () => quanTriScreen(back));
+    const b = e.target.closest('[data-vp]'); if(!b) return;
+    if(!b.dataset.sure){ b.dataset.sure = 1; b.textContent = tl('Bấm lần nữa để xác nhận', 'Tap again to confirm');
+      setTimeout(() => { if(b.isConnected) veViPham() }, 4000); return }
+    b.disabled = true;
+    const {data, error} = await sb.rpc(b.dataset.vp === 'go_ban' ? 'qt_go_ban' : 'qt_canh_cao', {p_uid: b.dataset.uid});
+    if(error){ toast(error.message); b.disabled = false; return }
+    toast(b.dataset.vp === 'go_ban' ? tl('Đã gỡ ban', 'Unbanned') : data?.bi_ban ? tl(`Cảnh cáo ${data.canh_cao}/${CANH_CAO_MAX}: đã ban`, `Warning ${data.canh_cao}/${CANH_CAO_MAX}: banned`) : tl(`Cảnh cáo ${data?.canh_cao}/${CANH_CAO_MAX}`, `Warning ${data?.canh_cao}/${CANH_CAO_MAX}`));
+    veViPham(); ve();
+  };
   $('qtBody').onclick = async e => {
     const hs = e.target.closest('[data-hs]'); if(hs) return hoSoScreen('stats', hs.dataset.hs, () => quanTriScreen(back));
     const rp = e.target.closest('[data-qt-rp]');
@@ -54,9 +80,9 @@ async function quanTriScreen(back = home){
     b.disabled = true;
     const {data, error} = await sb.rpc(b.dataset.qt === 'huy' ? 'qt_huy_luot' : 'qt_cho_qua', {p_uid: uid});
     if(error){ b.disabled = false; if(msg){ msg.className = 'msg'; msg.textContent = error.message } return }
-    toast(b.dataset.qt === 'huy' ? tl(`Đã huỷ ${data?.so_luot_huy ?? ''} lượt, điểm ${soVN(data?.diem_cu ?? 0)} → ${soVN(data?.diem_moi ?? 0)}`, `Voided ${data?.so_luot_huy ?? ''} runs, points ${data?.diem_cu ?? 0} → ${data?.diem_moi ?? 0}`)
+    toast(b.dataset.qt === 'huy' ? tl(`Đã huỷ ${data?.so_luot_huy ?? ''} lượt, điểm ${soVN(data?.diem_cu ?? 0)} → ${soVN(data?.diem_moi ?? 0)}${data?.canh_cao ? `, cảnh cáo ${data.canh_cao}/${CANH_CAO_MAX}${data.bi_ban ? ', đã ban' : ''}` : ''}`, `Voided ${data?.so_luot_huy ?? ''} runs, points ${data?.diem_cu ?? 0} → ${data?.diem_moi ?? 0}`)
                                  : tl('Đã cho qua', 'Approved'));
-    ve();
+    ve(); veViPham();
   };
-  ve();
+  ve(); veViPham();
 }

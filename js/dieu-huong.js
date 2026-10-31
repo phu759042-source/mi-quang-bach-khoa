@@ -27,6 +27,9 @@ async function moLaiMan(){
       case 'thongbao': if(!ranked) return false; await thongBaoScreen(home); return true;
       case 'ungho': donateScreen(home); return true;
       case 'vegame': veGameScreen(home); return true;
+      case 'nhom': await nhomScreen(a, b, c, () => leaderboard(a === 'truong' ? 'truong' : a)); return true;
+      case 'tinnhan': if(!ranked) return false; await tinNhanScreen(home); return true;
+      case 'chat': if(!ranked || !a) return false; await chatScreen(a, b || null, () => tinNhanScreen(home)); return true;
       case 'quantri': if(!laQT) return false; await quanTriScreen(home); return true;
     }
   }catch(err){ console.warn('Không mở lại được màn cũ', err) }

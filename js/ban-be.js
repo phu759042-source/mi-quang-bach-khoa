@@ -12,7 +12,7 @@ async function bbTai(){
   if(!sb || !user || !ranked) return;
   const [{data: r1}, {data: r2}] = await Promise.all([
     sb.from('ban_be').select('a,b,nguoi_gui,trang_thai,tao_luc,ket_ban_luc'),
-    sb.from('thong_bao').select('id,loai,tu,da_doc,tao_luc').order('tao_luc', {ascending:false}).limit(50)]);
+    sb.from('thong_bao').select('id,loai,tu,da_doc,tao_luc,chi_tiet').order('tao_luc', {ascending:false}).limit(50)]);
   if(!user) return;
   BB.rows = r1 || []; BB.tb = r2 || []; BB.daTai = true;
   BB.qh = new Map(BB.rows.map(r => [r.a === user.id ? r.b : r.a, r.trang_thai === 'ban' ? 'ban' : r.nguoi_gui === user.id ? 'da_gui' : 'nhan']));
@@ -23,7 +23,7 @@ async function bbTai(){
 async function bbHoSo(ids){
   const can = [...new Set(ids.filter(id => id && !BB.hs.has(id)))];
   if(!can.length) return;
-  const {data} = await sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,truong_id,giang_vien,elo,avatar_url').in('id', can);
+  const {data} = await sb.from('profiles').select('id,ten,lop,khoa_id,sinh_vien,truong_id,giang_vien,bi_ban,lan_cuoi,elo,avatar_url').in('id', can);
   (data || []).forEach(p => { BB.hs.set(p.id, p); lbPeople.set(p.id, p) });
 }
 const NGUOI_CHOI = tl('Người chơi', 'Player');
@@ -41,6 +41,7 @@ async function bbSuKien(p){
   bbDoi();
   const t = p.new; if(p.eventType !== 'INSERT' || !t || t.da_doc) return;
   await bbHoSo([t.tu]);
+  if(HE_THONG.includes(t.loai)){ toast(tbChu(t, true)); try{ sfx.wrong() }catch(e){} return }
   toast(t.loai === 'loi_moi_ket_ban' ? tl(`${tenNgan(bbTen(t.tu))} gửi lời mời kết bạn`, `${tenNgan(bbTen(t.tu))} sent you a friend request`) : tl(`${tenNgan(bbTen(t.tu))} đã đồng ý kết bạn`, `${tenNgan(bbTen(t.tu))} accepted your friend request`));
   try{ sfx.streak() }catch(e){}
 }
@@ -89,6 +90,7 @@ async function thongBaoScreen(back = home){
     const body = $('tbBody'); if(!body){ BB.ve = null; return }
     if(!BB.tb.length){ body.innerHTML = `<div class="empty-state">${tl('Chưa có thông báo nào. Lời mời kết bạn và những ai đồng ý kết bạn với bạn sẽ hiện ở đây.', 'No notifications yet. Friend requests and people who accept yours will show up here.')}</div>`; return }
     body.innerHTML = `<div class="list tb-list">${BB.tb.map(t => { const p = BB.hs.get(t.tu) || {ten:NGUOI_CHOI}, q = quanHe(t.tu);
+      if(HE_THONG.includes(t.loai)) return tbHeThongHTML(t, p);
       return `<div class="li tb-li${t.da_doc ? '' : ' moi'}" data-prof="${t.tu}" role="button" tabindex="0">
         <span>${avatarHTML(p.avatar_url, p.ten, 38)}</span>
         <span class="nm"><span><b>${esc(p.ten)}</b> ${t.loai === 'loi_moi_ket_ban' ? tl('gửi lời mời kết bạn', 'sent you a friend request') : tl('đã đồng ý kết bạn với bạn', 'accepted your friend request')}</span>

@@ -31,7 +31,7 @@ class Fake:
     def __init__(s):
         s.khoa = [{'id': 'cntt', 'ten': 'Công nghệ Thông tin'}, {'id': 'dtvt', 'ten': 'Điện tử và trí tuệ nhân tạo'}]
         base = dict(diem=0, so_luot=3, ngay_xa_nhat=4, chuoi=0, ngay_chuoi=None, chuoi_dai_nhat=0, avatar_url=None,
-                    avatar_khung=None, elo=1200, solo_thang=0, solo_thua=0, solo_hoa=0, sinh_vien=True, truong_id='dut', giang_vien=False)
+                    avatar_khung=None, elo=1200, solo_thang=0, solo_thua=0, solo_hoa=0, sinh_vien=True, truong_id='dut', giang_vien=False, canh_cao=0, bi_ban=False, lan_cuoi=None, created_at='2026-10-24T08:00:00+00:00')
         s.prof = {'A': dict(base, id='A', ten='Nguyễn Tấn Phú', khoa_id='cntt', lop='26T_ATTT', diem=1420),
                   'B': dict(base, id='B', ten='Phạm Gia Huy', khoa_id='dtvt', lop='24DT2', diem=1300),
                   'C': dict(base, id='C', ten='Lê Minh Anh', khoa_id='cntt', lop='23T_DT1', diem=900)}
@@ -39,10 +39,11 @@ class Fake:
                     dict(id='hust', ten='Đại học Bách khoa Hà Nội', ten_ngan='BK Hà Nội', tinh='Hà Nội'),
                     dict(id='hcmut', ten='Trường Đại học Bách khoa, ĐHQG TP.HCM', ten_ngan='BK TP.HCM', tinh='TP.HCM'),
                     dict(id='khac', ten='Trường khác', ten_ngan='Trường khác', tinh='Khác')]
-        s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': [], 'KHACH': []}
+        s.rows, s.seq, s.q = {}, itertools.count(1), {'A': [], 'B': [], 'C': [], 'KHACH': [], 'G': [], 'H': []}
         s.runs, s.run_seq, s.nop, s.bg, s.pres = {}, itertools.count(77), [], [], {}
         s.calls = []
         s.qt = set()                                           # ai là quản trị (bản 2.24.0)
+        s.tn, s.tn_seq, s.doc, s.email = [], itertools.count(1), {}, {'G': 'g@vi-du.vn'}   # trò chuyện, đã đọc, email (bản 2.25.0)
         s.dem = []
         s.bcq = {}
         s.bb, s.tb, s.tb_seq = {}, [], itertools.count(1)      # bạn bè (khoá (a,b) với a<b), thông báo                                            # hàng đợi Realtime Broadcast theo người (giả lập kênh xem:<id>)
@@ -166,7 +167,52 @@ class Fake:
             cu = p['diem']
             for r in bat(p['id']): r.update(da_huy=True, doanh_thu=0, tim_mat=0, delta=0)
             p.update(diem=max(0, sum(r['delta'] or 0 for r in s.runs.values() if r['user_id'] == p['id'])), cho_duyet=False)
-            return {'data': {'so_luot_huy': len(ids), 'diem_cu': cu, 'diem_moi': p['diem']}}
+            cc = s.canh_cao(p['id'], len(ids)) if ids else {}
+            return {'data': {'so_luot_huy': len(ids), 'diem_cu': cu, 'diem_moi': p['diem'], **cc}}
+        if fn in ('qt_canh_cao', 'qt_go_ban', 'qt_ds_vi_pham', 'qt_xoa_tin'):          # bản 2.25.0
+            if u not in s.qt: return err('Chỉ quản trị mới làm được')
+            if fn == 'qt_canh_cao': return {'data': s.canh_cao(a['p_uid'], 0)}
+            if fn == 'qt_go_ban':
+                s.prof[a['p_uid']].update(bi_ban=False, canh_cao=0); s.tb_ht(a['p_uid'], 'go_ban', None, None); return {'data': None}
+            if fn == 'qt_xoa_tin':
+                for m in s.tn:
+                    if m['id'] == a['p_id']: m['da_xoa'] = True; s.tn_emit(m, 'UPDATE')
+                return {'data': None}
+            return {'data': [dict(id=p['id'], ten=p['ten'], canh_cao=p['canh_cao'], bi_ban=p['bi_ban'], ban_luc=None, diem=p['diem'], email=s.email.get(p['id']))
+                             for p in s.prof.values() if p['canh_cao'] or p['bi_ban']]}
+        if fn == 'email_bi_cam': return {'data': any(s.prof.get(k, {}).get('bi_ban') and e == (a['p_email'] or '').strip().lower() for k, e in s.email.items())}
+        if fn == 'bao_online':
+            if u in s.prof: s.prof[u]['lan_cuoi'] = iso(now())
+            return {'data': None}
+        if fn == 'so_lieu_bxh':
+            ca = [p for p in s.prof.values() if p['so_luot'] > 0 and not p.get('cho_duyet')]
+            return {'data': dict(ca_nhan=len(ca), sinh_vien=sum(p['sinh_vien'] for p in ca), giao_vien=sum(p['giang_vien'] for p in ca),
+                                 truong_minh=sum(1 for p in ca if a.get('p_truong') and p['truong_id'] == a.get('p_truong')),
+                                 truong=len({p['truong_id'] for p in ca if p['truong_id'] and p['truong_id'] != 'khac' and not p['bi_ban']}),
+                                 lop=len({p['lop'] for p in ca if p['sinh_vien'] and not p['bi_ban']}), khoa=len({p['khoa_id'] for p in ca if p['sinh_vien'] and not p['bi_ban']}),
+                                 solo=len(s.prof), solo_da_dau=sum(1 for p in s.prof.values() if p['solo_thang'] + p['solo_thua'] + p['solo_hoa']))}
+        if fn == 'gui_tin_nhan':                              # giống public.gui_tin_nhan (bỏ qua chống spam)
+            if s.prof.get(u, {}).get('bi_ban'): return err('Tài khoản đã bị khoá vì vi phạm fair play')
+            nd = (a.get('p_noi_dung') or '').strip()
+            if not nd: return err('Tin nhắn trống')
+            toi = a.get('p_toi'); phong = 'chung' if not toi else 'dm:' + ':'.join(sorted([u, toi]))
+            m = dict(id=next(s.tn_seq), phong=phong, nguoi_gui=u, nguoi_nhan=toi, noi_dung=nd, da_xoa=False, tao_luc=iso(now()))
+            s.tn.append(m); s.doc[(u, phong)] = m['id']; s.tn_emit(m, 'INSERT'); return {'data': dict(m)}
+        if fn == 'doc_tin':
+            s.doc[(u, a['p_phong'])] = max(s.doc.get((u, a['p_phong']), 0), a['p_den']); return {'data': None}
+        if fn == 'ds_hoi_thoai':
+            cd = lambda ph: sum(1 for m in s.tn if m['phong'] == ph and m['nguoi_gui'] != u and m['id'] > s.doc.get((u, ph), 0))
+            ch = [m for m in s.tn if m['phong'] == 'chung']
+            rieng = {}
+            for m in s.tn:
+                if m['phong'] != 'chung' and u in (m['nguoi_gui'], m['nguoi_nhan']): rieng[m['phong']] = m
+            def dong(m):
+                o = m['nguoi_nhan'] if m['nguoi_gui'] == u else m['nguoi_gui']
+                return dict(phong=m['phong'], nguoi=o, ten=s.prof[o]['ten'], avatar_url=None, bi_ban=s.prof[o]['bi_ban'],
+                            noi_dung=None if m['da_xoa'] else m['noi_dung'], tao_luc=m['tao_luc'], cua_minh=m['nguoi_gui'] == u, chua_doc=cd(m['phong']))
+            c = ch[-1] if ch else None
+            return {'data': {'chung': dict(id=c['id'], noi_dung=None if c['da_xoa'] else c['noi_dung'], tao_luc=c['tao_luc'], ten=s.prof.get(c['nguoi_gui'], {}).get('ten'), chua_doc=cd('chung')) if c else None,
+                             'rieng': [dong(m) for m in sorted(rieng.values(), key=lambda m: -m['id'])]}}
         if fn == 'bi_an_bxh': return {'data': bool(s.prof.get(a['p_uid'], {}).get('cho_duyet'))}   # bản 2.23.0
         if fn == 'nhan_luot_thu':                             # giống public.nhan_luot_thu (bản 2.21.0)
             p = s.prof.get(u); hs = HS[a['p_do_kho']]
@@ -181,7 +227,7 @@ class Fake:
         if fn == 'tim_nguoi_choi':
             q = a['p_q'].lower()
             res = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']),
-                        diem=p['diem'], elo=p['elo'], avatar_url=None, sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']), giang_vien=p['giang_vien'])
+                        diem=p['diem'], elo=p['elo'], avatar_url=None, sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']), giang_vien=p['giang_vien'], bi_ban=p['bi_ban'])
                    for p in s.prof.values() if p['id'] != u and (q in p['ten'].lower() or q in (p['lop'] or '').lower())]
             return {'data': res}
         if fn == 'bat_dau_luot':
@@ -260,15 +306,43 @@ class Fake:
             s.emit(r)
         return {'data': dict(r, **{k: None for k in ('a_ping', 'b_ping')}) | {'a_ping': None, 'b_ping': None}}
 
+    def tb_ht(s, user, loai, tu, ct):                       # giống _thong_bao_he_thong (bản 2.25.0)
+        t = dict(id=next(s.tb_seq), user_id=user, loai=loai, tu=tu, da_doc=False, tao_luc=iso(now()), chi_tiet=ct)
+        s.tb.append(t); s.q.setdefault(user, []).append(dict(t, _table='thong_bao', _ev='INSERT'))
+
+    def canh_cao(s, uid, so_luot):                          # giống _canh_cao: đủ 3 lần thì ban, báo đối thủ từng solo
+        p = s.prof[uid]; p['canh_cao'] += 1
+        s.tb_ht(uid, 'canh_cao', None, dict(lan=p['canh_cao'], so_luot=so_luot))
+        if p['canh_cao'] >= 3 and not p['bi_ban']:
+            p['bi_ban'] = True; s.tb_ht(uid, 'bi_ban', None, dict(lan=p['canh_cao']))
+            for o in {r['b'] if r['a'] == uid else r['a'] for r in s.rows.values() if uid in (r['a'], r['b']) and r['trang_thai'] == 'xong'}:
+                s.tb_ht(o, 'doi_thu_bi_ban', uid, None)
+        return dict(canh_cao=p['canh_cao'], bi_ban=p['bi_ban'])
+
+    def tn_emit(s, m, ev):                                  # realtime tin_nhan: RLS cho phòng chung = mọi người, riêng = hai người
+        for k in list(s.q):
+            if m['phong'] == 'chung' or k in (m['nguoi_gui'], m['nguoi_nhan']): s.q[k].append(dict(m, _table='tin_nhan', _ev=ev))
+
     def khoa_ten(s, kid): return next((k['ten'] for k in s.khoa if k['id'] == kid), None)
     def truong_ten(s, tid): return next((t['ten_ngan'] for t in s.truong if t['id'] == tid), None)
 
     def select(s, u, q):
         t, f = q['table'], q['filters']
         if t == 'ban_be': return {'data': [dict(r) for r in s.bb.values() if u in (r['a'], r['b'])]}       # RLS: của mình
+        if t == 'tin_nhan':                                   # RLS: phòng chung, hoặc tin của mình
+            ph = next((v for k, op, v in f if k == 'phong'), None); lt = next((v for k, op, v in f if op == 'lt'), None)
+            rows = [dict(m) for m in s.tn if m['phong'] == ph and (ph == 'chung' or u in (m['nguoi_gui'], m['nguoi_nhan'])) and (lt is None or m['id'] < lt)]
+            return {'data': sorted(rows, key=lambda m: -m['id'])[:40]}
         if t == 'thong_bao': return {'data': sorted([dict(x) for x in s.tb if x['user_id'] == u], key=lambda x: -x['id'])}
         if t == 'khoa': return {'data': s.khoa}
         if t == 'truong': return {'data': s.truong}
+        if t in ('bxh_lop', 'bxh_khoa'):                      # bản 2.25.0: đủ để bấm vào xem danh sách
+            k = 'lop' if t == 'bxh_lop' else 'khoa_id'; g = {}
+            for p in s.prof.values():
+                if p['so_luot'] > 0 and p['sinh_vien'] and not p['bi_ban'] and p[k]: g.setdefault(p[k], []).append(p)
+            rows = sorted([dict(lop=v[0]['lop'], khoa_id=v[0]['khoa_id'], khoa=s.khoa_ten(v[0]['khoa_id']), so_nguoi=len(v), diem=round(sum(x['diem'] for x in v) / (10 if k == 'lop' else 30))) for v in g.values()], key=lambda r: -r['diem'])
+            for i, r in enumerate(rows): r['hang'] = i + 1
+            return {'data': rows}
         if t == 'bxh_truong':                                 # giống view bxh_truong: tổng 30 người cao nhất / 30, bỏ "Trường khác"
             g = {}
             for p in s.prof.values():
@@ -315,10 +389,10 @@ class Fake:
             if q.get('single'): return {'data': {'hang': 2, 'hang_sv': 2}}
             ps = sorted(s.prof.values(), key=lambda p: -p['diem'])
             svs = [p for p in ps if p['sinh_vien']]
-            rows = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']), sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']), giang_vien=p['giang_vien'],
+            rows = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']), khoa_id=p['khoa_id'], sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']), giang_vien=p['giang_vien'], bi_ban=p['bi_ban'],
                          diem=p['diem'], hang=i + 1, hang_sv=svs.index(p) + 1 if p['sinh_vien'] else None, chuoi=0, avatar_url=None) for i, p in enumerate(ps)]
-            eq = [(k, v) for k, op, v in f if op == 'eq' and k in ('sinh_vien', 'giang_vien', 'truong_id')]
-            return {'data': [r for r in rows if all(r[k] == v for k, v in eq)]}
+            eq = [(k, v) for k, op, v in f if op == 'eq' and k in ('sinh_vien', 'giang_vien', 'truong_id', 'lop', 'khoa_id')]
+            return {'data': [r for r in rows if all(r.get(k) == v for k, v in eq)]}
         if t == 'bxh_solo':
             ps = sorted([p for p in s.prof.values() if p['solo_thang'] + p['solo_thua'] + p['solo_hoa']], key=lambda p: -p['elo'])
             return {'data': [dict(p, khoa=s.khoa_ten(p['khoa_id']), hang=i + 1) for i, p in enumerate(ps)]}
@@ -333,7 +407,7 @@ STUB = r"""
   function q(table){
     const st={table,filters:[],single:false};
     const b={select(){return b},order(k,o){if(o&&o.ascending)st.asc=true;return b},limit(){return b},range(){return b},neq(k,v){st.filters.push([k,'neq',v]);return b},
-      eq(k,v){st.filters.push([k,'eq',v]);return b},gt(k,v){st.filters.push([k,'gt',v]);return b},in(k,v){st.filters.push([k,'in',v]);return b},or(x){st.filters.push(['_or','or',x]);return b},
+      eq(k,v){st.filters.push([k,'eq',v]);return b},gt(k,v){st.filters.push([k,'gt',v]);return b},in(k,v){st.filters.push([k,'in',v]);return b},lt(k,v){st.filters.push([k,'lt',v]);return b},or(x){st.filters.push(['_or','or',x]);return b},
       maybeSingle(){st.single=true;return b},
       then(ok,no){return call('select',st).then(ok,no)}};
     return b;
@@ -622,6 +696,12 @@ with sync_playwright() as pw:
     B.click('#drawOffer [data-yes]')
     ketQua(A, 'Hoà!', 8000); ketQua(B, 'Hoà!', 8000)
     check('Hai bạn đồng ý hoà' in A.inner_text('#ov'), 'cả hai thấy "Hoà!" với lý do đồng ý hoà')
+    A.wait_for_selector('.pu-bar', timeout=3000); A.wait_for_timeout(1200)                  # bản 2.25.0: thả cảm xúc
+    A.click('.pu-nut[data-pu="GG"]'); A.wait_for_timeout(300); A.click('.pu-nut[data-pu="🤝"]')
+    check(A.locator('.pu-bay.minh').count() >= 1, 'thả GG: hiện bay lên ở phía mình')
+    B.wait_for_selector('.pu-bay.ho', timeout=4000)
+    check('GG' in B.inner_text('.pu-bay.ho') or '🤝' in B.inner_text('.pu-bay.ho'), 'đối thủ thấy GG / emoji bay lên kèm tên')
+    shot(B, 'solo-tha-cam-xuc')
 
     print('15. Solo: tải lại giữa trận → tự vào lại, giữ nâng cấp')
     B.click('#home'); B.wait_for_timeout(300)
@@ -1058,6 +1138,74 @@ with sync_playwright() as pw:
     B.click('[data-qt="huy"]'); B.wait_for_selector('#qtBody .empty-state', timeout=5000)
     check(F.runs[i].get('da_huy') and F.runs[i]['delta'] == 0 and not F.prof['KHACH']['cho_duyet'], 'huỷ xong: lượt về 0, bỏ ẩn, danh sách trống')
     F.qt.discard('B')
+
+    print('35. Bảng xếp hạng: số người, bấm lớp/khoa/trường xem danh sách; hồ sơ có ngày tham gia')
+    B.evaluate("leaderboard('sv')"); B.wait_for_selector('#lbBody .podium', timeout=5000); B.wait_for_function("document.querySelector('#lbDem').innerText.length>0", timeout=4000)
+    check('người chơi' in B.inner_text('#lbDem'), f"bảng Cá nhân ghi số người chơi ({B.inner_text('#lbDem')!r})")
+    check(B.locator('[data-loc="truong"]').count() == 0, 'sinh viên BK: không có bộ lọc "Trường mình" (trùng "Sinh viên BK")')
+    B.click('[data-t="lop"]'); B.wait_for_selector('#lbBody [data-nhom]', timeout=5000)
+    check('lớp' in B.inner_text('#lbDem'), 'bảng Lớp ghi số lớp')
+    B.locator('#lbBody [data-nhom]').first.click(); B.wait_for_selector('#nhBody .li', timeout=5000)
+    check('người chơi' in B.inner_text('#nhDem') and B.locator('#nhBody .li').count() >= 1, 'bấm một lớp: hiện danh sách và số người')
+    shot(B, 'bxh-nhom-lop')
+    B.click('#back'); B.wait_for_selector('#lbBody', timeout=4000)
+    B.evaluate("hoSoScreen('stats','A',home)"); B.wait_for_selector('.hs-tg', timeout=5000)
+    check('Tham gia' in B.inner_text('.hs-tg') and ('online' in B.inner_text('.hs-tg').lower()), f"hồ sơ: ngày tham gia + online ({B.inner_text('.hs-tg')!r})")
+
+    print('36. Trò chuyện: phòng chung, nhắn riêng, số chưa đọc, nhận tin ngay')
+    F.prof['H'] = dict(F.prof['B'], id='H', ten='Trần Hà', diem=500, so_luot=2, elo=1200)
+    Hp = make(b, 'H', 390, 844)
+    Hp.wait_for_selector('#tinnhan', timeout=8000)
+    B.evaluate('home()'); B.wait_for_selector('#tinnhan', timeout=4000); B.click('#tinnhan'); B.wait_for_selector('[data-tc-phong="chung"]', timeout=5000)
+    B.click('[data-tc-phong="chung"]'); B.wait_for_selector('#tcNhap', timeout=5000)
+    B.fill('#tcNhap', 'Chào cả nhà, ai solo không?'); B.press('#tcNhap', 'Enter'); B.wait_for_selector('.tc-dong.minh', timeout=4000)
+    check('Chào cả nhà' in B.inner_text('#tcTin'), 'gửi tin vào phòng chung')
+    Hp.click('#tinnhan'); Hp.wait_for_selector('[data-tc-phong="chung"]', timeout=5000)
+    check('Chào cả nhà' in Hp.inner_text('#tcBody'), 'người khác thấy tin mới nhất của phòng chung')
+    Hp.click('[data-tc-phong="chung"]'); Hp.wait_for_selector('.tc-dong', timeout=5000)
+    check('Phạm Gia Huy' in Hp.inner_text('#tcTin'), 'phòng chung hiện tên người gửi')
+    Hp.evaluate("hoSoScreen('stats','B',home)"); Hp.wait_for_selector('#hsNhan', timeout=5000); Hp.click('#hsNhan'); Hp.wait_for_selector('#tcNhap', timeout=5000)
+    Hp.fill('#tcNhap', 'Huy ơi solo một trận nhé'); Hp.click('#tcGui'); Hp.wait_for_selector('.tc-dong.minh', timeout=4000)
+    B.click('#back'); B.wait_for_selector('#tcBody', timeout=4000)
+    B.wait_for_selector('[data-tc-nguoi="H"]', timeout=5000)
+    check(B.locator('[data-tc-nguoi="H"] .bb-so').count() == 1, 'tin riêng mới: có số chưa đọc')
+    B.click('[data-tc-nguoi="H"]'); B.wait_for_selector('.tc-dong', timeout=5000)
+    check('solo một trận' in B.inner_text('#tcTin'), 'mở cuộc trò chuyện riêng thấy tin')
+    Hp.fill('#tcNhap', 'Sẵn sàng chưa?'); Hp.click('#tcGui')
+    B.wait_for_function("document.querySelector('#tcTin').innerText.includes('Sẵn sàng chưa')", timeout=5000)
+    check(True, 'tin mới đến ngay khi đang mở cuộc trò chuyện (realtime)')
+    shot(B, 'tro-chuyen-rieng')
+    B.click('#back'); B.wait_for_selector('#tcBody', timeout=4000); B.wait_for_timeout(500)
+    check(B.locator('[data-tc-nguoi="H"] .bb-so').count() == 0, 'đọc rồi thì hết số chưa đọc')
+
+    print('37. Fair play: huỷ lượt → cảnh cáo + thông báo; 3 lần → ban, nhãn đỏ, chặn đăng nhập/đăng ký lại')
+    F.prof['G'] = dict(F.prof['B'], id='G', ten='Lâm Gian', diem=4000, so_luot=3, elo=1200)
+    i = next(F.run_seq); F.runs[i] = dict(id=i, user_id='G', do_kho='bk', trang_thai='xong', so_ngay=1, doanh_thu=5000, tim_mat=5, delta=825, ket_thuc=iso(now()), nghi_ngo='bản ghi bưng 0k, nộp 5000k')
+    F.prof['G']['cho_duyet'] = True
+    Gp = make(b, 'G', 390, 844); Gp.wait_for_selector('#go', timeout=8000)
+    F.qt.add('B'); B.evaluate('kiemQuanTri().then(()=>quanTriScreen(home))'); B.wait_for_selector('[data-qt="huy"]', timeout=5000)
+    B.click('[data-qt="huy"]'); B.click('[data-qt="huy"]'); B.wait_for_selector('#qtViPham .qt-vp', timeout=5000)
+    check(F.prof['G']['canh_cao'] == 1 and any(t['user_id'] == 'G' and t['loai'] == 'canh_cao' for t in F.tb), 'huỷ lượt: cảnh cáo 1/3 + thông báo')
+    Gp.wait_for_timeout(1500); Gp.evaluate("thongBaoScreen(home)"); Gp.wait_for_selector('.tb-ht', timeout=5000)
+    check('Cảnh cáo 1/3' in Gp.inner_text('#tbBody') and 'không được tính điểm' in Gp.inner_text('#tbBody'), 'chuông: "Cảnh cáo 1/3 ... không được tính điểm"')
+    shot(Gp, 'fair-play-01-canh-cao')
+    for _ in range(2):
+        B.click('[data-vp="canh_cao"][data-uid="G"]'); B.click('[data-vp="canh_cao"][data-uid="G"]'); B.wait_for_timeout(700)
+    check(F.prof['G']['bi_ban'] and F.prof['G']['canh_cao'] == 3, 'đủ 3 lần cảnh cáo: bị ban')
+    check(B.locator('#qtViPham .ban-tag').count() == 1 and B.locator('[data-vp="go_ban"][data-uid="G"]').count() == 1, 'màn quản trị: nhãn Bị ban + nút Gỡ ban')
+    shot(B, 'fair-play-02-quan-tri')
+    B.evaluate("leaderboard('sv')"); B.wait_for_selector('#lbBody .podium', timeout=5000)
+    check(B.locator('#lbBody .ban-tag').count() == 1 and 'Lâm Gian' in B.inner_text('#lbBody'), 'bảng xếp hạng vẫn hiện người bị ban với nhãn đỏ')
+    shot(B, 'fair-play-03-bxh')
+    Gp.reload(); Gp.wait_for_selector('.ban-man', timeout=8000)
+    check('bị khoá' in Gp.inner_text('#ov'), 'tài khoản bị ban mở game: màn "Tài khoản đã bị khoá"')
+    shot(Gp, 'fair-play-04-bi-khoa')
+    Gp.click('#banOut'); Gp.wait_for_selector('#em', timeout=5000)
+    Gp.click('#sw'); Gp.wait_for_selector('#em', timeout=3000)
+    Gp.fill('#em', 'G@vi-du.vn'); Gp.fill('#pw', '123456'); Gp.click('#f button[type=submit]')
+    Gp.wait_for_function("document.querySelector('#msg').textContent.includes('bị cấm')", timeout=5000)
+    check(True, 'đăng ký lại bằng email bị cấm: báo "đã bị cấm vì vi phạm fair play"')
+    F.qt.discard('B'); Gp.close(); Hp.close()
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

@@ -1,6 +1,6 @@
 /* Mì Quảng Bách Khoa · js/ve-game.js: màn "Về game" (bản 2.16.0) gồm thông tin game, chính sách dữ liệu và bảo mật,
    các bên liên quan và trách nhiệm. Sửa nội dung ở đây thì cập nhật cả VE_GAME_CAP_NHAT. */
-const VE_GAME_CAP_NHAT = '31/10/2026'; // bản 2.23.0: thêm đối chiếu bản ghi chống gian lận
+const VE_GAME_CAP_NHAT = '31/10/2026'; // bản 2.25.0: quy tắc fair play, trò chuyện, lần cuối online
 const VE_GAME_RA_MAT = '24/10/2026';
 function veGameScreen(back = home){
   nhoMan('vegame');
@@ -29,6 +29,9 @@ function veGameScreen(back = home){
       <li>Kết quả chơi: từng lượt bán, ĐBK, chuỗi ngày, trận solo, Elo.</li>
       <li>Bản ghi thao tác để xem lại từng lượt bán và trận solo (giữ 50 lượt bán gần nhất, giữ hết các trận solo). Máy chủ đối chiếu bản ghi với kết quả nộp để phát hiện gian lận; lượt không khớp hoặc thiếu bản ghi làm tài khoản tạm ẩn khỏi bảng xếp hạng cho đến khi người làm game kiểm tra.</li>
       <li>Bạn bè, lời mời kết bạn và thông báo (giữ 100 thông báo gần nhất).</li>
+      <li>Tin nhắn: tin trong phòng chung và tin nhắn riêng với người khác, kèm thời điểm gửi. Quản trị có thể ẩn tin vi phạm.</li>
+      <li>Thời điểm tạo tài khoản và lần cuối bạn mở game (hiện trên hồ sơ công khai).</li>
+      <li>Số lần bị cảnh cáo vì vi phạm fair play. Tài khoản bị khoá thì email được giữ trong danh sách đen để không đăng ký lại được.</li>
       <li>Nếu bật thông báo thách đấu: địa chỉ nhận thông báo do trình duyệt cấp. Tắt thông báo hoặc đăng xuất thì địa chỉ này bị xoá.</li>
     </ul>
     <p><b>Chống bot cho bộ đếm truy cập:</b> máy chủ lưu mã băm của địa chỉ mạng (không lưu IP gốc) khi có người mới ghé, và tự xoá sau 1 ngày.</p>
@@ -39,7 +42,20 @@ function veGameScreen(back = home){
     <ul>
       <li><b>Mọi người, kể cả chưa đăng nhập:</b> tên hiển thị, khoa, lớp, tên trường, nhãn GV (giáo viên) hoặc "Ngoài BK", ảnh đại diện, ĐBK, số lượt chơi, chuỗi ngày, Elo, thành tích solo và thứ hạng trên bảng xếp hạng.</li>
       <li><b>Người đã đăng nhập:</b> thêm lịch sử các lượt bán và trận solo đã kết thúc, bản ghi xem lại, trạng thái đang mở game / đang bán / đang solo, và xem trực tiếp khi bạn đang chơi.</li>
+      <li><b>Người đã đăng nhập:</b> tin nhắn trong phòng chung, ngày tạo tài khoản và lần cuối online của mọi người, nhãn "Bị ban" của tài khoản vi phạm.</li>
       <li><b>Chỉ bạn:</b> email, danh sách bạn bè và lời mời, thông báo, trận đang đấu và lời thách đang chờ.</li>
+      <li><b>Chỉ bạn và người kia:</b> tin nhắn riêng giữa hai người.</li>
+    </ul>
+  </section>
+
+  <section class="card-s" id="fairPlay"><h3>Quy tắc fair play</h3>
+    <ul>
+      <li>Điểm phải đến từ việc tự tay bán mì trong game. Cấm sửa code hay biến trong trình duyệt, gọi thẳng hàm của máy chủ, dùng công cụ tự động, hay dùng nhiều tài khoản để đẩy điểm.</li>
+      <li>Mỗi lượt bán được máy chủ đối chiếu với bản ghi thao tác. Lượt bất thường làm tài khoản tạm ẩn khỏi bảng xếp hạng cho tới khi quản trị kiểm tra.</li>
+      <li>Lượt bị xác định là gian lận sẽ bị huỷ (không tính điểm) và tài khoản nhận <b>1 lần cảnh cáo</b>, có thông báo trong chuông.</li>
+      <li>Đủ <b>3 lần cảnh cáo</b>: tài khoản bị khoá vĩnh viễn, email vào danh sách đen, không đăng ký lại được. Tên vẫn hiện trên bảng xếp hạng với nhãn đỏ "Bị ban · vi phạm fair play", không được tính cho lớp, khoa, trường. Những người từng solo với tài khoản đó được báo.</li>
+      <li>Trong trò chuyện: không xúc phạm, quấy rối, spam hay chia sẻ thông tin cá nhân của người khác. Tin vi phạm có thể bị ẩn, vi phạm nặng bị cảnh cáo như gian lận.</li>
+      <li>Nếu bạn nghĩ mình bị xử lý nhầm, hãy liên hệ người làm game ở mục Liên hệ.</li>
     </ul>
   </section>
 
@@ -114,6 +130,18 @@ function veGameScreen(back = home){
       <li><b>Signed-in players:</b> also your finished runs and solo matches, replays, whether you are online / selling / in solo, and live view while you play.</li>
       <li><b>Only you:</b> your email, friends and requests, notifications, your current match and pending challenges.</li>
     </ul>
+  </section>
+
+  <section class="card-s"><h3>Fair play rules</h3>
+    <ul>
+      <li>Points must come from actually selling noodles in the game. No editing code or variables in the browser, calling server functions directly, using automation tools, or using multiple accounts to boost points.</li>
+      <li>The server checks every run against its action recording. Abnormal runs hide the account from the leaderboard until an admin reviews them.</li>
+      <li>Runs found to be cheated are voided (no points) and the account gets <b>1 warning</b>, shown in the bell.</li>
+      <li>At <b>3 warnings</b> the account is permanently banned and its email is blacklisted. The name stays on the leaderboard with a red "Banned · fair play" tag and does not count for class, faculty or school. Everyone who dueled that account is notified.</li>
+      <li>In chat: no insults, harassment, spam or sharing other people's personal information. Offending messages may be hidden; serious cases get a warning like cheating.</li>
+      <li>If you think you were handled by mistake, contact the developer.</li>
+    </ul>
+    <p>Data: chat messages (public room and private messages), account creation date and last online time (shown on your public profile), and the number of warnings are stored. A banned email is kept on a blacklist so it cannot sign up again.</p>
   </section>
 
   <section class="card-s"><h3>Security</h3>

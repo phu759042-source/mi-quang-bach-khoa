@@ -306,6 +306,48 @@ begin
      or not exists (select 1 from public.qt_nhat_ky where hanh_dong = 'huy_luot' and doi_tuong = B)
     then raise exception 'HONG: huỷ lượt sai: %', j; end if;
   raise notice 'OK quản trị: chỉ quản trị xem/duyệt được, huỷ lượt tính lại điểm, ghi nhật ký';
+  -- Bản 2.25.0: cảnh cáo 3 lần thì ban, danh sách đen, thông báo đối thủ, trò chuyện
+  update auth.users set email = 'c@vi-du.vn' where id = C;
+  perform pg_temp.dang_nhap(A);
+  perform public.qt_canh_cao(C, 'thử'); perform public.qt_canh_cao(C, 'thử');
+  if (select bi_ban from public.profiles where id = C) then raise exception 'HONG: 2 lần cảnh cáo đã bị ban'; end if;
+  j := public.qt_canh_cao(C, 'thử');
+  perform pg_temp.dang_xuat();
+  if not (j->>'bi_ban')::boolean or not (select bi_ban from public.profiles where id = C) or not public.email_bi_cam('C@vi-du.vn')
+     or (select count(*) from public.thong_bao where user_id = C and loai = 'canh_cao') <> 3
+     or not exists (select 1 from public.thong_bao where user_id = C and loai = 'bi_ban')
+     or not exists (select 1 from public.thong_bao where user_id = A and loai = 'doi_thu_bi_ban' and tu = C)
+    then raise exception 'HONG: ban sau 3 lần cảnh cáo sai'; end if;
+  ok := false;
+  begin insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000011', 'c@vi-du.vn');
+  exception when raise_exception then ok := true; end;
+  if not ok then raise exception 'HONG: email bị cấm vẫn đăng ký lại được'; end if;
+  perform pg_temp.dang_nhap(C);
+  begin perform public.bat_dau_luot('thuong'); raise exception 'HONG: bị ban vẫn mở quán được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  begin perform public.gui_tin_nhan(null, 'xin chào'); raise exception 'HONG: bị ban vẫn nhắn tin được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform pg_temp.dang_xuat();
+  if not exists (select 1 from public.bxh_sinh_vien where id = C and bi_ban) and (select so_luot from public.profiles where id = C) > 0
+    then raise exception 'HONG: người bị ban phải vẫn hiện trên bảng cá nhân'; end if;
+  -- trò chuyện
+  perform pg_temp.dang_nhap(A);
+  perform public.gui_tin_nhan(null, 'Chào cả nhà');
+  begin perform public.gui_tin_nhan(B, 'nhanh quá'); raise exception 'HONG: gửi 2 tin trong 0,7 giây vẫn được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform pg_temp.dang_xuat(); update public.tin_nhan set tao_luc = tao_luc - interval '5 seconds'; perform pg_temp.dang_nhap(A);
+  j := public.gui_tin_nhan(B, 'Solo không?');
+  if j->>'phong' <> public.phong_dm(A, B) then raise exception 'HONG: phòng nhắn riêng sai'; end if;
+  perform pg_temp.dang_nhap(B);
+  j := public.ds_hoi_thoai();
+  if (j->'chung'->>'chua_doc')::int <> 1 or json_array_length(j->'rieng') <> 1 or (j->'rieng'->0->>'chua_doc')::int <> 1 then raise exception 'HONG: hội thoại/chưa đọc sai: %', j; end if;
+  perform public.doc_tin(public.phong_dm(A, B), (select max(id) from public.tin_nhan));
+  if (public.ds_hoi_thoai()->'rieng'->0->>'chua_doc')::int <> 0 then raise exception 'HONG: đọc rồi vẫn báo chưa đọc'; end if;
+  perform pg_temp.dang_nhap('00000000-0000-0000-0000-00000000000d');
+  if (select count(*) from public.tin_nhan) <> 1 then raise exception 'HONG: người ngoài đọc được tin nhắn riêng'; end if;
+  perform pg_temp.dang_xuat();
+  if (public.so_lieu_bxh('dut')->>'ca_nhan')::int < 1 then raise exception 'HONG: so_lieu_bxh'; end if;
+  raise notice 'OK fair play: 3 cảnh cáo thì ban, chặn email, chặn chơi/nhắn, báo đối thủ; trò chuyện chung/riêng, chưa đọc, chống spam';
 end $$;
 
 select 'TẤT CẢ ĐỀU ĐÚNG' as ket_qua;

@@ -262,7 +262,7 @@ function soloView(r, uid = user.id){   // một trận nhìn từ phía người
   const kq = !r.thang ? 'hoa' : r.thang === uid ? 'thang' : 'thua';
   return {r, me, o, kq, opp: r[o], eloTruoc: r['elo_' + me], doi: r['doi_' + me] || 0, eloOpp: r['elo_' + o]};
 }
-const PROF_COT = 'id,ten,lop,khoa_id,sinh_vien,truong_id,giang_vien,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url,ngay_xa_nhat,chuoi,chuoi_dai_nhat,ngay_chuoi';
+const PROF_COT = 'id,ten,lop,khoa_id,sinh_vien,truong_id,giang_vien,bi_ban,lan_cuoi,created_at,diem,elo,solo_thang,solo_thua,solo_hoa,avatar_url,ngay_xa_nhat,chuoi,chuoi_dai_nhat,ngay_chuoi';
 let HS = null;   // hồ sơ đang xem: {uid, who, back, self}
 // Chuỗi ngày của người khác: tính từ các cột trong profiles giống streakState()
 const chuoiCua = w => { const lit = w.ngay_chuoi === vnDate(), alive = lit || w.ngay_chuoi === vnDate(-1);
@@ -286,10 +286,12 @@ async function hoSoScreen(tab = 'stats', uid = null, back = null){
   openOv(`<div class="row" style="justify-content:space-between;align-items:center"><div class="eyebrow">${self ? tl('Hồ sơ của bạn', 'Your profile') : tl('Hồ sơ', 'Profile')}</div><button class="link" id="back">${tl('Đóng', 'Close')}</button></div>
     <div class="me has-av">${avatarHTML(w.avatar_url, w.ten, 48, 'me-av')}<div class="nm">${self ? '' : `<span class="dot" data-online="${w.id}" ${onlineSet.has(w.id) ? '' : 'hidden'}></span>`}${esc(w.ten)}${self ? '' : ' ' + stBadge(w.id)}</div>
       <div class="sub">${lopKhoaHTML(w)}</div>
+      <div class="sub hs-tg">${w.created_at ? tl(`Tham gia ${ngayThang(w.created_at)}`, `Joined ${ngayThang(w.created_at)}`) : ''}${self ? '' : ` · ${onlineSet.has(w.id) ? tl('Đang online', 'Online now') : w.lan_cuoi ? tl(`Online lần cuối ${luc(w.lan_cuoi)}`, `Last online ${luc(w.lan_cuoi)}`) : tl('Chưa thấy online', 'Not seen online yet')}`}</div>
       <div class="pts2"><div><span class="hang-row">${hangLogo(w.diem, 34)}<b>${w.diem ?? 0}</b></span><small id="hsRkD">${tl('ĐBK', 'BKP')}${self && myRank ? ` · #${myRank}` : ''}</small><small>${hangDBK(w.diem).n}</small></div>
         <div><b>${w.elo ?? 1200}</b><small id="hsRkE">${tl('Elo solo', 'Solo Elo')}</small><small>${eloTitle(w.elo, 1)}</small></div></div></div>
     ${self ? '' : `<div class="row hs-act"><button type="button" class="btn" id="hsThach" data-thach="${w.id}">${tl('Thách đấu', 'Challenge')}</button>
       <button type="button" class="btn ghost live-btn" id="hsXem" data-xem="${w.id}" hidden><i class="live-dot" aria-hidden="true"></i>${tl('Xem trực tiếp', 'Watch live')}</button>
+      <button type="button" class="btn ghost" id="hsNhan">${tl('Nhắn tin', 'Message')}</button>
       <span class="kb-row" data-kb-slot="${w.id}">${kbNut(w.id)}</span></div>`}
     <div class="tabs" role="tablist">${[['stats',tl('Thống kê', 'Stats')],['games',tl('Ván solo', 'Solo')],['runs',tl('Lượt bán', 'Runs')]].map(([k, n]) => `<button role="tab" data-t="${k}" aria-selected="${k === tab}">${n}</button>`).join('')}</div>
     <div class="col" id="hsBody"><div class="empty-state">${tl('Đang tải…', 'Loading…')}</div></div>`);
@@ -299,6 +301,7 @@ async function hoSoScreen(tab = 'stats', uid = null, back = null){
   if(!self){
     $('hsThach').onclick = () => { if(onlineSt.get(uid) === 'solo') return watchScreen(uid, me); challengeScreen(w, me) };
     $('hsXem').onclick = () => watchScreen(uid, me);
+    $('hsNhan').onclick = () => chatScreen(phongDM(user.id, uid), uid, me);
     applyPresence();
   }
   $('ov').querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-t]'); if(b) hoSoScreen(b.dataset.t, uid) };
@@ -319,7 +322,7 @@ const back2 = tab => { const uid = HS.uid; return () => hoSoScreen(tab, uid) };
 const tenHS = () => HS.self ? tl('Bạn', 'You') : tenNgan(HS.who.ten);
 async function oppMap(ids){
   if(!ids.length) return new Map();
-  const {data} = await sb.from('profiles').select('id,ten,lop,elo,avatar_url').in('id', [...new Set(ids)]);
+  const {data} = await sb.from('profiles').select('id,ten,lop,elo,avatar_url,bi_ban').in('id', [...new Set(ids)]);
   return new Map((data || []).map(p => [p.id, p]));
 }
 // Trận đã xong của một người (sau khi mở hồ sơ công khai, RLS cho đọc mọi trận đã xong nên phải lọc theo người)
@@ -338,7 +341,7 @@ async function gamesTab(body, from){
   const coBG = new Set((bg || []).map(x => x.thach_dau_id));
   const html = rows.map(v => { const p = om.get(v.opp) || {ten:tl('Người chơi', 'Player')};
     return `<button type="button" class="li game" data-id="${v.r.id}">${kqIcon(v.kq)}
-      <span class="nm with-av">${avatarHTML(p.avatar_url, p.ten, 34)}<span>${esc(p.ten)}${v.eloOpp != null ? ` <small class="muted">(${v.eloOpp})</small>` : ''}
+      <span class="nm with-av">${avatarHTML(p.avatar_url, p.ten, 34)}<span>${esc(p.ten)}${p.bi_ban ? ' ' + BAN_TAG() : ''}${v.eloOpp != null ? ` <small class="muted">(${v.eloOpp})</small>` : ''}
         <span class="sb">${DIFF[v.r.do_kho].n} · ${CHE_DO[v.r.che_do].n} · ${LY_DO[v.r.ly_do] || ''} · ${fmtNgay(v.r.ket_thuc)}</span></span></span>
       <span class="pt"><span class="elo-doi">${v.doi > 0 ? '+' : v.doi < 0 ? '−' : '±'}${Math.abs(v.doi)}</span>${coBG.has(v.r.id) ? `<small class="xem">${tl('Xem lại ›', 'Replay ›')}</small>` : ''}</span></button>` }).join('');
   if(!from) body.innerHTML = `<div class="list games" id="gList"></div>`;
