@@ -303,6 +303,10 @@ begin
   if exists (select 1 from public.runs where user_id = v_uid and bat_dau > now() - interval '5 seconds') then
     raise exception 'Thao tác quá nhanh, thử lại sau vài giây';
   end if;
+  -- bản 2.22.1: tối đa 40 lượt mỗi giờ (một lượt thật ít nhất vài chục giây)
+  if (select count(*) from public.runs where user_id = v_uid and bat_dau > now() - interval '1 hour') >= 40 then
+    raise exception 'Bạn mở quán quá nhiều lần, nghỉ một lát rồi chơi tiếp';
+  end if;
   perform public._xu_ly_bo_cuoc(v_uid);
   insert into public.runs (user_id, do_kho) values (v_uid, p_do_kho) returning id into v_id;
   return v_id;
@@ -327,6 +331,10 @@ begin
   v_giay := extract(epoch from now() - r.bat_dau);
   if v_giay < (p_so_ngay - 1) * 75 * 0.9 then
     raise exception 'Thời gian chơi không khớp với số ngày';
+  end if;
+  -- bản 2.22.1: doanh thu không vượt 60k mỗi giây chơi thật (người giỏi nhất ~47k/giây tính cả lúc mua nâng cấp)
+  if p_doanh_thu > 60 * v_giay + 300 then
+    raise exception 'Doanh thu không khớp với thời gian chơi';
   end if;
   v_hs := public.he_so(r.do_kho);
   v_delta := round(p_doanh_thu * v_hs / 10)::int - round(p_tim_mat * 15 * v_hs ^ 2)::int;
@@ -559,6 +567,7 @@ begin
       v_giay := extract(epoch from now() - t.bat_dau);
       if v_giay < (p_ngay - 1) * 75 * 0.9 then raise exception 'Thời gian không khớp'; end if;
       if p_xong and v_giay < p_ngay * 75 * 0.9 and p_tim_mat < 5 then raise exception 'Thời gian không khớp'; end if;
+      if p_doanh_thu > 60 * greatest(v_giay, 0) + 300 then raise exception 'Thời gian không khớp'; end if;   -- bản 2.22.1
       if v_a then
         update public.thach_dau set a_ngay = p_ngay, a_doanh_thu = p_doanh_thu, a_tim_mat = p_tim_mat,
           a_xong = p_xong or p_tim_mat >= 5, a_ping = now(),
@@ -1147,6 +1156,10 @@ begin
   v_hs := public.he_so(p_do_kho);
   if round(p_doanh_thu * v_hs / 10) - round(p_tim_mat * 15 * v_hs ^ 2) <= 0 then
     raise exception 'Lượt chơi thử không cộng điểm'; end if;
+  -- bản 2.22.1: lượt chơi thử không kiểm được thời gian thật nên giới hạn chặt: ≤ 10 ngày, ≤ 3000k/ngày, ≤ 1500 ĐBK
+  if p_so_ngay > 10 or p_doanh_thu > p_so_ngay * 3000
+     or round(p_doanh_thu * v_hs / 10) - round(p_tim_mat * 15 * v_hs ^ 2) > 1500 then
+    raise exception 'Kết quả không hợp lệ'; end if;
   insert into public.runs (user_id, do_kho, bat_dau) values (v_uid, p_do_kho, now() - make_interval(secs => p_so_ngay * 75))
     returning id into v_id;
   return (public.nop_ket_qua(v_id, p_so_ngay, p_doanh_thu, p_tim_mat)::jsonb || jsonb_build_object('run_id', v_id))::json;

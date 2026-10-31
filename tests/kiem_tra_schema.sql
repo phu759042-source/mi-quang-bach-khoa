@@ -50,6 +50,12 @@ begin
   exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
   begin perform public.nop_ket_qua(v_id, 3, 3000, 0); raise exception 'HONG: nộp 3 ngày sau 0 giây vẫn được';
   exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  -- Bản 2.22.1: lượt 1 ngày nộp ngay 5000k (lỗ hổng đã bị lợi dụng) phải bị chặn
+  begin perform public.nop_ket_qua(v_id, 1, 5000, 5); raise exception 'HONG: nộp 5000k sau 0 giây vẫn được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
+  perform pg_temp.dang_xuat(); update public.runs set bat_dau = now() - interval '20 seconds' where id = v_id; perform pg_temp.dang_nhap(A);
+  begin perform public.nop_ket_qua(v_id, 1, 1600, 0); raise exception 'HONG: 1600k sau 20 giây vẫn được';
+  exception when raise_exception then if sqlerrm like 'HONG%' then raise; end if; end;
   j := public.nop_ket_qua(v_id, 1, 1000, 1);
   if (j->>'delta')::int <> 150 - 34 then raise exception 'HONG: ĐBK sai, được %', j->>'delta'; end if;
   perform pg_temp.dang_xuat();                          -- thêm một lượt đang chơi: người khác không được thấy
