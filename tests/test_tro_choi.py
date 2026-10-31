@@ -185,7 +185,7 @@ class Fake:
             if u in s.prof: s.prof[u]['lan_cuoi'] = iso(now())
             return {'data': None}
         if fn == 'so_lieu_bxh':
-            ca = [p for p in s.prof.values() if p['so_luot'] > 0 and not p.get('cho_duyet')]
+            ca = [p for p in s.prof.values() if not p.get('cho_duyet')]   # bản 2.26.0: có cả người chưa bán
             return {'data': dict(ca_nhan=len(ca), sinh_vien=sum(p['sinh_vien'] for p in ca), giao_vien=sum(p['giang_vien'] for p in ca),
                                  truong_minh=sum(1 for p in ca if a.get('p_truong') and p['truong_id'] == a.get('p_truong')),
                                  truong=len({p['truong_id'] for p in ca if p['truong_id'] and p['truong_id'] != 'khac' and not p['bi_ban']}),
@@ -339,17 +339,17 @@ class Fake:
         if t in ('bxh_lop', 'bxh_khoa'):                      # bản 2.25.0: đủ để bấm vào xem danh sách
             k = 'lop' if t == 'bxh_lop' else 'khoa_id'; g = {}
             for p in s.prof.values():
-                if p['so_luot'] > 0 and p['sinh_vien'] and not p['bi_ban'] and p[k]: g.setdefault(p[k], []).append(p)
+                if p['sinh_vien'] and not p['bi_ban'] and p[k]: g.setdefault(p[k], []).append(p)
             rows = sorted([dict(lop=v[0]['lop'], khoa_id=v[0]['khoa_id'], khoa=s.khoa_ten(v[0]['khoa_id']), so_nguoi=len(v), diem=round(sum(x['diem'] for x in v) / (10 if k == 'lop' else 30))) for v in g.values()], key=lambda r: -r['diem'])
             for i, r in enumerate(rows): r['hang'] = i + 1
             return {'data': rows}
         if t == 'bxh_truong':                                 # giống view bxh_truong: tổng 30 người cao nhất / 30, bỏ "Trường khác"
             g = {}
             for p in s.prof.values():
-                if p['so_luot'] > 0 and p['truong_id'] and p['truong_id'] != 'khac': g.setdefault(p['truong_id'], []).append(p['diem'])
+                if p['truong_id'] and p['truong_id'] != 'khac': g.setdefault(p['truong_id'], []).append(p['diem'])
             rows = sorted([dict(truong_id=k, ten=next(t['ten'] for t in s.truong if t['id'] == k), ten_ngan=s.truong_ten(k),
                                 tinh=next(t['tinh'] for t in s.truong if t['id'] == k), so_nguoi=len(v), diem=round(sum(sorted(v)[-30:]) / 30)) for k, v in g.items()], key=lambda r: -r['diem'])
-            for r in rows: r['so_gv'] = sum(1 for p in s.prof.values() if p['so_luot'] > 0 and p['truong_id'] == r['truong_id'] and p['giang_vien'])
+            for r in rows: r['so_gv'] = sum(1 for p in s.prof.values() if p['truong_id'] == r['truong_id'] and p['giang_vien'])
             for i, r in enumerate(rows): r['hang'] = i + 1
             return {'data': rows}
         if t == 'profiles':
@@ -392,7 +392,8 @@ class Fake:
             rows = [dict(id=p['id'], ten=p['ten'], lop=p['lop'], khoa=s.khoa_ten(p['khoa_id']), khoa_id=p['khoa_id'], sinh_vien=p['sinh_vien'], truong_id=p['truong_id'], truong=s.truong_ten(p['truong_id']), giang_vien=p['giang_vien'], bi_ban=p['bi_ban'],
                          diem=p['diem'], hang=i + 1, hang_sv=svs.index(p) + 1 if p['sinh_vien'] else None, chuoi=0, avatar_url=None) for i, p in enumerate(ps)]
             eq = [(k, v) for k, op, v in f if op == 'eq' and k in ('sinh_vien', 'giang_vien', 'truong_id', 'lop', 'khoa_id')]
-            return {'data': [r for r in rows if all(r.get(k) == v for k, v in eq)]}
+            rows = [r for r in rows if all(r.get(k) == v for k, v in eq)]
+            return {'data': rows[:q['limit']] if q.get('limit') else rows}   # bản 2.26.0: có limit để thử nút định vị
         if t == 'bxh_solo':
             ps = sorted([p for p in s.prof.values() if p['solo_thang'] + p['solo_thua'] + p['solo_hoa']], key=lambda p: -p['elo'])
             return {'data': [dict(p, khoa=s.khoa_ten(p['khoa_id']), hang=i + 1) for i, p in enumerate(ps)]}
@@ -406,7 +407,7 @@ STUB = r"""
   const call = (kind, payload) => window.__sb(kind, JSON.stringify(payload)).then(r => JSON.parse(r));
   function q(table){
     const st={table,filters:[],single:false};
-    const b={select(){return b},order(k,o){if(o&&o.ascending)st.asc=true;return b},limit(){return b},range(){return b},neq(k,v){st.filters.push([k,'neq',v]);return b},
+    const b={select(){return b},order(k,o){if(o&&o.ascending)st.asc=true;return b},limit(n){st.limit=n;return b},range(){return b},neq(k,v){st.filters.push([k,'neq',v]);return b},
       eq(k,v){st.filters.push([k,'eq',v]);return b},gt(k,v){st.filters.push([k,'gt',v]);return b},in(k,v){st.filters.push([k,'in',v]);return b},lt(k,v){st.filters.push([k,'lt',v]);return b},or(x){st.filters.push(['_or','or',x]);return b},
       maybeSingle(){st.single=true;return b},
       then(ok,no){return call('select',st).then(ok,no)}};
@@ -875,7 +876,7 @@ with sync_playwright() as pw:
     check('Ngoài BK' in C.inner_text('#edit'), 'thẻ tên màn chính hiện nhãn "Ngoài BK"')
     C.click('#lb'); C.wait_for_selector('#lbBody .podium', timeout=5000)
     check(C.locator('[data-t="sv"]').inner_text() == 'Cá nhân', 'tab đầu đổi tên thành "Cá nhân"')
-    check('Lê Minh Anh' in C.inner_text('#lbBody') and C.locator('#lbBody .ngoai-bk').count() == 1, 'tất cả người chơi: có Minh Anh kèm nhãn Ngoài BK')
+    check('Lê Minh Anh' in C.inner_text('#lbBody') and C.locator('#lbBody > .podium .ngoai-bk, #lbBody > .list .ngoai-bk').count() == 1, 'tất cả người chơi: có Minh Anh kèm nhãn Ngoài BK')
     C.click('[data-loc="sv"]'); C.wait_for_function("!document.querySelector('#lbBody').innerText.includes('Lê Minh Anh')", timeout=5000)
     check(C.locator('#lbBody .ngoai-bk').count() == 0 and 'Nguyễn Tấn Phú' in C.inner_text('#lbBody'), 'lọc chỉ sinh viên BK: ẩn người ngoài BK')
     shot(C, 'bxh-loc-sinh-vien')
@@ -1087,10 +1088,10 @@ with sync_playwright() as pw:
     check('BK Hà Nội' in K.inner_text('#edit'), 'thẻ tên màn chính hiện tên trường thay cho "Ngoài BK"')
     K.evaluate("leaderboard('truong')"); K.wait_for_selector('#lbBody .podium', timeout=5000)
     t = K.inner_text('#lbBody')
-    check('BK Đà Nẵng' in t and 'BK Hà Nội' in t and K.locator('#lbBody .mine').count() == 1, 'bảng Trường: có BK Đà Nẵng và BK Hà Nội, tô trường của mình')
+    check('BK Đà Nẵng' in t and 'BK Hà Nội' in t and K.locator('#lbBody > .podium .mine, #lbBody > .list .mine, #lbBody > .podium.mine').count() == 1, 'bảng Trường: có BK Đà Nẵng và BK Hà Nội, tô trường của mình')
     shot(K, 'truong-02-bxh')
     K.click('[data-t="sv"]'); K.wait_for_selector('#lbBody .podium', timeout=5000)
-    check(K.locator('#lbBody .truong-tag', has_text='BK Hà Nội').count() == 1, 'bảng Cá nhân: nhãn tên trường')
+    check(K.locator('#lbBody > .podium .truong-tag, #lbBody > .list .truong-tag', has_text='BK Hà Nội').count() == 1, 'bảng Cá nhân: nhãn tên trường')
 
     print('32. Giáo viên: chọn trường mình dạy (kể cả BKĐN), nhãn GV, bộ lọc Giáo viên / Trường mình, bảng Trường đếm giáo viên')
     K.evaluate('profileScreen()'); K.wait_for_selector('[data-sv="3"]', timeout=4000)
@@ -1206,6 +1207,27 @@ with sync_playwright() as pw:
     Gp.wait_for_function("document.querySelector('#msg').textContent.includes('bị cấm')", timeout=5000)
     check(True, 'đăng ký lại bằng email bị cấm: báo "đã bị cấm vì vi phạm fair play"')
     F.qt.discard('B'); Gp.close(); Hp.close()
+
+    print('38. Bảng xếp hạng: thanh vị trí của mình ở chân màn + nút Định vị; "online lần cuối" chi tiết')
+    for i in range(60): F.prof[f'X{i}'] = dict(F.prof['B'], id=f'X{i}', ten=f'Người Thử {i}', diem=90000 + i, so_luot=1, elo=1100)
+    rk = 1 + sum(p['diem'] > F.prof['B']['diem'] for p in F.prof.values())
+    B.evaluate(f"lbLoc='tat_ca'; myRank={rk}; leaderboard('sv')"); B.wait_for_selector('#lbToi', timeout=5000)
+    check(f'#{rk}' in B.inner_text('#lbToi') and 'Phạm Gia Huy' in B.inner_text('#lbToi') and B.locator('[data-toi-dong]').count() == 0,
+          f'ngoài top 50: thanh dưới cùng ghi tên + hạng #{rk}, chưa có dòng của mình trong danh sách')
+    check(B.evaluate("getComputedStyle(document.querySelector('#lbToi')).position") == 'sticky', 'thanh vị trí dính ở chân màn (sticky)')
+    shot(B, 'bxh-dinh-vi-01')
+    B.click('#lbDinhVi'); B.wait_for_selector('[data-toi-dong]', timeout=5000)
+    B.wait_for_function("document.querySelector('#lbToi').classList.contains('an')", timeout=4000)
+    check(B.locator('#lbBody .li').count() > 50, 'bấm Định vị: tải thêm tới chỗ mình, cuộn tới, thanh dưới ẩn khi dòng của mình đang hiện')
+    shot(B, 'bxh-dinh-vi-02')
+    B.click('[data-t="solo"]'); B.wait_for_selector('#lbToi', timeout=5000)
+    check('Elo' in B.inner_text('#rule') and B.locator('#lbToi .ten-elo').count() == 1, 'tab Solo cũng có thanh vị trí của mình (tên tô màu Elo)')
+    for i in range(60): F.prof.pop(f'X{i}')
+    check('giây trước' in B.evaluate("luc(new Date(Date.now()-20e3).toISOString())") and 'phút' in B.evaluate("luc(new Date(Date.now()-300e3).toISOString())")
+          and 'giờ' in B.evaluate("luc(new Date(Date.now()-7200e3).toISOString())") and B.evaluate("luc('2026-09-01T08:00:00Z')").startswith('ngày '),
+          'online lần cuối: giây / phút / giờ / ngày dd/mm/yyyy')
+    B.evaluate("hoSoScreen('stats','B',home)"); B.wait_for_selector('.hs-tg', timeout=5000)
+    check('Đang online' in B.inner_text('.hs-tg'), 'hồ sơ của chính mình cũng hiện trạng thái online')
     C.close(); B.close(); A.close(); b.close()
 srv.terminate()
 print('\nLỗi JavaScript / kiểm tra hỏng:', len(errors))

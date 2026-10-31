@@ -190,7 +190,7 @@ begin
     or (select hang_sv from public.bxh_sinh_vien where id = '00000000-0000-0000-0000-00000000000d') is not null
     or (select hang_sv from public.bxh_sinh_vien where id = A) <> 1
     then raise exception 'HONG: hạng chung / hạng sinh viên sai khi có người ngoài BK'; end if;
-  if exists (select 1 from public.bxh_lop where lop is null) or (select sum(so_nguoi) from public.bxh_khoa) <> (select count(*) from public.profiles where so_luot > 0 and sinh_vien)
+  if exists (select 1 from public.bxh_lop where lop is null) or (select sum(so_nguoi) from public.bxh_khoa) <> (select count(*) from public.profiles where sinh_vien and khoa_id is not null and not public.bi_an_bxh(id))
     then raise exception 'HONG: người ngoài BK lọt vào bảng lớp/khoa'; end if;
   perform pg_temp.dang_nhap(A);
   if not exists (select 1 from public.tim_nguoi_choi('Người D')) then raise exception 'HONG: không tìm được người ngoài BK'; end if;
@@ -252,7 +252,7 @@ begin
   if not exists (select 1 from public.bxh_truong where truong_id = 'dut' and so_gv = 1)
     or not (select giang_vien from public.bxh_sinh_vien where id = '00000000-0000-0000-0000-000000000010')
     or exists (select 1 from public.bxh_sinh_vien where id = '00000000-0000-0000-0000-000000000010' and hang_sv is not null)
-    or (select sum(so_nguoi) from public.bxh_khoa) <> (select count(*) from public.profiles where so_luot > 0 and sinh_vien)
+    or (select sum(so_nguoi) from public.bxh_khoa) <> (select count(*) from public.profiles where sinh_vien and khoa_id is not null and not public.bi_an_bxh(id))
     then raise exception 'HONG: giáo viên trên bảng xếp hạng sai'; end if;
   perform pg_temp.dang_nhap(A);
   if not (select giang_vien from public.tim_nguoi_choi('Thầy G') limit 1) then raise exception 'HONG: tìm kiếm thiếu giang_vien'; end if;
@@ -348,6 +348,22 @@ begin
   perform pg_temp.dang_xuat();
   if (public.so_lieu_bxh('dut')->>'ca_nhan')::int < 1 then raise exception 'HONG: so_lieu_bxh'; end if;
   raise notice 'OK fair play: 3 cảnh cáo thì ban, chặn email, chặn chơi/nhắn, báo đối thủ; trò chuyện chung/riêng, chưa đọc, chống spam';
+end $$;
+
+-- Bản 2.26.0: nhịp bấm của bot, bảng xếp hạng có cả người chưa bán
+do $$ declare U uuid := '00000000-0000-0000-0000-000000000026';
+begin
+  if public._nhip_bat_thuong(jsonb_build_object('ev', (select jsonb_agg(jsonb_build_array(g * 250, 'A')) from generate_series(1, 100) g))) is null
+    then raise exception 'HONG: không bắt được bot bấm đều 250 ms'; end if;
+  if public._nhip_bat_thuong(jsonb_build_object('ev', (select jsonb_agg(jsonb_build_array(g * 30, 'V')) from generate_series(1, 100) g))) is null
+    then raise exception 'HONG: không bắt được bot bấm 30 ms'; end if;
+  if public._nhip_bat_thuong(jsonb_build_object('ev', (select jsonb_agg(jsonb_build_array(g * 450 + floor(random() * 380), 'A')) from generate_series(1, 200) g))) is not null
+    then raise exception 'HONG: bắt nhầm nhịp bấm của người'; end if;
+  if public._nhip_bat_thuong('{"ev":[[0,"D",1],[250,"A",0],[500,"A",1]]}') is not null then raise exception 'HONG: bản ghi ngắn bị bắt'; end if;
+  insert into auth.users (id, email) values (U, 'moi26@vi-du.vn') on conflict do nothing;
+  insert into public.profiles (id, ten, sinh_vien) values (U, 'Chưa Bán', false) on conflict (id) do nothing;
+  if not exists (select 1 from public.bxh_sinh_vien where id = U and diem = 0) then raise exception 'HONG: tài khoản chưa bán không hiện ở bảng Cá nhân'; end if;
+  raise notice 'OK chống bot: bắt nhịp bấm đều / quá nhanh, không bắt nhầm người; bảng Cá nhân có cả người chưa bán';
 end $$;
 
 select 'TẤT CẢ ĐỀU ĐÚNG' as ket_qua;

@@ -10,7 +10,7 @@ create schema extensions;
 
 -- auth: bảng người dùng + auth.uid() đọc từ request.jwt.claims như Supabase
 create schema auth;
-create table auth.users (id uuid primary key, email text);
+create table auth.users (id uuid primary key, email text, last_sign_in_at timestamptz);
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claims', true)::json->>'sub', '')::uuid
 $$;

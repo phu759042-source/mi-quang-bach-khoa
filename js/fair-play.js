@@ -43,15 +43,16 @@ function batBaoOnline(){
   bao(); clearInterval(onlineT); onlineT = setInterval(bao, 240e3);
 }
 
-/* "3 phút trước", "hôm qua"… */
+/* "12 giây trước", "3 phút trước", "5 giờ trước", "2 ngày trước", quá 1 tuần thì "ngày 12/10/2026" (bản 2.26.0) */
 function luc(ts){
   if(!ts) return '';
-  const s = (Date.now() - new Date(ts)) / 1000;
-  if(s < 90) return tl('vừa xong', 'just now');
-  if(s < 3600) return tl(`${Math.round(s / 60)} phút trước`, `${Math.round(s / 60)} min ago`);
-  if(s < 86400) return tl(`${Math.round(s / 3600)} giờ trước`, `${Math.round(s / 3600)} h ago`);
-  if(s < 86400 * 7) return tl(`${Math.round(s / 86400)} ngày trước`, `${Math.round(s / 86400)} days ago`);
-  return new Date(ts).toLocaleDateString(EN ? 'en-GB' : 'vi-VN');
+  const s = Math.max(0, (Date.now() - new Date(ts)) / 1000), f = Math.floor;
+  if(s < 5) return tl('vừa xong', 'just now');
+  if(s < 60) return tl(`${f(s)} giây trước`, `${f(s)} s ago`);
+  if(s < 3600) return tl(`${f(s / 60)} phút trước`, `${f(s / 60)} min ago`);
+  if(s < 86400) return tl(`${f(s / 3600)} giờ trước`, `${f(s / 3600)} h ago`);
+  if(s < 86400 * 7) return f(s / 86400) === 1 ? tl('hôm qua', 'yesterday') : tl(`${f(s / 86400)} ngày trước`, `${f(s / 86400)} days ago`);
+  return tl(`ngày ${ngayThang(ts)}`, `on ${ngayThang(ts)}`);
 }
 const ngayThang = ts => ts ? new Date(ts).toLocaleDateString(EN ? 'en-GB' : 'vi-VN', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '';
 

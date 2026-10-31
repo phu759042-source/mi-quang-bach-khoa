@@ -690,3 +690,14 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric
 .pu-bay small{font-size:11px;font-weight:700;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:2px 7px;margin-top:3px}
 @keyframes puBay{0%{opacity:0;transform:translateY(20px) scale(.6)}15%{opacity:1;transform:translateY(-10px) scale(1.1)}70%{opacity:1}100%{opacity:0;transform:translateY(-260px) scale(1)}}
 @media (prefers-reduced-motion:reduce){.pu-bay{animation-duration:1.4s}}
+/* Bản 2.26.0: thanh vị trí của mình dính ở chân bảng xếp hạng + nút định vị */
+.lb-toi{position:sticky;bottom:0;z-index:4;margin-top:6px;padding:10px 0 calc(6px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,transparent,var(--paper) 14px);transition:opacity .2s,transform .2s}
+.lb-toi.an{opacity:0;transform:translateY(10px);pointer-events:none}
+.lb-toi-in{display:flex;gap:8px;align-items:stretch}
+.lb-toi-in .li{flex:1;min-width:0;border:1.5px solid var(--turmeric);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.14),inset 3px 0 0 var(--turmeric)}
+.lb-dv{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:62px;padding:6px 8px;border:0;border-radius:12px;background:var(--navy);color:#fff;font:700 11px/1.1 var(--body);cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.14)}
+.lb-dv svg{width:22px;height:22px}
+.lb-dv:disabled{opacity:.7;cursor:default}
+.nhay{animation:nhay 1.6s ease-out}
+@keyframes nhay{0%,40%{box-shadow:0 0 0 3px var(--turmeric),inset 3px 0 0 var(--turmeric)}100%{box-shadow:inset 3px 0 0 var(--turmeric)}}
+@media (prefers-reduced-motion:reduce){.nhay{animation:none}.lb-toi{transition:none}}

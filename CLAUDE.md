@@ -96,6 +96,7 @@ Client chỉ đọc được (RLS). Mọi thao tác ghi đi qua RPC `SECURITY DE
   - Bảng xếp hạng: `so_lieu_bxh(p_truong)` → `#lbDem` (`demBxh`); bấm lớp/khoa/trường (`data-nhom`) → `nhomScreen(loai,id,ten,back)` (nhoMan `nhom`); bộ lọc "Trường mình" ẩn với sinh viên BKĐN (trùng "Sinh viên BK").
   - Solo: thả cảm xúc sau trận `puBarHTML`/`puBat`/`puBay` (Broadcast `pu:<thach_dau id>`, không lưu DB, ≤40 lần, cách nhau ≥250ms).
   - Hồ sơ `.hs-tg`: ngày tham gia (`created_at`) + đang online / online lần cuối (`lan_cuoi`).
+- Chống bot + bảng xếp hạng đủ người (bản 2.26.0, `supabase/chong-bot-2.26.0.sql` sinh bằng `_tao_2.26.0.py` từ `chong-bot-2.26.0.tay.sql`, schema.sql phần 16): `_nhip_bat_thuong(bản ghi)` xét khoảng cách giữa các lần bấm (A R P X V W): ≥60 lần (20–1500 ms) mà ≥45% rơi vào cùng ô 10 ms (bot hẹn giờ, vụ Zenith 31/10/2026: 71–84% cách nhau 250 ms; người thật ≤25%) hoặc trung vị <60 ms → `luu_ban_ghi` gọi `_danh_dau_nghi_ngo` (vào màn Quản trị). Các view `bxh_sinh_vien/lop/khoa/truong` và `so_lieu_bxh` không còn lọc `so_luot > 0` (tài khoản chưa bán hiện với 0 ĐBK). `lan_cuoi` điền sẵn từ `auth.users.last_sign_in_at`/lượt cuối. Client: `loadBoard(tab,canSolo,lim=50,dinhVi)` có thanh `#lbToi` (`.lb-toi` sticky bottom, dòng của mình `[data-toi-dong]`, nút `#lbDinhVi`: cuộn tới hoặc tải lại tới hạng+10, tối đa 1000; ẩn `.an` khi dòng của mình đang hiện); `luc()` ghi giây/phút/giờ/hôm qua/ngày, hồ sơ của chính mình cũng hiện "Đang online".
 - Điểm ĐBK của một lượt = doanh_thu·hs/10 − tim_mat·15·hs².
 
 ## Cách làm việc
